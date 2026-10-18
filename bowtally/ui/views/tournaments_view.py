@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tournament list and tournament detail (participants, score entry, results)."""
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QStackedWidget, QTabWidget, QVBoxLayout,
                                QWidget)
 
@@ -11,6 +12,7 @@ from bowtally.ui.views.participants_view import ParticipantsView
 from bowtally.ui.views.results_view import ResultsView
 from bowtally.ui.views.scoring_view import ScoringView
 from bowtally.ui.widgets.sortable_table import SortableTable
+from bowtally.ui.widgets.status_badge import StatusBadge
 
 HEADERS = ["Datum", "Name", "Ort", "Veranstalter", "Status", "Teilnehmer", "Regelwerk"]
 STATUS_ACTIONS = {"draft": "Turnier starten", "active": "Turnier abschließen"}
@@ -79,6 +81,7 @@ class TournamentsView(QWidget):
     def _detail_page(self) -> QWidget:
         w = QWidget()
         self.title = page_title("")
+        self.badge = StatusBadge()
         self.meta = QLabel()
         self.meta.setProperty("secondary", True)
         self.btn_status = button("", self._advance_status, "primary")
@@ -99,7 +102,12 @@ class TournamentsView(QWidget):
         lay = QVBoxLayout(w)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addLayout(head)
-        lay.addWidget(self.title)
+        title_row = QHBoxLayout()
+        title_row.setSpacing(12)
+        title_row.addWidget(self.title)
+        title_row.addWidget(self.badge, 0, Qt.AlignmentFlag.AlignVCenter)
+        title_row.addStretch()
+        lay.addLayout(title_row)
         lay.addWidget(self.meta)
         lay.addWidget(self.tabs, 1)
         return w
@@ -118,8 +126,8 @@ class TournamentsView(QWidget):
         self.title.setText(t.name)
         self.meta.setText(f"{t.date:%d.%m.%Y} · {t.location or '-'} · "
                           f"{t.scoring_rule.name if t.scoring_rule else '-'} · "
-                          f"{t.num_targets} Scheiben × {t.shots_per_target} Schuss · "
-                          f"Status: {ts.STATUS_LABELS[t.status]}")
+                          f"{t.num_targets} Scheiben × {t.shots_per_target} Schuss")
+        self.badge.set_status(t.status)
         action = STATUS_ACTIONS.get(t.status)
         self.btn_status.setVisible(action is not None)
         self.btn_status.setText(action or "")
