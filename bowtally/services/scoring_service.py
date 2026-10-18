@@ -133,6 +133,27 @@ def get_scores(tournament_id: int) -> dict[tuple[int, int, int], Score]:
         return {(sc.participant_id, sc.target_number, sc.shot_number): sc for sc in s.scalars(q)}
 
 
+def recent_scores(limit: int = 12) -> list[dict]:
+    """Most recently entered / changed scores across all tournaments (dashboard)."""
+    from sqlalchemy.orm import selectinload
+    from bowtally.database.models import Archer
+    with session_scope() as s:
+        q = (select(Score).options(selectinload(Score.participant)
+                                   .selectinload(TournamentParticipant.archer),
+                                   selectinload(Score.participant)
+                                   .selectinload(TournamentParticipant.tournament))
+             .order_by(Score.entered_at.desc(), Score.id.desc()).limit(limit))
+        out = []
+        for sc in s.scalars(q):
+            p = sc.participant
+            a: Archer = p.archer
+            out.append({"entered_at": sc.entered_at, "tournament_id": p.tournament_id,
+                        "tournament": p.tournament.name, "archer": f"{a.first_name} {a.last_name}",
+                        "target": sc.target_number, "shot": sc.shot_number,
+                        "points": sc.points, "zone": sc.zone_hit})
+        return out
+
+
 def set_score(participant_id: int, target: int, shot: int,
               entry: tuple[int, str | None] | None) -> None:
     """Upsert or (entry=None) delete one score."""

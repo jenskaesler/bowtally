@@ -9,19 +9,25 @@ Farben, Druckeinstellungen und Vereinsdaten sind vollständig in der Anwendung k
 
 ## Features
 
-- **Dashboard** mit laufenden Turnieren, Schnellzugriff auf das letzte Turnier und Schützenanzahl
-- **Schützen-Stammdaten** mit Suche, Soft-Delete, Import (CSV/XLSX/ODS mit Spalten-Mapping,
-  Vorschau, Validierung und Duplikat-Strategie) und Export
-- **Regelwerke** (IBO 3D, ASA 3D, WA 3D eingebaut) – schreibgeschützt, klonbar, mit Zonen-Editor
+- **Dashboard** mit aktiven Turnieren, nächstem Turnier, Schützen/Vereinen und letzter Aktivität
+- **Schützen-Stammdaten** mit Suche, Status (aktiv/inaktiv), Löschen bzw. Deaktivieren, Import
+  (CSV/XLSX/ODS mit Spalten-Mapping, Vorschau, Validierung und Duplikat-Strategie) und Export
+- **Regelwerke** (IBO 3D, ASA 3D, WA 3D eingebaut) – schreibgeschützt, klonbar, Zonen-Editor mit
+  Drag-and-Drop
 - **Bogenklassen** – zehn Standardklassen, klonbar, Reihenfolge per Drag-and-Drop
-- **Turnier-Wizard** in fünf Schritten (Grunddaten, Regelwerk, Klassen, Konfiguration, Zusammenfassung)
-- **Teilnehmerverwaltung** mit automatischer Startnummern- und Startgruppenvergabe und Listen-Import
-- **Ergebniseingabe** als Tabelle (Zahl oder Zonen-Auswahl), sofortiges Speichern, Live-Summen
+- **Turnier-Wizard** in fünf Schritten mit Fortschrittsanzeige und Bearbeiten-Sprüngen
+- **Teilnehmerverwaltung** mit Schützen-Auswahl, Inline-Bearbeitung von Klasse/Gruppe,
+  Sammelaktionen, automatischer Startnummernvergabe und Listen-Import
+- **Ergebniseingabe** komplett per Tastatur (Zahl oder Zone, Enter/↓/↑/Tab), eingefrorene Namens-
+  und Summenspalten, Farbmarkierung für Top-Treffer und Fehlschüsse, Klassen- und Gruppenfilter,
+  sofortiges Speichern
 - **Status-Workflow** Entwurf → Aktiv → Abgeschlossen (abgeschlossene Turniere sind gesperrt)
-- **Ranglisten** je Bogenklasse und gesamt, konfigurierbarer Tie-Break, Export CSV/XLSX/ODS
-- **Druckfertige Ergebnisliste** als PDF per Knopfdruck (Deckblatt mit Vereinslogo, eine Seite je Klasse,
-  Podiumsplätze hervorgehoben)
-- **Theming**: alle Farben und die Schriftart sind in den Einstellungen änderbar (Live-Vorschau)
+- **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo“ bei Gleichstand,
+  konfigurierbarer Tie-Break, Export CSV/XLSX/ODS
+- **Druckfertige Ergebnisliste** als PDF (Deckblatt mit Vereinslogo, eine Seite je Klasse)
+- **Bedienung**: Seitenpanel statt Dialoge, Inline-Validierung, Benachrichtigungen, Tastenkürzel
+  (Strg+N/F/S, F5, F1 für die Übersicht)
+- **Theming**: Hell, Dunkel oder wie Windows; alle Farben und die Schriftart sind änderbar
 
 ## Anforderungen
 

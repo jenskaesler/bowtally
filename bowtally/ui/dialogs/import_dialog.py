@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog
 from bowtally.io import importer
 from bowtally.services import ValidationError
 from bowtally.ui import show_error
-from bowtally.ui.widgets.sortable_table import display
+from bowtally.ui.components.data_table import display
 
 UNMAPPED = "(nicht zuordnen)"
 

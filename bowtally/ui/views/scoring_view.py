@@ -1,40 +1,140 @@
 # -*- coding: utf-8 -*-
-"""Score entry grid: rows = participants, columns = targets (x shots)."""
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QLabel, QLineEdit,
-                               QStyledItemDelegate, QTableWidget, QTableWidgetItem, QVBoxLayout,
-                               QWidget)
+"""Score entry grid: rows = participants, columns = targets (x shots).
+
+Three views share one model: frozen left (start number, name, class), scrollable middle
+(scores) and frozen right (total). Every committed cell is saved immediately.
+
+Keyboard: Tab / Shift+Tab horizontal, Enter / Down next participant, Up previous,
+Escape cancels the edit. Focusing a cell starts editing and opens the zone list.
+"""
+from datetime import datetime
+
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QStringListModel, Qt, QTimer, \
+    Signal
+from PySide6.QtGui import QBrush, QColor, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QComboBox, QCompleter,
+                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMenu,
+                               QStyledItemDelegate, QTabBar, QTableView, QVBoxLayout, QWidget)
+
+from shiboken6 import isValid
 
 from bowtally.services import scoring_service as sc
-from bowtally.ui import show_error, theme
-from bowtally.ui.widgets.sortable_table import ROW_HEIGHT
+from bowtally.ui import busy, button, show_error, theme
+from bowtally.ui.components.confirm_dialog import ConfirmDialog
+from bowtally.ui.components.data_table import ROW_HEIGHT
+from bowtally.ui.components.search_bar import SearchBar
+from bowtally.ui.components.toast import Toast
 
-FIXED_COLS = 3          # start number, name, class
-CELL_ROLE = Qt.ItemDataRole.UserRole + 1   # (participant_id, target, shot)
+FIXED = 3                                 # start number, name, class
+CELL_ROLE = Qt.ItemDataRole.UserRole + 1  # (participant_id, target, shot)
+CLASS_ROLE = Qt.ItemDataRole.UserRole + 2
+GROUP_ROLE = Qt.ItemDataRole.UserRole + 3
+ALL = "__all__"
+HIDDEN_BAR_QSS = ("QScrollBar { background: transparent; } "
+                  "QScrollBar::handle { background: transparent; }")
 
 
-class ZoneDelegate(QStyledItemDelegate):
-    """Editable combo: pick a zone or type a number directly."""
+def zone_label(z: dict) -> str:
+    return f"{z['zone']} ({z['points']})"
+
+
+class ScoreDelegate(QStyledItemDelegate):
+    """Line edit with zone completer; handles vertical navigation keys."""
+    moveRequested = Signal(QPersistentModelIndex, int)   # index, row delta
 
     def __init__(self, zones: list[dict], parent=None):
         super().__init__(parent)
-        self.zones = zones
+        self.labels = [zone_label(z) for z in zones]
+        self._editor = None
+        self._index = None
 
     def createEditor(self, parent, option, index):
-        cb = QComboBox(parent)
-        cb.setEditable(True)
-        cb.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        cb.addItem("")
-        cb.addItems([f"{z['zone']} ({z['points']})" for z in self.zones])
-        return cb
+        editor = QLineEdit(parent)
+        editor.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        completer = QCompleter(QStringListModel(self.labels, editor), editor)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        completer.setMaxVisibleItems(len(self.labels))
+        editor.setCompleter(completer)
+        completer.activated[str].connect(lambda text: self._pick(editor, text))
+        completer.popup().installEventFilter(self)
+        editor.installEventFilter(self)
+        editor.destroyed.connect(self._forget)
+        self._editor, self._index = editor, QPersistentModelIndex(index)
+        QTimer.singleShot(0, lambda: self._show_all(editor))
+        return editor
+
+    def _forget(self, *_):
+        self._editor = None
+
+    def _show_all(self, editor):
+        if editor is self._editor and isValid(editor) and editor.hasFocus()                 and editor.completer():
+            editor.completer().setCompletionPrefix("")
+            editor.completer().complete()
 
     def setEditorData(self, editor, index):
-        editor.setCurrentText(index.data() or "")
-        editor.lineEdit().selectAll()
+        editor.setText(index.data() or "")
+        editor.selectAll()
 
     def setModelData(self, editor, model, index):
-        model.setData(index, editor.currentText())
+        model.setData(index, editor.text().strip())
+
+    def _pick(self, editor, text):
+        editor.setText(text)
+        self._commit_and_move(editor, 1)
+
+    def _commit_and_move(self, editor, delta: int):
+        index = self._index
+        self.commitData.emit(editor)
+        self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.NoHint)
+        self.moveRequested.emit(index, delta)
+
+    def eventFilter(self, obj, event):
+        editor = self._editor
+        if event.type() != event.Type.KeyPress or editor is None or not isValid(editor)                 or (obj is not editor and obj is not editor.completer().popup()):
+            return False if obj is not editor else super().eventFilter(obj, event)
+        popup = editor.completer().popup() if editor.completer() else None
+        key = event.key()
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if obj is popup and popup.currentIndex().isValid():
+                editor.setText(popup.currentIndex().data())
+            if popup is not None:
+                popup.hide()
+            self._commit_and_move(editor, 1)
+            return True
+        if key in (Qt.Key.Key_Down, Qt.Key.Key_Up):
+            if popup is not None:
+                popup.hide()
+            self._commit_and_move(editor, 1 if key == Qt.Key.Key_Down else -1)
+            return True
+        if key == Qt.Key.Key_Escape:
+            # discard the input; keep the focus in the grid (not in the next widget)
+            if popup is not None:
+                popup.hide()
+            self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.RevertModelCache)
+            self.parent().setFocus()
+            return True
+        if obj is popup and key in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab):
+            popup.hide()
+            return super().eventFilter(editor, event)
+        if obj is popup:
+            return False
+        return super().eventFilter(obj, event)
+
+
+def _frozen_view(model) -> QTableView:
+    v = QTableView()
+    v.setModel(model)
+    v.verticalHeader().hide()
+    v.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+    v.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+    v.horizontalHeader().setFixedHeight(36)
+    v.horizontalHeader().setHighlightSections(False)
+    v.setAlternatingRowColors(True)
+    v.setWordWrap(False)
+    v.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+    return v
 
 
 class ScoringView(QWidget):
@@ -42,92 +142,199 @@ class ScoringView(QWidget):
         super().__init__(parent)
         self.tournament = None
         self._loading = False
-        self.table = QTableWidget()
-        self.table.setAlternatingRowColors(True)
-        self.table.verticalHeader().hide()
-        self.table.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
-        self.table.horizontalHeader().setHighlightSections(False)
-        self.table.itemChanged.connect(self._on_changed)
-        self.filter = QLineEdit()
-        self.filter.setPlaceholderText("Teilnehmer filtern (Name / Startnummer) ...")
-        self.filter.setClearButtonEnabled(True)
-        self.filter.textChanged.connect(self._apply_filter)
-        self.status = QLabel()
-        self.status.setProperty("secondary", True)
-        top = QHBoxLayout()
-        top.addWidget(self.filter, 1)
-        hint = QLabel("Eingabe: Zahl oder Zone wählen. Jede Eingabe wird sofort gespeichert.")
-        hint.setProperty("secondary", True)
-        top.addWidget(hint)
-        lay = QVBoxLayout(self)
-        lay.addLayout(top)
-        lay.addWidget(self.table, 1)
-        lay.addWidget(self.status)
+        self._stay = None
+        self.cols: list[tuple[int, int]] = []
+        self.model = QStandardItemModel(self)
+        self.model.itemChanged.connect(self._on_changed)
 
+        self.left, self.mid, self.right = (_frozen_view(self.model) for _ in range(3))
+        for v in (self.left, self.right):
+            v.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            v.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+            v.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            v.horizontalScrollBar().setStyleSheet(HIDDEN_BAR_QSS)
+        self.left.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.mid.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.mid.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.mid.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectItems)
+        self.mid.setTabKeyNavigation(True)
+        bars = [v.verticalScrollBar() for v in (self.left, self.mid, self.right)]
+        for a in bars:
+            for b in bars:
+                if a is not b:
+                    a.valueChanged.connect(b.setValue)
+        header = self.mid.horizontalHeader()
+        header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self._header_menu)
+        header.setToolTip("Rechtsklick: Scheibe für alle sichtbaren Teilnehmer setzen")
+
+        self.class_tabs = QTabBar()
+        self.class_tabs.setDrawBase(False)
+        self.class_tabs.setExpanding(False)
+        self.class_tabs.currentChanged.connect(lambda _i: self._apply_filter())
+        self.group_filter = QComboBox()
+        self.group_filter.setToolTip("Nach Startgruppe filtern")
+        self.group_filter.currentIndexChanged.connect(lambda _i: self._apply_filter())
+        self.search = SearchBar("Name oder Startnummer …")
+        self.search.searchChanged.connect(lambda _t: self._apply_filter())
+        self.save_btn = button("Speichern", self.save, "primary",
+                               "Alle Eingaben speichern (Strg+S). Jede Zelle wird zusätzlich "
+                               "sofort beim Verlassen gespeichert.")
+        bar = QHBoxLayout()
+        bar.addWidget(self.class_tabs, 1)
+        bar.addWidget(self.group_filter)
+        bar.addWidget(self.search)
+        bar.addWidget(self.save_btn)
+
+        grid = QHBoxLayout()
+        grid.setSpacing(0)
+        grid.addWidget(self.left)
+        grid.addWidget(self.mid, 1)
+        grid.addWidget(self.right)
+        self.hint = QLabel(objectName="pageSubtitle")
+        self.hint.setWordWrap(True)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 12, 0, 0)
+        lay.addLayout(bar)
+        lay.addLayout(grid, 1)
+        lay.addWidget(self.hint)
+        theme.notifier.changed.connect(self._recolor_all)
+
+    # ------------------------------------------------------------ build
     def set_tournament(self, t):
         self.tournament = t
         self.zones = t.scoring_rule.ring_values if t.scoring_rule else []
-        self.table.setItemDelegate(ZoneDelegate(self.zones, self.table))
+        self.top_points = max((z["points"] for z in self.zones), default=None)
+        self.delegate = ScoreDelegate(self.zones, self.mid)
+        self.delegate.moveRequested.connect(self._move)
+        self.mid.setItemDelegate(self.delegate)
         shots = t.shots_per_target
         self.cols = [(tg, s) for tg in range(1, t.num_targets + 1) for s in range(1, shots + 1)]
-        headers = ["St.-Nr.", "Name", "Klasse"] + [
+        headers = ["Nr.", "Name", "Klasse"] + [
             str(tg) if shots == 1 else f"{tg}.{s}" for tg, s in self.cols] + ["Gesamt"]
-        scores = sc.get_scores(t.id)
+        with busy():
+            scores = sc.get_scores(t.id)
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
-        self._loading = True
-        self.table.clear()
-        self.table.setColumnCount(len(headers))
-        self.table.setHorizontalHeaderLabels(headers)
-        self.table.setRowCount(len(parts))
         locked = t.status == "closed"
-        for r, p in enumerate(parts):
-            for c, text in enumerate([str(p.start_number or ""),
-                                      f"{p.archer.last_name}, {p.archer.first_name}",
-                                      p.bow_class.abbreviation or p.bow_class.name
-                                      if p.bow_class else "-"]):
-                it = QTableWidgetItem(text)
-                it.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                it.setData(CELL_ROLE, p.id)
-                self.table.setItem(r, c, it)
-            for c, (tg, s) in enumerate(self.cols, start=FIXED_COLS):
+        right_align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        self._loading = True
+        self.model.clear()
+        self.model.setHorizontalHeaderLabels(headers)
+        for p in parts:
+            row = []
+            for text in (str(p.start_number or ""), f"{p.archer.last_name}, {p.archer.first_name}",
+                         (p.bow_class.abbreviation or p.bow_class.name) if p.bow_class else "–"):
+                it = QStandardItem(text)
+                it.setEditable(False)
+                it.setData(p.bow_class_id, CLASS_ROLE)
+                it.setData(p.start_group or "", GROUP_ROLE)
+                row.append(it)
+            row[0].setTextAlignment(right_align)
+            for tg, s in self.cols:
                 score = scores.get((p.id, tg, s))
-                it = QTableWidgetItem("" if score is None else str(score.points))
-                it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                it.setData(CELL_ROLE, (p.id, tg, s))
+                it = QStandardItem("" if score is None else str(score.points))
+                it.setTextAlignment(right_align)
+                it.setData((p.id, tg, s), CELL_ROLE)
+                it.setEditable(not locked)
                 if score is not None and score.zone_hit:
                     it.setToolTip(score.zone_hit)
-                if locked:
-                    it.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                self.table.setItem(r, c, it)
-            total = QTableWidgetItem()
-            total.setFlags(Qt.ItemFlag.ItemIsEnabled)
-            total.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                row.append(it)
+            total = QStandardItem()
+            total.setEditable(False)
+            total.setTextAlignment(right_align)
             f = total.font()
             f.setBold(True)
             total.setFont(f)
-            self.table.setItem(r, len(headers) - 1, total)
-            self._update_total(r)
+            row.append(total)
+            self.model.appendRow(row)
+            self._update_total(self.model.rowCount() - 1)
         self._loading = False
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers if locked else
-                                   QAbstractItemView.EditTrigger.AllEditTriggers)
-        self.table.resizeColumnsToContents()
-        for c in range(FIXED_COLS, len(headers) - 1):
-            self.table.setColumnWidth(c, max(self.table.columnWidth(c), 44))
-        self.status.setText("Turnier abgeschlossen – Eingaben gesperrt." if locked else
-                            f"{len(parts)} Teilnehmer · {t.num_targets} Scheiben")
-        self._apply_filter(self.filter.text())
+        self._recolor_all()
+
+        last = len(headers) - 1
+        for c in range(len(headers)):
+            self.left.setColumnHidden(c, c >= FIXED)
+            self.mid.setColumnHidden(c, c < FIXED or c == last)
+            self.right.setColumnHidden(c, c != last)
+        self.left.resizeColumnsToContents()
+        self.left.setColumnWidth(1, max(self.left.columnWidth(1), 160))
+        self.left.setFixedWidth(sum(self.left.columnWidth(c) for c in range(FIXED)) + 2)
+        self.right.setColumnWidth(last, 76)
+        self.right.setFixedWidth(76 + self.right.verticalScrollBar().sizeHint().width() + 2)
+        for c in range(FIXED, last):
+            self.mid.setColumnWidth(c, 52)
+        self.mid.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers if locked else
+            QAbstractItemView.EditTrigger.CurrentChanged
+            | QAbstractItemView.EditTrigger.AnyKeyPressed
+            | QAbstractItemView.EditTrigger.DoubleClicked)
+        self.save_btn.setEnabled(not locked)
+
+        current_cls = self.class_tabs.tabData(self.class_tabs.currentIndex()) \
+            if self.class_tabs.count() else ALL
+        self.class_tabs.blockSignals(True)
+        while self.class_tabs.count():
+            self.class_tabs.removeTab(0)
+        self.class_tabs.addTab(f"Alle ({len(parts)})")
+        self.class_tabs.setTabData(0, ALL)
+        for bc in t.bow_classes:
+            n = sum(p.bow_class_id == bc.id for p in parts)
+            if n:
+                i = self.class_tabs.addTab(f"{bc.abbreviation or bc.name} ({n})")
+                self.class_tabs.setTabData(i, bc.id)
+                self.class_tabs.setTabToolTip(i, bc.name)
+        for i in range(self.class_tabs.count()):
+            if self.class_tabs.tabData(i) == current_cls:
+                self.class_tabs.setCurrentIndex(i)
+        self.class_tabs.blockSignals(False)
+        groups = sorted({p.start_group for p in parts if p.start_group})
+        current_grp = self.group_filter.currentData()
+        self.group_filter.blockSignals(True)
+        self.group_filter.clear()
+        self.group_filter.addItem("Alle Gruppen", ALL)
+        for g in groups:
+            self.group_filter.addItem(f"Gruppe {g}", g)
+        self.group_filter.setCurrentIndex(max(0, self.group_filter.findData(current_grp)))
+        self.group_filter.setVisible(bool(groups))
+        self.group_filter.blockSignals(False)
+        self._apply_filter()
+
+        self.hint.setText(
+            "Turnier abgeschlossen – Eingaben gesperrt." if locked else
+            "Zahl tippen oder Zone wählen · Enter/↓ nächster Teilnehmer · ↑ vorheriger · "
+            "Tab nächste Scheibe · Esc verwirft die Eingabe · jede Zelle wird sofort gespeichert")
+
+    # ------------------------------------------------------------ cell logic
+    def _score_columns(self):
+        return range(FIXED, FIXED + len(self.cols))
+
+    def _recolor(self, item: QStandardItem):
+        t = theme.current()
+        text = item.text()
+        if text and self.top_points and text == str(self.top_points):
+            item.setBackground(QBrush(QColor(t["success_soft"])))
+        elif text == "0":
+            item.setBackground(QBrush(QColor(t["miss_soft"])))
+        else:
+            item.setBackground(QBrush())
+
+    def _recolor_all(self):
+        if not self.cols:
+            return
+        was, self._loading = self._loading, True
+        for r in range(self.model.rowCount()):
+            for c in self._score_columns():
+                self._recolor(self.model.item(r, c))
+        self._loading = was
 
     def _update_total(self, row: int):
-        total = 0
-        for c in range(FIXED_COLS, FIXED_COLS + len(self.cols)):
-            text = self.table.item(row, c).text()
-            total += int(text) if text.lstrip("-").isdigit() else 0
-        self.table.item(row, FIXED_COLS + len(self.cols)).setText(str(total))
+        total = sum(int(self.model.item(row, c).text()) for c in self._score_columns()
+                    if self.model.item(row, c).text().lstrip("-").isdigit())
+        self.model.item(row, FIXED + len(self.cols)).setText(str(total))
 
-    def _on_changed(self, item: QTableWidgetItem):
-        if self._loading or item.column() < FIXED_COLS or \
-                item.column() >= FIXED_COLS + len(self.cols):
+    def _on_changed(self, item: QStandardItem):
+        if self._loading or item.data(CELL_ROLE) is None:
             return
         pid, target, shot = item.data(CELL_ROLE)
         self._loading = True
@@ -136,21 +343,105 @@ class ScoringView(QWidget):
             sc.set_score(pid, target, shot, entry)
             item.setText("" if entry is None else str(entry[0]))
             item.setToolTip(entry[1] or "" if entry else "")
-            item.setBackground(QBrush())
+            self._mark_saved()
         except Exception as exc:
-            error = QColor(theme.current()["accent"])
-            error.setAlpha(70)
-            item.setBackground(QBrush(error))
             show_error(self, exc)
-            # restore the persisted value
             stored = sc.get_scores(self.tournament.id).get((pid, target, shot))
             item.setText("" if stored is None else str(stored.points))
+            self._stay = QPersistentModelIndex(item.index())
         finally:
+            self._recolor(item)
+            self._update_total(item.row())
             self._loading = False
-        self._update_total(item.row())
 
-    def _apply_filter(self, text: str):
-        text = text.strip().lower()
-        for r in range(self.table.rowCount()):
-            hay = " ".join(self.table.item(r, c).text().lower() for c in range(FIXED_COLS))
-            self.table.setRowHidden(r, bool(text) and text not in hay)
+    def _mark_saved(self):
+        bar = self.window().statusBar() if self.window() else None
+        if bar is not None and hasattr(bar, "set_info"):
+            bar.set_info(f"Zuletzt gespeichert: {datetime.now():%H:%M:%S}")
+
+    def _move(self, index: QPersistentModelIndex, delta: int):
+        def go():
+            if self._stay is not None and self._stay.isValid():
+                target = QModelIndex(self._stay)
+                self._stay = None
+            else:
+                row = index.row() + delta
+                while 0 <= row < self.model.rowCount() and self.mid.isRowHidden(row):
+                    row += delta
+                if not 0 <= row < self.model.rowCount():
+                    return
+                target = self.model.index(row, index.column())
+            # focus first: the editor opened by setCurrentIndex must keep the keyboard focus
+            self.mid.setFocus()
+            self.mid.setCurrentIndex(target)
+            self.mid.scrollTo(target)
+        QTimer.singleShot(0, go)
+
+    # ------------------------------------------------------------ filter
+    def _apply_filter(self):
+        cls = self.class_tabs.tabData(self.class_tabs.currentIndex()) \
+            if self.class_tabs.count() else ALL
+        group = self.group_filter.currentData() or ALL
+        term = self.search.term().lower()
+        for r in range(self.model.rowCount()):
+            first = self.model.item(r, 0)
+            hay = f"{first.text()} {self.model.item(r, 1).text()}".lower()
+            hidden = (cls != ALL and first.data(CLASS_ROLE) != cls) or \
+                (group != ALL and first.data(GROUP_ROLE) != group) or \
+                (bool(term) and term not in hay)
+            for v in (self.left, self.mid, self.right):
+                v.setRowHidden(r, hidden)
+
+    def _visible_rows(self):
+        return [r for r in range(self.model.rowCount()) if not self.mid.isRowHidden(r)]
+
+    # ------------------------------------------------------------ bulk + save
+    def _header_menu(self, pos):
+        if self.tournament is None or self.tournament.status == "closed":
+            return
+        col = self.mid.horizontalHeader().logicalIndexAt(pos)
+        if col not in self._score_columns():
+            return
+        target, shot = self.cols[col - FIXED]
+        label = f"Scheibe {target}" + (f", Schuss {shot}" if self.tournament.shots_per_target > 1
+                                       else "")
+        m = QMenu(self)
+        sub = m.addMenu(f"{label} für alle auf … setzen")
+        for z in self.zones:
+            sub.addAction(zone_label(z)).triggered.connect(
+                lambda _=False, zz=z, c=col, lb=label: self._fill_column(c, zz, lb))
+        m.exec(self.mid.horizontalHeader().mapToGlobal(pos))
+
+    def _fill_column(self, col: int, zone: dict, label: str):
+        rows = self._visible_rows()
+        existing = sum(bool(self.model.item(r, col).text()) for r in rows)
+        text = f"{label} wird für {len(rows)} sichtbare Teilnehmer auf " \
+               f"„{zone_label(zone)}“ gesetzt."
+        if existing:
+            text += f"\n\n{existing} vorhandene Werte werden überschrieben."
+        if not ConfirmDialog.ask(self, "Werte für alle setzen?", text, "Setzen",
+                                 destructive=bool(existing)):
+            return
+        with busy():
+            for r in rows:
+                pid, target, shot = self.model.item(r, col).data(CELL_ROLE)
+                sc.set_score(pid, target, shot, (zone["points"], zone["zone"]))
+        self._mark_saved()
+        Toast.show(self, f"{label}: {len(rows)} Werte gesetzt", Toast.SUCCESS)
+        self.set_tournament(self.tournament)
+
+    def save(self):
+        """Cells are persisted on commit; this commits an open editor and confirms."""
+        if self.tournament is None or self.tournament.status == "closed":
+            return
+        self.mid.setFocus()   # closes an open editor -> commit
+        self._mark_saved()
+        Toast.show(self, "Alle Eingaben sind gespeichert", Toast.SUCCESS)
+
+    # global shortcuts
+    def shortcut_save(self):
+        self.save()
+
+    def shortcut_find(self):
+        self.search.setFocus()
+        self.search.selectAll()
