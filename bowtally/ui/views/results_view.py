@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QTabWidget, QVBo
 from bowtally.reports.result_list import build_result_list, temp_pdf_path
 from bowtally.services import ranking_service as rs
 from bowtally.services import settings_service as ss
+from bowtally.services import tournament_service as ts
 from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.data_table import Cell, DataTable
 from bowtally.ui.components.empty_state import EmptyState
@@ -16,7 +17,7 @@ from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button, open_path
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
-NOT_PRINTABLE = "Ergebnisliste erst ab Status „Aktiv“ verfügbar"
+NOT_PRINTABLE = "Ergebnisliste erst ab der Phase „Schießen“ verfügbar"
 
 
 class _PdfWorker(QThread):
@@ -74,7 +75,7 @@ class ResultsView(QWidget):
     def set_tournament(self, t):
         first_time = self.tournament is None or self.tournament.id != t.id
         self.tournament = t
-        printable = t.status in ("active", "closed")
+        printable = ts.phase_index(t.phase) >= ts.phase_index("shooting")
         for b in (self.btn_pdf, self.btn_save_pdf):
             b.setEnabled(printable and self._worker is None)
             b.setToolTip(b.toolTip() if printable else NOT_PRINTABLE)
@@ -154,6 +155,7 @@ class ResultsView(QWidget):
         if isinstance(result, Exception):
             show_error(self, result, "Ergebnisliste konnte nicht erstellt werden")
             return
+        ts.mark_results_generated(self.tournament.id)
         Toast.show(self, f"Ergebnisliste erstellt: {result.name}", Toast.SUCCESS,
                    ("Öffnen", lambda: open_path(self, result)))
 

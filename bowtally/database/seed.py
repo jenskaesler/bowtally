@@ -2,7 +2,7 @@
 """Initial data set: settings, builtin scoring rules and bow classes."""
 from sqlalchemy.orm import Session
 
-from bowtally.database.models import AppSetting, BowClass, ClubProfile, ScoringRule
+from bowtally.database.models import AppSetting, BowClass, ClubProfile, EntryFee, ScoringRule
 
 # (key, value, category, value_type, description)
 DEFAULT_SETTINGS = [
@@ -31,7 +31,54 @@ DEFAULT_SETTINGS = [
     ("result_auto_rank", "true", "behavior", "boolean",
      "Rang automatisch neu berechnen bei Änderung"),
     ("ui_language", "de", "ui", "string", "Sprache (Vorbereitung für i18n, aktuell nur de)"),
+    ("announcement_payment_hint",
+     "Überweisungen ohne vorherige Anmeldung werden nicht als Startgeld anerkannt und gehen "
+     "als Spende an den Verein.", "templates", "string",
+     "Ausschreibung: Hinweis zur Überweisung"),
+    ("announcement_group_hint",
+     "Die Gruppeneinteilung erfolgt selbstständig durch die Teilnehmer beim Einschreiben.",
+     "templates", "string", "Ausschreibung: Hinweis zur Gruppeneinteilung"),
+    ("default_legal_notes",
+     "Die Teilnahme erfolgt auf eigene Gefahr und eigenes Risiko.\n"
+     "Jeder Schütze haftet für seinen Schuss.\n"
+     "Für Sach- und Personenschäden übernimmt der Veranstalter keine Haftung.\n"
+     "Eltern haften für ihre Kinder.\n"
+     "Aus sicherheitstechnischen Gründen ist die Teilnahme von Zuschauern am Turniergelände "
+     "leider nicht möglich.", "templates", "string",
+     "Vorbelegung „Wichtige Hinweise“ für neue Turniere (eine Zeile je Hinweis)"),
+    ("print_announcement_logo_footer", "true", "print", "boolean",
+     "Vereinslogo klein am Ende der Ausschreibung wiederholen"),
+    ("last_active_tournament_id", "", "internal", "string",
+     "Zuletzt geöffnetes Turnier (wird beim Start wiederhergestellt)"),
 ]
+
+# Reference data, inserted by migration 0003 (key, label, sort_order, description)
+TOURNAMENT_PHASES = [
+    ("announcement", "Ausschreibung", 1,
+     "Das Turnier wird geplant und ausgeschrieben. Lege Kontakt- und Bankdaten sowie die "
+     "Startgebühren fest und erstelle das Ausschreibungs-PDF zum Versenden."),
+    ("preparation", "Vorbereitung", 2,
+     "Die Ausschreibung ist versendet. Jetzt werden Parcours und Helfer geplant und die "
+     "Anmeldung vorbereitet."),
+    ("registration", "Anmeldung", 3,
+     "Anmeldungen gehen ein. Erfasse Teilnehmer, bestätige Anmeldungen und verbuche "
+     "Zahlungseingänge."),
+    ("checkin", "Einschreibung", 4,
+     "Turniertag: Die Teilnehmer melden sich vor Ort an. Checke sie in der Einschreibe-Ansicht "
+     "ein und kläre offene Zahlungen."),
+    ("shooting", "Schießen", 5,
+     "Der Parcours läuft. Trage die Ergebnisse der Schießkarten ein und behalte den "
+     "Fortschritt je Klasse im Blick."),
+    ("scoring", "Auswertung", 6,
+     "Alle Gruppen sind zurück. Prüfe die Ergebnisse auf Vollständigkeit, erstelle die "
+     "Ergebnisliste und bereite die Siegerehrung vor."),
+    ("closed", "Abgeschlossen", 7,
+     "Das Turnier ist beendet. Ergebnisse und Teilnehmerdaten sind gesperrt und bleiben "
+     "für Auswertungen und Exporte erhalten."),
+]
+
+# (name, amount) templates with tournament_id = NULL
+DEFAULT_ENTRY_FEES = [("Erwachsene", 20.00), ("Schüler und Jugendliche", 10.00)]
 
 DEFAULT_SCORING_RULES = [
     {
@@ -110,3 +157,5 @@ def run(session: Session) -> None:
     for i, (name, abbr, age) in enumerate(DEFAULT_BOW_CLASSES, start=1):
         session.add(BowClass(name=name, abbreviation=abbr, age_group=age,
                              is_builtin=True, sort_order=i))
+    for i, (name, amount) in enumerate(DEFAULT_ENTRY_FEES, start=1):
+        session.add(EntryFee(tournament_id=None, name=name, amount=amount, sort_order=i))

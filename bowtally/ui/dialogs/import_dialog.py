@@ -16,8 +16,11 @@ UNMAPPED = "(nicht zuordnen)"
 
 class ImportDialog(QDialog):
     def __init__(self, path: str, headers: list[str], rows: list[list],
-                 fields: list[importer.ImportField], title: str, parent=None):
+                 fields: list[importer.ImportField], title: str, parent=None,
+                 extra_check=None):
+        """extra_check(records, strategy) -> error text or None (blocks the import)."""
         super().__init__(parent)
+        self.extra_check = extra_check
         self.setWindowTitle(title)
         self.resize(900, 700)
         self.headers, self.rows, self.fields = headers, rows, fields
@@ -52,6 +55,7 @@ class ImportDialog(QDialog):
         self.strategy = QComboBox()
         for key, label in importer.DUPLICATE_STRATEGIES.items():
             self.strategy.addItem(label, key)
+        self.strategy.currentIndexChanged.connect(self._update)
         strat_row = QHBoxLayout()
         strat_row.addWidget(QLabel("Duplikate:"))
         strat_row.addWidget(self.strategy)
@@ -112,11 +116,15 @@ class ImportDialog(QDialog):
         self.records, errors = importer.convert_rows(self.rows, mapping, self.fields)
         lines = [f"{len(self.records)} gültige Zeilen, {len(errors)} fehlerhaft"
                  + (" (werden übersprungen)." if errors else ".")] + errors
+        blocker = self.extra_check(self.records, self.duplicate_strategy()) \
+            if self.extra_check and self.records else None
+        if blocker:
+            lines.insert(0, f"FEHLER: {blocker}. Import nicht möglich.")
         self.report.setPlainText("\n".join(lines))
-        self.ok.setEnabled(bool(self.records))
+        self.ok.setEnabled(bool(self.records) and not blocker)
 
 
-def run_import(parent, fields, title: str):
+def run_import(parent, fields, title: str, extra_check=None):
     """File dialog + mapping dialog. Returns (records, strategy) or None if cancelled."""
     path, _ = QFileDialog.getOpenFileName(parent, title, "", importer.FILE_FILTER)
     if not path:
@@ -129,7 +137,7 @@ def run_import(parent, fields, title: str):
     if not headers:
         show_error(parent, ValidationError("Die Datei enthält keine Daten."))
         return None
-    dlg = ImportDialog(path, headers, rows, fields, title, parent)
+    dlg = ImportDialog(path, headers, rows, fields, title, parent, extra_check)
     if dlg.exec() != QDialog.DialogCode.Accepted:
         return None
     return dlg.records, dlg.duplicate_strategy()

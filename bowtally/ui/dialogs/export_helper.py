@@ -53,6 +53,42 @@ def run_export(parent, default_name: str, file_filter: str, sheets: list) -> Non
                ("Öffnen", lambda: open_path(parent, written[0])))
 
 
+def tournament_sheets(tournament_id: int) -> list:
+    """All data of one tournament: participants, scores, ranking, fees."""
+    from bowtally.services import ranking_service as rs
+    from bowtally.services import scoring_service as sc
+    from bowtally.services import tournament_service as ts
+    from bowtally.services.participant_service import PAYMENT_LABELS, REGISTRATION_LABELS
+    t = ts.get_tournament(tournament_id)
+    parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9, p.archer.last_name))
+    participants = [[p.start_number, p.archer.last_name, p.archer.first_name, p.archer.club,
+                     p.bow_class.name if p.bow_class else None, p.start_group,
+                     REGISTRATION_LABELS.get(p.registration_status),
+                     PAYMENT_LABELS.get(p.payment_status),
+                     p.entry_fee.name if p.entry_fee else None, p.fee_amount_paid,
+                     p.payment_date, p.registration_date, p.confirmation_date,
+                     p.checkin_time.strftime("%d.%m.%Y %H:%M") if p.checkin_time else None,
+                     p.notes] for p in parts]
+    scores = sc.get_scores(tournament_id)
+    cols = [(tg, s) for tg in range(1, t.num_targets + 1)
+            for s in range(1, t.shots_per_target + 1)]
+    score_rows = [[p.start_number, f"{p.archer.last_name}, {p.archer.first_name}"]
+                  + [scores[(p.id, tg, s)].points if (p.id, tg, s) in scores else None
+                     for tg, s in cols] for p in parts]
+    ranking = rs.compute_ranking(tournament_id, overall=True)[rs.OVERALL]
+    return [
+        ("Teilnehmer", ["Nr.", "Nachname", "Vorname", "Verein", "Klasse", "Gruppe", "Anmeldung",
+                        "Zahlung", "Startgebühr", "Bezahlt (EUR)", "Zahlungsdatum",
+                        "Anmeldedatum", "Bestätigt am", "Eingecheckt", "Notizen"], participants),
+        ("Ergebnisse", ["Nr.", "Name"] + [str(tg) if t.shots_per_target == 1 else f"{tg}.{s}"
+                                          for tg, s in cols], score_rows),
+        ("Rangliste", ["Rang", "Nr.", "Name", "Verein", "Klasse", "Gesamt"],
+         [[r.rank, r.start_number, r.name, r.club, r.bow_class, r.total] for r in ranking]),
+        ("Startgebühren", ["Name", "Betrag (EUR)", "Beschreibung"],
+         [[f.name, f.amount, f.description] for f in t.fees]),
+    ]
+
+
 def open_path(parent, path) -> None:
     try:
         exporter.open_file(path)

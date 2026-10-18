@@ -104,6 +104,8 @@ def tokens(overrides: dict[str, str] | None = None) -> dict[str, str]:
         "success": _readable_on(surface, SUCCESS, 0.25),
         "success_soft": _mix(surface, SUCCESS, 0.20 if mode == MODE_DARK else 0.13),
         "warning": _readable_on(surface, WARNING, 0.25),
+        "warning_soft": _mix(surface, WARNING, 0.20 if mode == MODE_DARK else 0.13),
+        "secondary": _readable_on(surface, values[ss.KEY_COLOR_SECONDARY], 0.25),
         "miss_soft": _mix(surface, accent, 0.18 if mode == MODE_DARK else 0.10),
         "gold_soft": _mix(surface, GOLD, 0.24 if mode == MODE_DARK else 0.20),
         "silver_soft": _mix(surface, SILVER, 0.22 if mode == MODE_DARK else 0.20),
@@ -301,6 +303,31 @@ QLabel#statusChip[kind="success"] {{
 QLabel#statusChip[kind="muted"] {{
     background: {t['pressed']}; color: {t['text']}; border-color: {t['pressed']};
 }}
+QLabel#statusChip[kind="warning"] {{
+    background: {t['warning_soft']}; color: {t['warning']}; border-color: {t['warning']};
+}}
+QLabel#statusChip[kind="danger"] {{
+    background: {t['accent_soft']}; color: {t['accent']}; border-color: {t['accent']};
+}}
+
+/* tournament navigator (sidebar) */
+QFrame#tournamentNav {{ background: transparent; border-bottom: 1px solid {t['border']}; }}
+QLabel#navTournamentName {{ font-size: 11pt; font-weight: 700; }}
+QLabel#phaseLabel {{ color: {t['text2']}; }}
+QLabel#phaseLabel[state="current"] {{ color: {t['primary']}; font-weight: 700; }}
+QLabel#phaseLabel[state="done"] {{ color: {t['text']}; }}
+QLabel#phaseDate {{ color: {t['text2']}; font-size: 8.5pt; }}
+QFrame#separator {{ background: {t['border']}; max-height: 1px; min-height: 1px; }}
+
+/* guide */
+QLabel#ampel, QFrame#card QLabel#ampel {{ min-width: 10px; max-width: 10px;
+    min-height: 10px; max-height: 10px; border-radius: 5px; background: {t['success']}; }}
+QFrame#card QLabel#ampel[state="warning"] {{ background: {t['warning']}; }}
+QFrame#card QLabel#ampel[state="blocker"] {{ background: {t['accent']}; }}
+QPushButton#nextPhase {{ padding: 7px 8px; font-size: 9pt; }}
+QLabel#bigCounter {{ font-size: 22pt; font-weight: 700; }}
+QLabel#dangerText {{ color: {t['accent']}; font-weight: 600; }}
+QLabel#successText {{ color: {t['success']}; font-weight: 600; }}
 
 /* selectable chips (wizard bow classes) */
 QPushButton#chip {{
@@ -399,6 +426,7 @@ ICONS = {
     "moon": '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
     "monitor": '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
     "check": '<path d="M5 12.5 10 17l9-10"/>',
+    "circle": '<circle cx="12" cy="12" r="7"/>',
     "check-circle": '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
     "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>',
     "alert": '<path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.5v.01"/>',

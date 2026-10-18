@@ -1,21 +1,36 @@
 # -*- coding: utf-8 -*-
 """Rounded status pill, as a widget (StatusChip) and as a table cell painter (ChipDelegate).
 
-Kinds: 'neutral' (outline), 'primary' (brand), 'success' (green), 'muted' (grey filled).
+Kinds: 'neutral' (outline), 'primary' (brand), 'success' (green), 'warning' (orange),
+'danger' (red), 'muted' (grey filled).
 """
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QApplication, QLabel, QSizePolicy, QStyle, QStyledItemDelegate
 
-from bowtally.services.tournament_service import STATUS_LABELS
+from bowtally.services.participant_service import PAYMENT_LABELS, REGISTRATION_LABELS
+from bowtally.services.tournament_service import PHASE_LABELS
 from bowtally.ui import repolish, theme
 
 CHIP_ROLE = Qt.ItemDataRole.UserRole + 10      # item data: (text, kind)
-TOURNAMENT_KINDS = {"draft": "neutral", "active": "primary", "closed": "muted"}
+PHASE_KINDS = {"announcement": "neutral", "preparation": "neutral", "registration": "primary",
+               "checkin": "primary", "shooting": "success", "scoring": "success",
+               "closed": "muted"}
+REGISTRATION_KINDS = {"registered": "muted", "confirmed": "primary", "checked_in": "success",
+                      "dns": "warning", "dnf": "warning", "dsq": "danger", "withdrawn": "muted"}
+PAYMENT_KINDS = {"unpaid": "danger", "pending": "warning", "paid": "success"}
 
 
-def tournament_chip(status: str) -> tuple[str, str]:
-    return STATUS_LABELS.get(status, status), TOURNAMENT_KINDS.get(status, "neutral")
+def tournament_chip(phase: str) -> tuple[str, str]:
+    return PHASE_LABELS.get(phase, phase), PHASE_KINDS.get(phase, "neutral")
+
+
+def registration_chip(status: str) -> tuple[str, str]:
+    return REGISTRATION_LABELS.get(status, status), REGISTRATION_KINDS.get(status, "neutral")
+
+
+def payment_chip(status: str) -> tuple[str, str]:
+    return PAYMENT_LABELS.get(status, status), PAYMENT_KINDS.get(status, "neutral")
 
 
 def _colors(kind: str) -> tuple[str, str, str]:
@@ -24,6 +39,8 @@ def _colors(kind: str) -> tuple[str, str, str]:
     return {
         "primary": (t["primary_soft"], t["primary"], t["primary"]),
         "success": (t["success_soft"], t["success"], t["success"]),
+        "warning": (t["warning_soft"], t["warning"], t["warning"]),
+        "danger": (t["accent_soft"], t["accent"], t["accent"]),
         "muted": (t["pressed"], t["text"], t["pressed"]),
     }.get(kind, ("", t["text2"], t["border"]))
 
@@ -41,8 +58,8 @@ class StatusChip(QLabel):
         self.setProperty("kind", kind)
         repolish(self)
 
-    def set_tournament_status(self, status: str) -> None:
-        self.set_chip(*tournament_chip(status))
+    def set_tournament_status(self, phase: str) -> None:
+        self.set_chip(*tournament_chip(phase))
 
 
 class ChipDelegate(QStyledItemDelegate):

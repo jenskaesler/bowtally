@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Tournament list and tournament detail (participants, score entry, results)."""
+"""Tournament list and tournament detail (participants, check-in, score entry, results,
+entry fees). Opening a tournament makes it the active tournament context."""
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QStackedWidget, QTabWidget, QVBoxLayout, QWidget
 
@@ -12,17 +13,18 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.status_chip import StatusChip, tournament_chip
 from bowtally.ui.components.toast import Toast
+from bowtally.ui.context import context
 from bowtally.ui.dialogs.tournament_wizard import TournamentWizard
 from bowtally.ui.views import ListView
+from bowtally.ui.views.checkin_view import CHECKIN_PHASES, CheckinView
+from bowtally.ui.views.fees_view import FeesView
 from bowtally.ui.views.participants_view import ParticipantsView
 from bowtally.ui.views.results_view import ResultsView
 from bowtally.ui.views.scoring_view import ScoringView
 
-HEADERS = ["Datum", "Name", "Ort", "Veranstalter", "Status", "Teilnehmer", "Regelwerk"]
-STATUS_ACTIONS = {"draft": ("Turnier starten", "Status auf „Aktiv“ setzen"),
-                  "active": ("Turnier abschließen",
-                             "Status auf „Abgeschlossen“ setzen, danach keine Eingaben mehr")}
-TABS = {"participants": 0, "scoring": 1, "results": 2}
+HEADERS = ["Datum", "Name", "Ort", "Phase", "Teilnehmer", "Regelwerk"]
+TABS = ["participants", "checkin", "scoring", "results", "fees"]
+CLOSED_HINT = "Abgeschlossene Turniere sind gesperrt"
 
 
 class TournamentList(ListView):
@@ -31,9 +33,9 @@ class TournamentList(ListView):
 
     def __init__(self, parent=None):
         empty = EmptyState("target", "Noch keine Turniere",
-                           "Der Assistent führt in fünf Schritten durch die Anlage.",
+                           "Der Assistent führt Schritt für Schritt durch die Anlage.",
                            "Neues Turnier")
-        super().__init__("Turniere", HEADERS, empty, None, "Name, Ort oder Status …")
+        super().__init__("Turniere", HEADERS, empty, None, "Name, Ort oder Phase …")
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neues Turnier", self.new_item, "primary",
                                "Neues Turnier mit dem Assistenten anlegen (Strg+N)"))
@@ -43,13 +45,14 @@ class TournamentList(ListView):
     def refresh(self):
         items = ts.list_tournaments()
         self._items = {t.id: t for t in items}
-        self.table.set_rows([[t.date, t.name, t.location, t.organizer,
-                              Cell(t.status, chip=tournament_chip(t.status)),
+        self.table.set_rows([[t.date, Cell(t.name, bold=t.id == context.tournament_id),
+                              t.location, Cell(t.phase, chip=tournament_chip(t.phase)),
                               len(t.participants),
                               t.scoring_rule.name if t.scoring_rule else None] for t in items],
                             [t.id for t in items])
-        active = sum(t.status == "active" for t in items)
-        self.header.set_subtitle(f"{len(items)} Turniere | {active} aktiv")
+        running = sum(t.phase != "closed" for t in items)
+        self.header.set_subtitle(f"{len(items)} Turniere | {running} laufend"
+                                 + (" | fett = geöffnet" if context.tournament_id else ""))
         self.on_selection(self.table.selected_ids())
 
     def _selected(self):
@@ -62,11 +65,11 @@ class TournamentList(ListView):
             return
         closed = t.status == "closed"
         self.action_bar.set_actions(t.name, [
-            Action("Öffnen", lambda: self.openRequested.emit(t.id),
-                   tooltip="Teilnehmer, Ergebniseingabe und Auswertung (Enter)"),
+            Action("Turnier öffnen", lambda: self.openRequested.emit(t.id),
+                   tooltip="Als aktives Turnier öffnen: Leitfaden, Teilnehmer, Ergebnisse "
+                           "(Enter)"),
             Action("Bearbeiten", self.edit_item, enabled=not closed,
-                   tooltip="Abgeschlossene Turniere sind gesperrt" if closed
-                   else "Turnierdaten im Assistenten bearbeiten"),
+                   tooltip=CLOSED_HINT if closed else "Turnierdaten im Assistenten bearbeiten"),
             Action("Löschen", self.delete_item, "danger",
                    tooltip="Turnier mit allen Teilnehmern und Ergebnissen löschen")])
 
@@ -75,8 +78,8 @@ class TournamentList(ListView):
         if t is None:
             return []
         closed = t.status == "closed"
-        return [("Öffnen", lambda: self.openRequested.emit(t.id)),
-                ("Bearbeiten", self.edit_item, not closed, "Abgeschlossene Turniere sind gesperrt"),
+        return [("Turnier öffnen", lambda: self.openRequested.emit(t.id)),
+                ("Bearbeiten", self.edit_item, not closed, CLOSED_HINT),
                 None,
                 ("Löschen", self.delete_item)]
 
@@ -108,6 +111,8 @@ class TournamentList(ListView):
         except Exception as exc:
             show_error(self, exc)
             return
+        if context.tournament_id == t.id:
+            context.set(None)
         Toast.show(self, f"Turnier „{t.name}“ gelöscht", Toast.SUCCESS)
         self.refresh()
         self.changed.emit()
@@ -123,95 +128,85 @@ class TournamentDetail(QWidget):
         self.header = PageHeader("")
         self.chip = StatusChip()
         self.header.add_title_widget(self.chip)
-        self.btn_edit = button("Turnierdaten bearbeiten", self._edit,
-                               tooltip="Grunddaten, Regelwerk, Klassen und Parcours ändern")
-        self.btn_status = button("", self._advance_status)
+        self.btn_edit = button("Turnierdaten bearbeiten", self.edit,
+                               tooltip="Alle Turnierdaten im Assistenten bearbeiten")
         self.header.add(button("Alle Turniere", self.backRequested.emit,
-                               tooltip="Zurück zur Turnierliste"),
-                        self.btn_edit, self.btn_status)
-        self.participants = ParticipantsView()
-        self.scoring = ScoringView()
-        self.results = ResultsView()
+                               tooltip="Turnierliste anzeigen (das Turnier bleibt geöffnet)"),
+                        self.btn_edit)
+        self.pages = {"participants": ParticipantsView(), "checkin": CheckinView(),
+                      "scoring": ScoringView(), "results": ResultsView(), "fees": FeesView()}
+        self.participants, self.scoring = self.pages["participants"], self.pages["scoring"]
+        self.results = self.pages["results"]
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self.participants, "Teilnehmer")
-        self.tabs.addTab(self.scoring, "Ergebniseingabe")
-        self.tabs.addTab(self.results, "Auswertung")
+        for key, label in zip(TABS, ["Teilnehmer", "Einschreibung", "Ergebniseingabe",
+                                     "Auswertung", "Startgebühren"]):
+            self.tabs.addTab(self.pages[key], label)
         self.tabs.currentChanged.connect(lambda _i: self.reload())
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.header)
         lay.addWidget(self.tabs, 1)
+        context.dataChanged.connect(self._external_change)
 
     def open(self, tournament_id: int, tab: str | None = None) -> bool:
         self.current = ts.get_tournament(tournament_id)
         if self.current is None:
             return False
-        if tab in TABS and self.tabs.currentIndex() != TABS[tab]:
-            self.tabs.setCurrentIndex(TABS[tab])   # triggers reload
+        self._update_tab_visibility()
+        if tab in TABS and self.tabs.currentIndex() != TABS.index(tab):
+            self.tabs.setCurrentIndex(TABS.index(tab))   # triggers reload
         else:
             self.reload()
         return True
 
-    def reload(self):
+    def _update_tab_visibility(self):
+        visible = self.current.phase in CHECKIN_PHASES
+        self.tabs.setTabVisible(TABS.index("checkin"), visible)
+        if not visible and self.tabs.currentIndex() == TABS.index("checkin"):
+            self.tabs.setCurrentIndex(0)
+
+    def _external_change(self):
+        if self.current is not None and self.isVisible():
+            self.reload(refresh_tab=False)
+
+    def reload(self, refresh_tab: bool = True):
         if self.current is None:
             return
         t = self.current = ts.get_tournament(self.current.id)
+        if t is None:
+            return
+        self._update_tab_visibility()
         self.header.set_title(t.name)
-        self.chip.set_tournament_status(t.status)
+        self.chip.set_tournament_status(t.phase)
         self.header.set_subtitle(
             f"{t.date:%d.%m.%Y} · {t.location or 'Ort offen'} · "
             f"{t.scoring_rule.name if t.scoring_rule else '–'} · "
             f"{t.num_targets} Scheiben × {t.shots_per_target} Schuss · "
             f"{len(t.participants)} Teilnehmer")
-        action = STATUS_ACTIONS.get(t.status)
-        self.btn_status.setVisible(action is not None)
-        if action:
-            self.btn_status.setText(action[0])
-            self.btn_status.setToolTip(action[1])
         closed = t.status == "closed"
         self.btn_edit.setEnabled(not closed)
-        self.btn_edit.setToolTip("Abgeschlossene Turniere sind gesperrt" if closed
-                                 else "Grunddaten, Regelwerk, Klassen und Parcours ändern")
-        self.tabs.currentWidget().set_tournament(t)
+        self.btn_edit.setToolTip(CLOSED_HINT if closed
+                                 else "Alle Turnierdaten im Assistenten bearbeiten")
+        if refresh_tab:
+            self.tabs.currentWidget().set_tournament(t)
 
-    def _edit(self):
-        if TournamentWizard(self.current, self).exec():
+    def edit(self):
+        if self.current is not None and \
+                TournamentWizard(ts.get_tournament(self.current.id), self).exec():
             self.reload()
             self.changed.emit()
 
-    def _advance_status(self):
-        t = self.current
-        new = ts.STATUS_NEXT.get(t.status)
-        if new == "closed":
-            ok = ConfirmDialog.ask(self, "Turnier abschließen?",
-                                   "Danach sind keine Eingaben und Änderungen mehr möglich. "
-                                   "Die Ergebnisliste bleibt verfügbar.", "Abschließen")
-        else:
-            ok = ConfirmDialog.ask(self, "Turnier starten?",
-                                   "Das Turnier erhält den Status „Aktiv“. Die Ergebnisliste "
-                                   "kann ab jetzt erstellt werden.", "Starten",
-                                   destructive=False)
-        if not ok:
-            return
-        try:
-            ts.set_status(t.id, new)
-        except Exception as exc:
-            show_error(self, exc)
-            return
-        Toast.show(self, f"Status: {ts.STATUS_LABELS[new]}", Toast.SUCCESS)
-        self.reload()
-        self.changed.emit()
-
 
 class TournamentsView(QWidget):
-    changed = Signal()      # tournaments created / deleted / status changed
+    changed = Signal()                # tournaments created / deleted / edited
+    openRequested = Signal(int)       # make this tournament the active context
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.list = TournamentList()
         self.detail = TournamentDetail()
-        self.list.openRequested.connect(self.open_tournament)
+        self.list.openRequested.connect(self.openRequested)
         self.detail.backRequested.connect(self.show_list)
         self.list.changed.connect(self.changed)
         self.detail.changed.connect(self.changed)
@@ -261,3 +256,7 @@ class TournamentsView(QWidget):
         page = self._active_page()
         if hasattr(page, "shortcut_save"):
             page.shortcut_save()
+
+    def close_drawer(self) -> bool:
+        page = self._active_page()
+        return page.close_drawer() if hasattr(page, "close_drawer") else True
