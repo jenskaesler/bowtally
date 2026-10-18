@@ -89,7 +89,7 @@ build/        PyInstaller-Spec, Build-Skript, NSIS-Skript
    ```bat
    "C:\Program Files (x86)\NSIS\makensis.exe" build\setup.nsi
    ```
-   Ergebnis: `build\dist\BowTally-0.1.0-Setup.exe`
+   Ergebnis: `build\dist\BowTally-<version>-Setup.exe`
    (andere Version: `makensis /DVERSION=0.2.0 build\setup.nsi`)
 
 ## Git-Remote
