@@ -82,6 +82,25 @@ def set_archer_active(archer_id: int, active: bool) -> None:
             archer.active = active
 
 
+def delete_archer(archer_id: int) -> None:
+    """Physical delete, only for archers without tournament data (else: deactivate)."""
+    with session_scope() as s:
+        archer = s.get(Archer, archer_id)
+        if archer is None:
+            return
+        if s.scalar(select(func.count(TournamentParticipant.id))
+                    .where(TournamentParticipant.archer_id == archer_id)):
+            raise ValidationError(f"{archer.first_name} {archer.last_name} hat Turnierdaten und "
+                                  "kann nicht gelöscht werden. Stattdessen deaktivieren.")
+        s.delete(archer)
+
+
+def archer_has_tournaments(archer_id: int) -> bool:
+    with session_scope() as s:
+        return bool(s.scalar(select(func.count(TournamentParticipant.id))
+                             .where(TournamentParticipant.archer_id == archer_id)))
+
+
 def find_archer(s, member_number: str | None, first_name: str, last_name: str,
                 birth_date: date | None = None) -> Archer | None:
     """Duplicate lookup: member number wins, else name (+ birth date when given)."""

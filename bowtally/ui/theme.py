@@ -4,7 +4,7 @@
 Light and dark mode share the brand colors (primary / secondary / accent); neutrals
 (background, surface, border, text) come from separate light and dark settings.
 """
-from PySide6.QtCore import QByteArray, QRectF, Qt
+from PySide6.QtCore import QByteArray, QObject, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QGuiApplication, QIcon, QPainter, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
@@ -14,7 +14,21 @@ from bowtally.services import settings_service as ss
 FONT_FALLBACKS = ["Segoe UI", "Arial", "sans-serif"]
 MODE_LIGHT, MODE_DARK, MODE_SYSTEM = "light", "dark", "system"
 
+# Fixed semantic colors (adjusted for contrast per mode in tokens())
+SUCCESS = "#2E7D32"
+WARNING = "#E65100"
+GOLD, SILVER, BRONZE = "#D4AF37", "#A7B1BC", "#CD7F32"
+NAV_HOVER_LIGHT = "#E8F0FE"
+
 _current: dict[str, str] = {}
+
+
+class _Notifier(QObject):
+    changed = Signal()
+
+
+# Widgets that paint theme colors themselves connect to notifier.changed
+notifier = _Notifier()
 
 
 # ---------------------------------------------------------------- color helpers
@@ -86,6 +100,14 @@ def tokens(overrides: dict[str, str] | None = None) -> dict[str, str]:
         "grid": _mix(surface, text, 0.08),
         "disabled": _mix(surface, text, 0.35),
         "sidebar": surface,
+        "nav_hover": NAV_HOVER_LIGHT if mode == MODE_LIGHT else _mix(surface, text, 0.08),
+        "success": _readable_on(surface, SUCCESS, 0.25),
+        "success_soft": _mix(surface, SUCCESS, 0.20 if mode == MODE_DARK else 0.13),
+        "warning": _readable_on(surface, WARNING, 0.25),
+        "miss_soft": _mix(surface, accent, 0.18 if mode == MODE_DARK else 0.10),
+        "gold_soft": _mix(surface, GOLD, 0.24 if mode == MODE_DARK else 0.20),
+        "silver_soft": _mix(surface, SILVER, 0.22 if mode == MODE_DARK else 0.20),
+        "bronze_soft": _mix(surface, BRONZE, 0.22 if mode == MODE_DARK else 0.17),
     }
     return t
 
@@ -115,9 +137,9 @@ QListWidget#navigation {{ background: transparent; border: none; outline: 0; pad
 QListWidget#navigation::item {{
     color: {t['text2']}; padding: 9px 10px; margin: 1px 0; border-radius: 8px;
 }}
-QListWidget#navigation::item:hover {{ background: {t['hover']}; color: {t['text']}; }}
+QListWidget#navigation::item:hover {{ background: {t['nav_hover']}; color: {t['text']}; }}
 QListWidget#navigation::item:selected {{
-    background: {t['primary_soft']}; color: {t['primary']}; font-weight: 600;
+    background: {t['primary']}; color: {t['on_primary']}; font-weight: 600;
 }}
 QPushButton#themeToggle {{
     background: transparent; border: none; color: {t['text2']}; text-align: left;
@@ -132,18 +154,6 @@ QLabel[secondary="true"] {{ color: {t['text2']}; }}
 QFrame#card {{ background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 12px; }}
 QFrame#card QLabel {{ background: transparent; }}
 QLabel#cardValue {{ font-size: 26pt; font-weight: 700; }}
-
-/* status badge: draft = neutral outline, active = brand, closed = muted */
-QLabel#statusBadge {{
-    border-radius: 11px; padding: 3px 12px; font-size: 9pt; font-weight: 600;
-    border: 1px solid {t['border']}; color: {t['text2']}; background: transparent;
-}}
-QLabel#statusBadge[status="active"] {{
-    background: {t['primary_soft']}; color: {t['primary']}; border-color: {t['primary']};
-}}
-QLabel#statusBadge[status="closed"] {{
-    background: {t['pressed']}; color: {t['text']}; border-color: {t['pressed']};
-}}
 
 /* buttons */
 QPushButton {{
@@ -166,6 +176,7 @@ QPushButton[danger="true"] {{ color: {t['accent']}; }}
 QPushButton[danger="true"]:hover {{
     background: {t['accent_soft']}; border-color: {t['accent']};
 }}
+QPushButton[danger="true"]:disabled {{ color: {t['disabled']}; background: {t['bg']}; }}
 
 /* inputs */
 QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDateEdit, QComboBox {{
@@ -191,16 +202,14 @@ QTableView, QTreeView, QListView {{
     selection-background-color: {t['primary_soft']}; selection-color: {t['text']};
     outline: 0;
 }}
-QTableView::item, QTreeView::item {{ padding: 0 8px; border: none; }}
-QTableView::item:selected, QTreeView::item:selected, QListView::item:selected {{
-    background: {t['primary_soft']}; color: {t['text']};
-}}
+/* no QTableView::item rules: they would override per-cell background colors */
+QListView::item:selected {{ background: {t['primary_soft']}; color: {t['text']}; }}
 QListView::item {{ padding: 6px 8px; border-radius: 6px; }}
 QListView::item:hover {{ background: {t['hover']}; }}
 QHeaderView {{ background: transparent; border: none; }}
 QHeaderView::section {{
     background: {t['surface']}; color: {t['text2']}; font-weight: 600; font-size: 9pt;
-    padding: 8px; border: none; border-bottom: 1px solid {t['border']};
+    padding: 8px 4px; border: none; border-bottom: 1px solid {t['border']};
 }}
 QHeaderView::section:hover {{ color: {t['text']}; }}
 QTableCornerButton::section {{ background: {t['surface']}; border: none; }}
@@ -237,6 +246,94 @@ QScrollBar::handle:vertical {{ min-height: 28px; }}
 QScrollBar::handle:horizontal {{ min-width: 28px; }}
 QScrollBar::add-line, QScrollBar::sub-line, QScrollBar::add-page, QScrollBar::sub-page {{
     width: 0; height: 0; background: transparent; }}
+
+/* ---------- components ---------- */
+QLabel#pageSubtitle {{ color: {t['text2']}; }}
+QPushButton#link {{
+    background: transparent; border: none; color: {t['primary']}; text-align: left;
+    padding: 4px 0; font-weight: 600;
+}}
+QPushButton#link:hover {{ text-decoration: underline; background: transparent; }}
+
+/* side drawer */
+QFrame#drawer {{ background: {t['surface']}; border-left: 1px solid {t['border']}; }}
+QFrame#drawer QScrollArea, QFrame#drawer QScrollArea > QWidget > QWidget {{
+    background: {t['surface']}; border: none; }}
+QLabel#drawerTitle {{ font-size: 14pt; font-weight: 700; }}
+QWidget#drawerFooter {{ border-top: 1px solid {t['border']}; background: {t['surface']}; }}
+QToolButton#iconButton {{ border: none; border-radius: 6px; padding: 4px; background: transparent; }}
+QToolButton#iconButton:hover {{ background: {t['hover']}; }}
+
+/* form fields */
+QLabel#fieldLabel {{ font-weight: 600; font-size: 9pt; }}
+QLabel#fieldRequired {{ color: {t['accent']}; font-weight: 700; }}
+QLabel#fieldError {{ color: {t['accent']}; font-size: 9pt; }}
+QLabel#fieldHint {{ color: {t['text2']}; font-size: 9pt; }}
+QLineEdit[invalid="true"], QComboBox[invalid="true"], QDateEdit[invalid="true"],
+QSpinBox[invalid="true"], QPlainTextEdit[invalid="true"], QTableWidget[invalid="true"] {{
+    border: 1px solid {t['accent']}; }}
+
+/* toast */
+QFrame#toast {{
+    background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 10px;
+    border-left: 4px solid {t['primary']};
+}}
+QFrame#toast[kind="success"] {{ border-left-color: {t['success']}; }}
+QFrame#toast[kind="warning"] {{ border-left-color: {t['warning']}; }}
+QFrame#toast[kind="error"] {{ border-left-color: {t['accent']}; }}
+QFrame#toast QLabel {{ background: transparent; }}
+QPushButton#toastAction {{
+    background: transparent; border: none; color: {t['primary']}; padding: 2px 4px;
+    text-decoration: underline;
+}}
+
+/* status chips */
+QLabel#statusChip {{
+    border-radius: 11px; padding: 3px 12px; font-size: 9pt; font-weight: 600;
+    border: 1px solid {t['border']}; color: {t['text2']}; background: transparent;
+}}
+QLabel#statusChip[kind="primary"] {{
+    background: {t['primary_soft']}; color: {t['primary']}; border-color: {t['primary']};
+}}
+QLabel#statusChip[kind="success"] {{
+    background: {t['success_soft']}; color: {t['success']}; border-color: {t['success']};
+}}
+QLabel#statusChip[kind="muted"] {{
+    background: {t['pressed']}; color: {t['text']}; border-color: {t['pressed']};
+}}
+
+/* selectable chips (wizard bow classes) */
+QPushButton#chip {{
+    border-radius: 16px; padding: 6px 14px; font-weight: 600; background: {t['surface']};
+}}
+QPushButton#chip:checked {{
+    background: {t['primary']}; color: {t['on_primary']}; border-color: {t['primary']};
+}}
+
+/* action bar */
+QFrame#actionBar {{
+    background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 10px;
+}}
+QFrame#actionBar QLabel {{ background: transparent; font-weight: 600; }}
+
+/* empty state */
+QLabel#emptyTitle {{ font-size: 14pt; font-weight: 700; }}
+QLabel#emptyText {{ color: {t['text2']}; }}
+
+/* wizard steps */
+QLabel#stepDot {{
+    min-width: 26px; max-width: 26px; min-height: 26px; max-height: 26px;
+    border-radius: 13px; border: 1px solid {t['border']}; color: {t['text2']};
+    font-weight: 700; background: {t['surface']};
+}}
+QLabel#stepDot[state="current"] {{ background: {t['primary']}; color: {t['on_primary']};
+    border-color: {t['primary']}; }}
+QLabel#stepDot[state="done"] {{ background: {t['primary_soft']}; color: {t['primary']};
+    border-color: {t['primary']}; }}
+QLabel#stepLabel {{ color: {t['text2']}; font-weight: 600; }}
+QLabel#stepLabel[state="current"] {{ color: {t['text']}; }}
+QFrame#stepLine {{ background: {t['border']}; max-height: 1px; min-height: 1px; }}
+QLabel#wizardTitle {{ font-size: 15pt; font-weight: 700; }}
 """
 
 
@@ -274,6 +371,7 @@ def apply(app: QApplication, overrides: dict[str, str] | None = None) -> dict[st
     _current = tokens(overrides)
     app.setPalette(_palette(_current))
     app.setStyleSheet(_qss(_current))
+    notifier.changed.emit()
     return _current
 
 
@@ -300,6 +398,24 @@ ICONS = {
            '17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
     "moon": '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
     "monitor": '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+    "check": '<path d="M5 12.5 10 17l9-10"/>',
+    "check-circle": '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/>',
+    "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>',
+    "alert": '<path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.5v.01"/>',
+    "x": '<path d="M6 6l12 12M18 6 6 18"/>',
+    "x-circle": '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>',
+    "help": '<circle cx="12" cy="12" r="9"/>'
+            '<path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.2-2.4 3.8M12 17v.01"/>',
+    "search": '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+    "plus": '<path d="M12 5v14M5 12h14"/>',
+    "trash": '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
+    "grip": ''.join(f'<circle cx="{x}" cy="{y}" r="1.2" fill="{{c}}"/>'
+                    for x in (9, 15) for y in (6, 12, 18)),
+    "inbox": '<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.5 5h13L21 13v6H3v-6L5.5 5z"/>',
+    "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    "calendar": '<rect x="3.5" y="5" width="17" height="15" rx="2"/>'
+                '<path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    "file": '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
 }
 
 

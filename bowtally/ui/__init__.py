@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """Small UI helpers shared by all views and dialogs."""
 import logging
+from contextlib import contextmanager
 
-from PySide6.QtWidgets import QMessageBox, QPushButton, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
 
 from bowtally.services import ValidationError
 
@@ -10,25 +12,45 @@ log = logging.getLogger("bowtally.ui")
 
 
 def show_error(parent: QWidget | None, exc: BaseException, context: str = "") -> None:
-    """Log and display an exception. ValidationError is shown as a plain warning."""
+    """ValidationError -> warning toast. Anything else -> log + QMessageBox.critical."""
     if isinstance(exc, ValidationError):
+        from bowtally.ui.components.toast import Toast
         log.warning("%s%s", f"{context}: " if context else "", exc)
-        QMessageBox.warning(parent, "Hinweis", str(exc))
+        Toast.show(parent, str(exc), Toast.WARNING)
         return
     log.error("%s%s", f"{context}: " if context else "", exc, exc_info=exc)
     QMessageBox.critical(parent, "Fehler",
                          f"{context + chr(10) if context else ''}{type(exc).__name__}: {exc}")
 
 
-def confirm(parent: QWidget | None, text: str, title: str = "Bestätigung") -> bool:
-    return QMessageBox.question(parent, title, text) == QMessageBox.StandardButton.Yes
+def confirm(parent: QWidget | None, text: str, title: str = "Bestätigung",
+            confirm_text: str = "Fortfahren", destructive: bool = False) -> bool:
+    from bowtally.ui.components.confirm_dialog import ConfirmDialog
+    return ConfirmDialog.ask(parent, title, text, confirm_text, destructive)
 
 
-def button(text: str, slot=None, kind: str | None = None) -> QPushButton:
-    """kind: None | 'primary' | 'danger' (styled via QSS dynamic properties)."""
+def button(text: str, slot=None, kind: str | None = None, tooltip: str = "") -> QPushButton:
+    """kind: None (secondary) | 'primary' | 'danger' (styled via QSS dynamic properties)."""
     b = QPushButton(text)
     if kind:
         b.setProperty(kind, True)
+    b.setToolTip(tooltip or text)
     if slot is not None:
         b.clicked.connect(slot)
     return b
+
+
+@contextmanager
+def busy():
+    """Wait cursor for operations that may take noticeable time."""
+    QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+    try:
+        yield
+    finally:
+        QApplication.restoreOverrideCursor()
+
+
+def repolish(widget: QWidget) -> None:
+    """Re-evaluate the stylesheet after a dynamic property changed."""
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)
