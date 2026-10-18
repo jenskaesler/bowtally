@@ -1,6 +1,9 @@
 @echo off
 cd /d %~dp0..
-python -m PyInstaller build\bowtally.spec --noconfirm --distpath build\dist --workpath build\work
+rem Prefer the project venv so a double click works without activating it
+set "PY=python"
+if exist .venv\Scripts\python.exe set "PY=.venv\Scripts\python.exe"
+"%PY%" -m PyInstaller build\bowtally.spec --noconfirm --distpath build\dist --workpath build\work
 if errorlevel 1 goto :fail
 set "MAKENSIS=makensis"
 where makensis >nul 2>nul || set "MAKENSIS=%ProgramFiles(x86)%\NSIS\makensis.exe"
