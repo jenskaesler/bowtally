@@ -13,6 +13,13 @@ KEY_COLOR_TEXT_SECONDARY = "color_text_secondary"
 KEY_COLOR_BACKGROUND = "color_background"
 KEY_COLOR_SURFACE = "color_surface"
 KEY_COLOR_BORDER = "color_border"
+KEY_COLOR_TEXT = "color_text"
+KEY_COLOR_DARK_BACKGROUND = "color_dark_background"
+KEY_COLOR_DARK_SURFACE = "color_dark_surface"
+KEY_COLOR_DARK_BORDER = "color_dark_border"
+KEY_COLOR_DARK_TEXT = "color_dark_text"
+KEY_COLOR_DARK_TEXT_SECONDARY = "color_dark_text_secondary"
+KEY_UI_THEME_MODE = "ui_theme_mode"
 KEY_FONT_FAMILY = "font_family"
 KEY_PRINT_PAPER_SIZE = "print_paper_size"
 KEY_PRINT_ORIENTATION = "print_orientation"
@@ -30,7 +37,9 @@ OPTIONS = {
     KEY_PRINT_ORIENTATION: ["portrait", "landscape"],
     KEY_RESULT_TIEBREAK_MODE: ["most_top_scores", "total_highest"],
     KEY_UI_LANGUAGE: ["de"],
+    KEY_UI_THEME_MODE: ["system", "light", "dark"],
 }
+THEME_MODE_LABELS = {"system": "Wie Windows", "light": "Hell", "dark": "Dunkel"}
 
 DEFAULTS = {key: value for key, value, *_ in DEFAULT_SETTINGS}
 

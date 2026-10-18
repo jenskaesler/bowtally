@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QLineEdit, QTable
 
 ID_ROLE = Qt.ItemDataRole.UserRole + 1
 SORT_ROLE = Qt.ItemDataRole.UserRole + 2
+ROW_HEIGHT = 34
 
 
 def display(value) -> str:
@@ -43,6 +44,11 @@ class SortableTable(QWidget):
         self.view.setSortingEnabled(True)
         self.view.setAlternatingRowColors(True)
         self.view.verticalHeader().hide()
+        self.view.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+        self.view.setShowGrid(False)
+        self.view.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignLeft
+                                                         | Qt.AlignmentFlag.AlignVCenter)
+        self.view.horizontalHeader().setHighlightSections(False)
         self.view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection
                                    if multi_select
@@ -79,6 +85,13 @@ class SortableTable(QWidget):
                                         | Qt.AlignmentFlag.AlignVCenter)
                 items.append(it)
             self.model.appendRow(items)
+        if rows:   # numeric columns: right aligned header, like the values
+            for c, value in enumerate(rows[0]):
+                numeric = isinstance(value, (int, float)) and not isinstance(value, bool)
+                self.model.setHeaderData(
+                    c, Qt.Orientation.Horizontal,
+                    (Qt.AlignmentFlag.AlignRight if numeric else Qt.AlignmentFlag.AlignLeft)
+                    | Qt.AlignmentFlag.AlignVCenter, Qt.ItemDataRole.TextAlignmentRole)
         self.view.resizeColumnsToContents()
 
     def _id_at(self, proxy_row: int):

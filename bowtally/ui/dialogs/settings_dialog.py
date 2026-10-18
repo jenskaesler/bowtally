@@ -17,6 +17,8 @@ CLUB_LABELS = {
     "federation": "Verband", "club_number": "Verbandsnummer", "notes": "Notizen",
 }
 LOGO_PREVIEW = 120
+COLOR_ORDER = ["_background", "_surface", "_border", "_text", "_text_secondary"]
+BRAND_COLORS = {ss.KEY_COLOR_PRIMARY, ss.KEY_COLOR_SECONDARY, ss.KEY_COLOR_ACCENT}
 
 
 def _valid_hex(text: str) -> bool:
@@ -30,7 +32,7 @@ class ColorField(QWidget):
         self.edit.setMaxLength(7)
         self.edit.setFixedWidth(100)
         self.swatch = QPushButton()
-        self.swatch.setFixedSize(48, 26)
+        self.swatch.setFixedSize(44, 32)
         self.swatch.setToolTip("Farbe auswählen")
         self.swatch.clicked.connect(self._pick)
         self.edit.textChanged.connect(self._update_swatch)
@@ -43,7 +45,8 @@ class ColorField(QWidget):
 
     def _update_swatch(self, text: str):
         if _valid_hex(text):
-            self.swatch.setStyleSheet(f"background: {text}; border: 1px solid #888;")
+            self.swatch.setStyleSheet(f"background: {text}; border: 1px solid #8889; "
+                                      "border-radius: 6px;")
 
     def _pick(self):
         color = QColorDialog.getColor(QColor(self.value()), self, "Farbe wählen")
@@ -63,7 +66,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.apply_theme = apply_theme
         self.setWindowTitle("Einstellungen")
-        self.resize(720, 620)
+        self.resize(860, 720)
         self.settings = ss.all_settings()
 
         tabs = QTabWidget()
@@ -139,19 +142,42 @@ class SettingsDialog(QDialog):
     def _design_tab(self) -> QWidget:
         w = QWidget()
         lay = QVBoxLayout(w)
-        form = QFormLayout()
+        values = {st.key: st.value for st in self.settings}
+        self.mode = QComboBox()
+        for key, label in ss.THEME_MODE_LABELS.items():
+            self.mode.addItem(label, key)
+        self.mode.setCurrentIndex(max(0, self.mode.findData(
+            values.get(ss.KEY_UI_THEME_MODE) or "system")))
+        self.mode.currentIndexChanged.connect(self._preview)
+        mode_row = QFormLayout()
+        mode_row.addRow("Darstellung", self.mode)
+        lay.addLayout(mode_row)
+
         self.color_fields: dict[str, ColorField] = {}
-        for st in self.settings:
-            if st.value_type == "color":
-                field = ColorField(st.value or ss.DEFAULTS.get(st.key, "#000000"))
-                self.color_fields[st.key] = field
-                form.addRow(st.description or st.key, field)
-        lay.addLayout(form)
-        row = QHBoxLayout()
-        row.addWidget(button("Vorschau anwenden", self._preview, "primary"))
-        row.addWidget(button("Zurücksetzen auf Standard", self._reset_colors))
-        row.addStretch()
-        lay.addLayout(row)
+        boxes = {"brand": QFormLayout(), "light": QFormLayout(), "dark": QFormLayout()}
+        colors = sorted((st for st in self.settings if st.value_type == "color"),
+                        key=lambda st: next((i for i, suffix in enumerate(COLOR_ORDER)
+                                             if st.key.endswith(suffix)), len(COLOR_ORDER)))
+        for st in colors:
+            field = ColorField(st.value or ss.DEFAULTS.get(st.key, "#000000"))
+            self.color_fields[st.key] = field
+            group = ("brand" if st.key in BRAND_COLORS else
+                     "dark" if st.key.startswith("color_dark_") else "light")
+            boxes[group].addRow((st.description or st.key).replace(" (Dunkel)", ""), field)
+        cols = QHBoxLayout()
+        brand_box = QGroupBox("Markenfarben (beide Modi)")
+        brand_box.setLayout(boxes["brand"])
+        lay.addWidget(brand_box)
+        for group, title in (("light", "Hell"), ("dark", "Dunkel")):
+            box = QGroupBox(title)
+            box.setLayout(boxes[group])
+            cols.addWidget(box)
+        lay.addLayout(cols)
+        btns = QHBoxLayout()
+        btns.addWidget(button("Vorschau anwenden", self._preview, "primary"))
+        btns.addWidget(button("Zurücksetzen auf Standard", self._reset_colors))
+        btns.addStretch()
+        lay.addLayout(btns)
         lay.addStretch()
         return w
 
@@ -159,7 +185,9 @@ class SettingsDialog(QDialog):
         bad = [k for k, f in self.color_fields.items() if not _valid_hex(f.value())]
         if bad:
             raise ValidationError("Ungültiger Farbwert (Format #RRGGBB): " + ", ".join(bad))
-        return {k: f.value() for k, f in self.color_fields.items()}
+        values = {k: f.value() for k, f in self.color_fields.items()}
+        values[ss.KEY_UI_THEME_MODE] = self.mode.currentData()
+        return values
 
     def _preview(self):
         try:
@@ -181,7 +209,7 @@ class SettingsDialog(QDialog):
         self.value_widgets = {}
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
-            if st.value_type == "color":
+            if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE:
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
