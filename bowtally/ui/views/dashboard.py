@@ -8,6 +8,7 @@ from bowtally.services import master_data_service as md
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button
 from bowtally.ui.views import page_title
+from bowtally.ui.widgets.status_badge import StatusBadge
 
 
 def _card(title: str) -> tuple[QFrame, QVBoxLayout]:
@@ -48,8 +49,10 @@ class DashboardView(QWidget):
         self.last_label = QLabel("-")
         self.last_label.setWordWrap(True)
         self.last_btn = button("Öffnen", self._open_last, "primary")
+        self.last_badge = StatusBadge()
         row = QHBoxLayout()
         row.addWidget(self.last_btn)
+        row.addWidget(self.last_badge)
         row.addStretch()
         c_lay.addWidget(self.last_label)
         c_lay.addLayout(row)
@@ -80,9 +83,11 @@ class DashboardView(QWidget):
         last = ts.last_tournament()
         self._last_id = last.id if last else None
         self.last_btn.setEnabled(last is not None)
-        self.last_label.setText(
-            f"{last.name}\n{last.date:%d.%m.%Y} · {ts.STATUS_LABELS[last.status]}"
-            if last else "Noch kein Turnier angelegt.")
+        self.last_badge.setVisible(last is not None)
+        if last:
+            self.last_badge.set_status(last.status)
+        self.last_label.setText(f"{last.name}\n{last.date:%d.%m.%Y}"
+                                if last else "Noch kein Turnier angelegt.")
 
     def showEvent(self, event):
         super().showEvent(event)

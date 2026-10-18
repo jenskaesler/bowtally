@@ -133,6 +133,18 @@ QFrame#card {{ background: {t['surface']}; border: 1px solid {t['border']}; bord
 QFrame#card QLabel {{ background: transparent; }}
 QLabel#cardValue {{ font-size: 26pt; font-weight: 700; }}
 
+/* status badge: draft = neutral outline, active = brand, closed = muted */
+QLabel#statusBadge {{
+    border-radius: 11px; padding: 3px 12px; font-size: 9pt; font-weight: 600;
+    border: 1px solid {t['border']}; color: {t['text2']}; background: transparent;
+}}
+QLabel#statusBadge[status="active"] {{
+    background: {t['primary_soft']}; color: {t['primary']}; border-color: {t['primary']};
+}}
+QLabel#statusBadge[status="closed"] {{
+    background: {t['pressed']}; color: {t['text']}; border-color: {t['pressed']};
+}}
+
 /* buttons */
 QPushButton {{
     background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 8px;
