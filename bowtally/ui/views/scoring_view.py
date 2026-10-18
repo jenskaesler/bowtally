@@ -7,7 +7,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QLabel
                                QWidget)
 
 from bowtally.services import scoring_service as sc
-from bowtally.ui import show_error
+from bowtally.ui import show_error, theme
+from bowtally.ui.widgets.sortable_table import ROW_HEIGHT
 
 FIXED_COLS = 3          # start number, name, class
 CELL_ROLE = Qt.ItemDataRole.UserRole + 1   # (participant_id, target, shot)
@@ -44,6 +45,8 @@ class ScoringView(QWidget):
         self.table = QTableWidget()
         self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().hide()
+        self.table.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+        self.table.horizontalHeader().setHighlightSections(False)
         self.table.itemChanged.connect(self._on_changed)
         self.filter = QLineEdit()
         self.filter.setPlaceholderText("Teilnehmer filtern (Name / Startnummer) ...")
@@ -135,7 +138,9 @@ class ScoringView(QWidget):
             item.setToolTip(entry[1] or "" if entry else "")
             item.setBackground(QBrush())
         except Exception as exc:
-            item.setBackground(QBrush(QColor("#FDE2E2")))
+            error = QColor(theme.current()["accent"])
+            error.setAlpha(70)
+            item.setBackground(QBrush(error))
             show_error(self, exc)
             # restore the persisted value
             stored = sc.get_scores(self.tournament.id).get((pid, target, shot))

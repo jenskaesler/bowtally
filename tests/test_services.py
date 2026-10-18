@@ -67,3 +67,28 @@ def test_result_list_pdf(tmp_path):
     t = ts.list_tournaments()[0]
     out = build_result_list(t.id, tmp_path / "r.pdf")
     assert out.read_bytes()[:4] == b"%PDF"
+
+
+def test_theme_tokens_both_modes():
+    from bowtally.ui import theme
+    light = theme.tokens({settings_service.KEY_UI_THEME_MODE: "light"})
+    dark = theme.tokens({settings_service.KEY_UI_THEME_MODE: "dark"})
+    assert light["bg"] == "#F4F6F9" and dark["bg"] == "#0E1116"
+    # primary #00357D is too dark on a dark surface -> must be lightened for contrast
+    assert theme._luminance(dark["primary"]) - theme._luminance(dark["surface"]) >= 0.3
+    assert "QTabBar::tab:selected" in theme.build_stylesheet()
+
+
+def test_migration_0002_adds_dark_settings_to_existing_db(tmp_path):
+    import sqlite3
+    url = f"sqlite:///{(tmp_path / 'old.db').as_posix()}"
+    engine.init_database(url)
+    con = sqlite3.connect(tmp_path / "old.db")   # simulate a v0.1.0 database
+    con.execute("DELETE FROM app_settings WHERE key LIKE 'color_dark_%' "
+                "OR key IN ('color_text', 'ui_theme_mode')")
+    con.execute("UPDATE alembic_version SET version_num = '0001_initial'")
+    con.commit()
+    con.close()
+    engine.init_database(url)
+    assert settings_service.get(settings_service.KEY_UI_THEME_MODE) == "system"
+    assert settings_service.get(settings_service.KEY_COLOR_DARK_SURFACE) == "#161B22"
