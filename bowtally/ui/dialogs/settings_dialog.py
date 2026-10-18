@@ -10,7 +10,10 @@ from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QDialog, QDia
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import button, show_error
 
-CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten"}
+CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
+                   "templates": "Textvorlagen (Ausschreibung)"}
+HIDDEN_CATEGORIES = {"internal"}
+MULTILINE_CATEGORIES = {"templates"}
 CLUB_LABELS = {
     "club_name": "Vereinsname", "street": "Straße", "zip_code": "PLZ", "city": "Ort",
     "country": "Land", "phone": "Telefon", "email": "E-Mail", "website": "Webseite",
@@ -209,7 +212,8 @@ class SettingsDialog(QDialog):
         self.value_widgets = {}
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
-            if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE:
+            if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \
+                    or st.category in HIDDEN_CATEGORIES:
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
@@ -236,6 +240,9 @@ class SettingsDialog(QDialog):
             w = QSpinBox()
             w.setRange(-1_000_000, 1_000_000)
             w.setValue(int(value or 0))
+        elif st.category in MULTILINE_CATEGORIES:
+            w = QPlainTextEdit(value)
+            w.setFixedHeight(90)
         elif st.key in ss.OPTIONS:
             w = QComboBox()
             w.addItems(ss.OPTIONS[st.key])
@@ -268,6 +275,8 @@ class SettingsDialog(QDialog):
             return w.currentText()
         if isinstance(w, QLineEdit):
             return w.text().strip()
+        if isinstance(w, QPlainTextEdit):
+            return w.toPlainText().strip()
         return w.edit.text().strip()
 
     # ------------------------------------------------------------ save

@@ -21,7 +21,17 @@ Farben, Druckeinstellungen und Vereinsdaten sind vollständig in der Anwendung k
 - **Ergebniseingabe** komplett per Tastatur (Zahl oder Zone, Enter/↓/↑/Tab), eingefrorene Namens-
   und Summenspalten, Farbmarkierung für Top-Treffer und Fehlschüsse, Klassen- und Gruppenfilter,
   sofortiges Speichern
-- **Status-Workflow** Entwurf → Aktiv → Abgeschlossen (abgeschlossene Turniere sind gesperrt)
+- **Turniersteuerung** in sieben Phasen (Ausschreibung → Vorbereitung → Anmeldung → Einschreibung
+  → Schießen → Auswertung → Abgeschlossen) mit geprüften Voraussetzungen, Warnungen und
+  Phasenwechsel-Protokoll; aktives Turnier in der Seitenleiste, wird beim Start wiederhergestellt
+- **Leitfaden** je Phase: Aufgaben mit Direktlinks, Statusampeln, abhakbare Checkliste
+- **Ausschreibungs-PDF** aus den Turnierdaten (Termin, Parcours, Klassen, Startgeld,
+  Bankverbindung, Kontakt, Hinweise); Hinweis, wenn sie nach Änderungen veraltet ist
+- **Anmeldung und Zahlung** je Teilnehmer (gemeldet/bestätigt/eingecheckt/…, ausstehend/bezahlt),
+  Startgebühren je Turnier, Einnahmenübersicht, maximale Teilnehmerzahl mit Auslastungsanzeige
+- **Einschreibe-Ansicht** für den Turniertag: Suche, Einchecken per Enter, Walk-ins, Druck der
+  Einschreibeliste
+- **Turnier-Dashboard** mit Teilnehmern, Einnahmen, Ergebnisfortschritt, Klassen und Zeitplan
 - **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo“ bei Gleichstand,
   konfigurierbarer Tie-Break, Export CSV/XLSX/ODS
 - **Druckfertige Ergebnisliste** als PDF (Deckblatt mit Vereinslogo, eine Seite je Klasse)

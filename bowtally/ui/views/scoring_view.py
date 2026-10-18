@@ -12,7 +12,8 @@ from datetime import datetime
 from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QStringListModel, Qt, QTimer, \
     Signal
 from PySide6.QtGui import QBrush, QColor, QStandardItem, QStandardItemModel
-from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QComboBox, QCompleter,
+from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QCheckBox, QComboBox,
+                               QCompleter,
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMenu,
                                QStyledItemDelegate, QTabBar, QTableView, QVBoxLayout, QWidget)
 
@@ -177,12 +178,16 @@ class ScoringView(QWidget):
         self.group_filter.currentIndexChanged.connect(lambda _i: self._apply_filter())
         self.search = SearchBar("Name oder Startnummer …")
         self.search.searchChanged.connect(lambda _t: self._apply_filter())
+        self.incomplete_only = QCheckBox("Nur unvollständige")
+        self.incomplete_only.setToolTip("Nur Teilnehmer mit fehlenden Scheibenergebnissen")
+        self.incomplete_only.toggled.connect(lambda _v: self._apply_filter())
         self.save_btn = button("Speichern", self.save, "primary",
                                "Alle Eingaben speichern (Strg+S). Jede Zelle wird zusätzlich "
                                "sofort beim Verlassen gespeichert.")
         bar = QHBoxLayout()
         bar.addWidget(self.class_tabs, 1)
         bar.addWidget(self.group_filter)
+        bar.addWidget(self.incomplete_only)
         bar.addWidget(self.search)
         bar.addWidget(self.save_btn)
 
@@ -386,9 +391,11 @@ class ScoringView(QWidget):
         for r in range(self.model.rowCount()):
             first = self.model.item(r, 0)
             hay = f"{first.text()} {self.model.item(r, 1).text()}".lower()
+            complete = all(self.model.item(r, c).text() for c in self._score_columns())
             hidden = (cls != ALL and first.data(CLASS_ROLE) != cls) or \
                 (group != ALL and first.data(GROUP_ROLE) != group) or \
-                (bool(term) and term not in hay)
+                (bool(term) and term not in hay) or \
+                (self.incomplete_only.isChecked() and complete)
             for v in (self.left, self.mid, self.right):
                 v.setRowHidden(r, hidden)
 
@@ -437,6 +444,12 @@ class ScoringView(QWidget):
         self.mid.setFocus()   # closes an open editor -> commit
         self._mark_saved()
         Toast.show(self, "Alle Eingaben sind gespeichert", Toast.SUCCESS)
+
+    def show_incomplete(self):
+        if self.class_tabs.count():
+            self.class_tabs.setCurrentIndex(0)
+        self.incomplete_only.setChecked(True)
+        self._apply_filter()
 
     # global shortcuts
     def shortcut_save(self):

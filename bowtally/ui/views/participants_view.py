@@ -1,35 +1,50 @@
 # -*- coding: utf-8 -*-
-"""Participant management of one tournament: picker, inline editing, bulk actions, import."""
+"""Participant management of one tournament: picker, registration / payment status,
+inline editing, bulk actions, capacity limit and import."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel,
                                QListWidget, QListWidgetItem, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import PARTICIPANT_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
+from bowtally.services import participant_service as ps
 from bowtally.services import tournament_service as ts
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action, ActionBar
+from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
 from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.search_bar import SearchBar
+from bowtally.ui.components.status_chip import payment_chip, registration_chip
 from bowtally.ui.components.toast import Toast
+from bowtally.ui.context import context
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.views import menu
 
-HEADERS = ["St.-Nr.", "Name", "Verein", "Bogenklasse", "Startgruppe", "Startzeit"]
-COL_NO, COL_CLASS, COL_GROUP, COL_TIME = 0, 3, 4, 5
+HEADERS = ["St.-Nr.", "Name", "Verein", "Bogenklasse", "Startgruppe", "Gebühr", "Anmeldung",
+           "Zahlung", "Startzeit"]
+COL_NO, COL_CLASS, COL_GROUP, COL_FEE, COL_TIME = 0, 3, 4, 5, 8
 ALL_GROUPS = "__all__"
 CLOSED_HINT = "Das Turnier ist abgeschlossen, Änderungen sind gesperrt."
+
+
+def money(amount: float | None) -> str:
+    return "–" if amount is None else f"{amount:.2f} €".replace(".", ",")
+
+
+def full_hint(cap) -> str:
+    return f"Maximale Teilnehmerzahl erreicht ({cap.active_count}/{cap.max})"
 
 
 class ArcherPicker(QDialog):
     """Search + check boxes; archers already in the tournament are greyed out."""
 
-    def __init__(self, assigned_ids: set[int], parent=None):
+    def __init__(self, assigned_ids: set[int], free_slots: int | None = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Schützen zuweisen")
         self.resize(560, 600)
+        self.free_slots = free_slots
         self.search = SearchBar("Name, Verein oder Mitgliedsnummer …")
         self.list = QListWidget()
         self.archers = {a.id: a for a in md.list_archers()}
@@ -57,12 +72,11 @@ class ArcherPicker(QDialog):
         row.addStretch()
         row.addWidget(button("Abbrechen", self.reject, tooltip="Nichts zuweisen"))
         row.addWidget(self.ok)
-        hint = QLabel("Anklicken zum Auswählen. Grau = bereits zugewiesen.",
-                      objectName="pageSubtitle")
+        self.hint = QLabel(objectName="pageSubtitle")
         lay = QVBoxLayout(self)
         lay.addWidget(self.search)
         lay.addWidget(self.list, 1)
-        lay.addWidget(hint)
+        lay.addWidget(self.hint)
         lay.addLayout(row)
         self._update_count()
 
@@ -83,8 +97,14 @@ class ArcherPicker(QDialog):
 
     def _update_count(self, *_):
         n = len(self.selected_ids())
+        too_many = self.free_slots is not None and n > self.free_slots
         self.ok.setText(f"Hinzufügen ({n})")
-        self.ok.setEnabled(n > 0)
+        self.ok.setEnabled(0 < n and not too_many)
+        base = "Anklicken zum Auswählen. Grau = bereits zugewiesen."
+        if self.free_slots is not None:
+            base += f" Noch {self.free_slots} Plätze frei."
+        self.hint.setText(f"Nur noch {self.free_slots} Plätze frei – bitte weniger auswählen."
+                          if too_many else base)
 
 
 class ClassAssignDialog(QDialog):
@@ -133,9 +153,13 @@ class ParticipantsView(QWidget):
                                  tooltip="Teilnehmerliste aus CSV, Excel oder OpenDocument")
         self.btn_renumber = button("Startnummern neu vergeben", self._renumber,
                                    tooltip="Nummern 1..n nach Klasse und Name, Gruppen reihum")
+        self.capacity = CapacityBar()
+        self.capacity.setFixedWidth(280)
         bar = QHBoxLayout()
         bar.addWidget(self.search)
         bar.addWidget(self.group_filter)
+        bar.addSpacing(12)
+        bar.addWidget(self.capacity)
         bar.addStretch()
         bar.addWidget(self.btn_renumber)
         bar.addWidget(self.btn_import)
@@ -149,13 +173,14 @@ class ParticipantsView(QWidget):
         self.table.set_delegate(COL_CLASS, ComboDelegate(self._class_options, parent=self))
         self.table.set_delegate(COL_GROUP, ComboDelegate(self._group_options, editable=True,
                                                          parent=self))
+        self.table.set_delegate(COL_FEE, ComboDelegate(self._fee_options, parent=self))
         self.table.cellEdited.connect(self._on_cell_edited)
         self.table.selectionChanged.connect(self._on_selection)
         self.table.contextMenuRequested.connect(self._context_menu)
         self.action_bar = ActionBar()
-        hint = QLabel("Doppelklick auf Startnummer, Bogenklasse, Startgruppe oder Startzeit "
-                      "bearbeitet direkt in der Tabelle. Tab springt zur nächsten Zelle.",
-                      objectName="pageSubtitle")
+        hint = QLabel("Doppelklick auf Startnummer, Bogenklasse, Startgruppe, Gebühr oder "
+                      "Startzeit bearbeitet direkt in der Tabelle. Rechtsklick für "
+                      "Anmeldung, Zahlung und Status.", objectName="pageSubtitle")
         hint.setWordWrap(True)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 12, 0, 0)
@@ -168,19 +193,33 @@ class ParticipantsView(QWidget):
     def set_tournament(self, tournament):
         self.tournament = t = tournament
         editable = t.status != "closed"
-        for b in (self.btn_add, self.btn_import, self.btn_renumber):
+        cap = ts._capacity(t)
+        self.capacity.set_capacity(cap)
+        for b, tip in ((self.btn_import, "Teilnehmerliste aus CSV, Excel oder OpenDocument"),
+                       (self.btn_renumber, "Nummern 1..n nach Klasse und Name, Gruppen reihum")):
             b.setEnabled(editable)
-            b.setToolTip(b.toolTip() if editable else CLOSED_HINT)
+            b.setToolTip(tip if editable else CLOSED_HINT)
+        self.btn_add.setEnabled(editable and not cap.is_full)
+        self.btn_add.setToolTip(CLOSED_HINT if not editable else full_hint(cap) if cap.is_full
+                                else "Schützen aus den Stammdaten zuweisen (Strg+N)")
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
         self._parts = {p.id: p for p in parts}
-        self.table.set_rows([[Cell(p.start_number, editable=editable),
-                              f"{p.archer.last_name}, {p.archer.first_name}", p.archer.club,
-                              Cell(p.bow_class.name if p.bow_class else "",
-                                   data=p.bow_class_id, editable=editable),
-                              Cell(p.start_group, editable=editable),
-                              Cell(p.start_time, editable=editable)] for p in parts],
-                            [p.id for p in parts])
+        self.table.set_rows([[
+            Cell(p.start_number, editable=editable),
+            f"{p.archer.last_name}, {p.archer.first_name}", p.archer.club,
+            Cell(p.bow_class.name if p.bow_class else "", data=p.bow_class_id,
+                 editable=editable),
+            Cell(p.start_group, editable=editable),
+            Cell(p.entry_fee.amount if p.entry_fee else None,
+                 text=money(p.entry_fee.amount) if p.entry_fee else "–",
+                 data=p.entry_fee_id, editable=editable,
+                 tooltip=p.entry_fee.name if p.entry_fee else "Keine Gebühr zugewiesen"),
+            Cell(p.registration_status, chip=registration_chip(p.registration_status)),
+            Cell(p.payment_status, chip=payment_chip(p.payment_status),
+                 tooltip=f"{money(p.fee_amount_paid)} am {p.payment_date:%d.%m.%Y}"
+                 if p.payment_date else ""),
+            Cell(p.start_time, editable=editable)] for p in parts], [p.id for p in parts])
         current = self.group_filter.currentData()
         self.group_filter.blockSignals(True)
         self.group_filter.clear()
@@ -197,6 +236,7 @@ class ParticipantsView(QWidget):
 
     def _reload(self):
         self.set_tournament(ts.get_tournament(self.tournament.id))
+        context.notify()
 
     def _apply_filter(self):
         self.table.apply_filter(self.search.term())
@@ -213,21 +253,28 @@ class ParticipantsView(QWidget):
     def _group_options(self):
         return [("", "")] + [(g, g) for g in ts.split_groups(self.tournament.start_groups)]
 
+    def _fee_options(self):
+        return [("– keine –", 0)] + [(f"{f.name} ({money(f.amount)})", f.id)
+                                     for f in self.tournament.fees]
+
     # ------------------------------------------------------------ inline editing
     def _on_cell_edited(self, pid, column, value):
-        key = {COL_NO: "start_number", COL_CLASS: "bow_class_id", COL_GROUP: "start_group",
-               COL_TIME: "start_time"}.get(column)
-        if key is None:
-            return
-        if key == "start_number":
-            text = str(value).strip()
-            if text and not text.isdigit():
-                Toast.show(self, f"Startnummer '{text}' ist keine Zahl", Toast.WARNING)
-                self._reload()
-                return
-            value = int(text) if text else None
         try:
-            ts.update_participant(pid, {key: value})
+            if column == COL_FEE:
+                ps.set_entry_fee(pid, value or None)
+            else:
+                key = {COL_NO: "start_number", COL_CLASS: "bow_class_id",
+                       COL_GROUP: "start_group", COL_TIME: "start_time"}.get(column)
+                if key is None:
+                    return
+                if key == "start_number":
+                    text = str(value).strip()
+                    if text and not text.isdigit():
+                        Toast.show(self, f"Startnummer '{text}' ist keine Zahl", Toast.WARNING)
+                        self._reload()
+                        return
+                    value = int(text) if text else None
+                ts.update_participant(pid, {key: value})
         except Exception as exc:
             show_error(self, exc)
         self._reload()
@@ -236,11 +283,24 @@ class ParticipantsView(QWidget):
     def _selected(self):
         return [self._parts[i] for i in self.table.selected_ids() if i in self._parts]
 
+    def _locked(self) -> bool:
+        return self.tournament is not None and self.tournament.status == "closed"
+
     def _on_selection(self, ids):
         n = len(ids)
-        locked = self.tournament is not None and self.tournament.status == "closed"
+        locked = self._locked()
         tip = CLOSED_HINT if locked else ""
+        sel = self._selected()
+        to_confirm = sum(p.registration_status == "registered" for p in sel)
+        to_pay = sum(p.payment_status != "paid" for p in sel)
         actions = [] if not n else [
+            Action(f"{to_confirm} Anmeldungen bestätigen" if n > 1 else "Anmeldung bestätigen",
+                   self.confirm_selected, enabled=not locked and to_confirm > 0,
+                   tooltip=tip or "Status „Bestätigt“ setzen"),
+            Action(f"{to_pay} Zahlungen als eingegangen markieren" if n > 1
+                   else "Zahlung eingegangen", self.mark_paid_selected,
+                   enabled=not locked and to_pay > 0,
+                   tooltip=tip or "Zahlungsstatus „Bezahlt“ mit heutigem Datum"),
             Action("Klasse ändern", self.change_class, enabled=not locked,
                    tooltip=tip or "Bogenklasse für die Auswahl setzen"),
             Action("Gruppe ändern", self.change_group, enabled=not locked,
@@ -251,11 +311,84 @@ class ParticipantsView(QWidget):
             "1 Teilnehmer ausgewählt" if n == 1 else f"{n} Teilnehmer ausgewählt", actions)
 
     def _context_menu(self, _pid, pos):
-        locked = self.tournament.status == "closed"
-        menu(self, [("Klasse ändern …", self.change_class, not locked, CLOSED_HINT),
-                    ("Gruppe ändern …", self.change_group, not locked, CLOSED_HINT),
-                    None,
-                    ("Entfernen", self.remove_selected, not locked, CLOSED_HINT)]).exec(pos)
+        locked = self._locked()
+        checkin_phase = self.tournament.phase in ("checkin", "shooting")
+        entries = [
+            ("Anmeldung bestätigen", self.confirm_selected, not locked, CLOSED_HINT),
+            ("Zahlung als eingegangen markieren", self.mark_paid_selected, not locked,
+             CLOSED_HINT),
+        ]
+        if checkin_phase:
+            entries.append(("Einchecken", lambda: self._set_status("checked_in"), not locked,
+                            CLOSED_HINT))
+        entries += [
+            ("Als DNS markieren (nicht gestartet)", lambda: self._set_status("dns"), not locked,
+             CLOSED_HINT),
+            ("Als zurückgezogen markieren", lambda: self._set_status("withdrawn"), not locked,
+             CLOSED_HINT),
+            ("Auf „Gemeldet“ zurücksetzen", lambda: self._set_status("registered"), not locked,
+             CLOSED_HINT),
+            ("Zahlung als ausstehend markieren", lambda: self._set_payment("unpaid"),
+             not locked, CLOSED_HINT),
+            None,
+            ("Gebühr zuweisen …", self.change_fee, not locked, CLOSED_HINT),
+            ("Klasse ändern …", self.change_class, not locked, CLOSED_HINT),
+            ("Gruppe ändern …", self.change_group, not locked, CLOSED_HINT),
+            None,
+            ("Entfernen", self.remove_selected, not locked, CLOSED_HINT),
+        ]
+        menu(self, entries).exec(pos)
+
+    def confirm_selected(self):
+        sel = self._selected()
+        if not sel:
+            return
+        n = ps.bulk_confirm([p.id for p in sel])
+        Toast.show(self, f"{n} Anmeldungen bestätigt", Toast.SUCCESS)
+        self._reload()
+
+    def mark_paid_selected(self):
+        sel = self._selected()
+        if not sel:
+            return
+        n = ps.bulk_mark_paid([p.id for p in sel])
+        Toast.show(self, f"{n} Zahlungen als eingegangen markiert", Toast.SUCCESS)
+        self._reload()
+
+    def _set_status(self, status: str):
+        sel = self._selected()
+        if status == "registered" or status in ("dns", "withdrawn"):
+            if status != "registered" and not ConfirmDialog.ask(
+                    self, "Status ändern?",
+                    f"{len(sel)} Teilnehmer werden als „{ps.REGISTRATION_LABELS[status]}“ "
+                    "markiert.", "Ändern", destructive=False):
+                return
+        try:
+            for p in sel:
+                ps.set_registration_status(p.id, status)
+        except Exception as exc:
+            show_error(self, exc)
+        Toast.show(self, f"Status: {ps.REGISTRATION_LABELS[status]}", Toast.SUCCESS)
+        self._reload()
+
+    def _set_payment(self, status: str):
+        for p in self._selected():
+            ps.set_payment_status(p.id, status)
+        Toast.show(self, f"Zahlung: {ps.PAYMENT_LABELS[status]}", Toast.SUCCESS)
+        self._reload()
+
+    def change_fee(self):
+        sel = self._selected()
+        if not sel:
+            return
+        fid = choose(self, "Gebühr zuweisen", f"Startgebühr für {len(sel)} Teilnehmer:",
+                     self._fee_options(), sel[0].entry_fee_id or 0)
+        if fid is choose.CANCELLED:
+            return
+        for p in sel:
+            ps.set_entry_fee(p.id, fid or None)
+        Toast.show(self, f"Gebühr für {len(sel)} Teilnehmer gesetzt", Toast.SUCCESS)
+        self._reload()
 
     def change_class(self):
         sel = self._selected()
@@ -294,6 +427,7 @@ class ParticipantsView(QWidget):
         text = (f"{sel[0].archer.first_name} {sel[0].archer.last_name} wird aus dem Turnier "
                 "entfernt." if len(sel) == 1 else f"{len(sel)} Teilnehmer werden aus dem Turnier "
                 "entfernt.")
+        text += "\n\nTipp: „Als zurückgezogen markieren“ behält die Anmeldung in der Historie."
         if with_scores:
             text += f"\n\nAchtung: Für {len(with_scores)} davon sind bereits Ergebnisse " \
                     "erfasst. Diese werden gelöscht."
@@ -310,7 +444,11 @@ class ParticipantsView(QWidget):
         if self.tournament is None or self.tournament.status == "closed":
             return
         t = self.tournament
-        picker = ArcherPicker({p.archer_id for p in t.participants}, self)
+        cap = ts._capacity(t)
+        if cap.is_full:
+            Toast.show(self, full_hint(cap), Toast.WARNING)
+            return
+        picker = ArcherPicker({p.archer_id for p in t.participants}, cap.free_slots, self)
         if not picker.exec() or not picker.selected_ids():
             return
         ids = picker.selected_ids()
@@ -323,12 +461,17 @@ class ParticipantsView(QWidget):
             if not dlg.exec():
                 return
             choices = dlg.choices()
-        with busy():
-            added = ts.add_participants(t.id, ids)
-            if choices:
-                by_archer = {p.archer_id: p.id for p in ts.get_tournament(t.id).participants}
-                for aid, cid in choices.items():
-                    ts.update_participant(by_archer[aid], {"bow_class_id": cid})
+        try:
+            with busy():
+                added = ts.add_participants(t.id, ids)
+                if choices:
+                    by_archer = {p.archer_id: p.id
+                                 for p in ts.get_tournament(t.id).participants}
+                    for aid, cid in choices.items():
+                        ts.update_participant(by_archer[aid], {"bow_class_id": cid})
+        except Exception as exc:
+            show_error(self, exc)
+            return
         Toast.show(self, f"{added} Teilnehmer zugewiesen", Toast.SUCCESS)
         self._reload()
 
@@ -342,13 +485,16 @@ class ParticipantsView(QWidget):
             self._reload()
 
     def _import(self):
-        res = run_import(self, PARTICIPANT_IMPORT_FIELDS, "Teilnehmerliste importieren")
+        tid = self.tournament.id
+        res = run_import(self, PARTICIPANT_IMPORT_FIELDS, "Teilnehmerliste importieren",
+                         lambda records, strategy: ts.import_capacity_error(tid, records,
+                                                                            strategy))
         if res is None:
             return
         records, strategy = res
         try:
             with busy():
-                r = ts.import_participants(self.tournament.id, records, strategy)
+                r = ts.import_participants(tid, records, strategy)
         except Exception as exc:
             show_error(self, exc, "Import fehlgeschlagen")
             return

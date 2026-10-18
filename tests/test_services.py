@@ -45,12 +45,7 @@ def test_tournament_flow():
     assert [(r.participant_id, r.rank, r.total) for r in rows] == [(p1.id, 1, 30),
                                                                    (p2.id, 2, 30)]
 
-    with pytest.raises(ValidationError):
-        ts.set_status(t.id, "closed")       # draft -> closed not allowed
-    ts.set_status(t.id, "active")
-    ts.set_status(t.id, "closed")
-    with pytest.raises(ValidationError):
-        scoring_service.set_score(p1.id, 1, 1, (5, None))
+    # phase lifecycle and locking: tests/test_lifecycle.py
 
 
 def test_builtin_protected():
@@ -79,16 +74,26 @@ def test_theme_tokens_both_modes():
     assert "QTabBar::tab:selected" in theme.build_stylesheet()
 
 
-def test_migration_0002_adds_dark_settings_to_existing_db(tmp_path):
-    import sqlite3
+def test_migrations_down_and_up_again(tmp_path):
+    """Downgrade to the 0.1.0 schema, then upgrade: data survives, new settings appear."""
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine
+    from bowtally import config
+
     url = f"sqlite:///{(tmp_path / 'old.db').as_posix()}"
     engine.init_database(url)
-    con = sqlite3.connect(tmp_path / "old.db")   # simulate a v0.1.0 database
-    con.execute("DELETE FROM app_settings WHERE key LIKE 'color_dark_%' "
-                "OR key IN ('color_text', 'ui_theme_mode')")
-    con.execute("UPDATE alembic_version SET version_num = '0001_initial'")
-    con.commit()
-    con.close()
+    ts.save_tournament({"name": "Alt", "date": date(2030, 1, 1), "num_targets": 3,
+                        "scoring_rule_id": scoring_service.list_rules()[0].id},
+                       [md.list_bow_classes()[0].id])
+    cfg = Config(str(config.ALEMBIC_INI))
+    cfg.set_main_option("script_location", str(config.MIGRATIONS_DIR))
+    with create_engine(url).begin() as conn:
+        cfg.attributes["connection"] = conn
+        command.downgrade(cfg, "0001_initial")
     engine.init_database(url)
     assert settings_service.get(settings_service.KEY_UI_THEME_MODE) == "system"
     assert settings_service.get(settings_service.KEY_COLOR_DARK_SURFACE) == "#161B22"
+    assert settings_service.get("announcement_group_hint")
+    t = ts.list_tournaments()[0]
+    assert t.name == "Alt" and t.phase == "announcement"

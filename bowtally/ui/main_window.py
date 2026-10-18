@@ -1,25 +1,33 @@
 # -*- coding: utf-8 -*-
-"""Main window: navigation sidebar on the left, content stack on the right."""
+"""Main window: sidebar (tournament navigator + navigation) and content stack."""
 from PySide6.QtCore import QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence, QPainter, QShortcut
-from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QHeaderView, QLabel,
-                               QListWidget, QListWidgetItem, QMainWindow, QPushButton,
-                               QStackedWidget, QStyledItemDelegate, QTableWidget,
-                               QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
+                               QHBoxLayout, QHeaderView, QLabel, QListWidget, QListWidgetItem,
+                               QMainWindow, QMessageBox, QPushButton, QStackedWidget,
+                               QStyledItemDelegate, QTableWidget, QTableWidgetItem, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.ui import button, theme
+from bowtally.ui import busy, button, repolish, show_error, theme
+from bowtally.ui.components.confirm_dialog import ConfirmDialog
+from bowtally.ui.components.data_table import Cell, DataTable
+from bowtally.ui.components.status_chip import StatusChip, tournament_chip
+from bowtally.ui.components.toast import Toast
+from bowtally.ui.context import context
+from bowtally.ui.dialogs.export_helper import FORMATS, open_path, run_export, tournament_sheets
 from bowtally.ui.dialogs.settings_dialog import SettingsDialog
 from bowtally.ui.views.archers_view import ArchersView
 from bowtally.ui.views.bow_classes_view import BowClassesView
 from bowtally.ui.views.dashboard import DashboardView
+from bowtally.ui.views.guide_view import GuideView
 from bowtally.ui.views.rules_view import RulesView
 from bowtally.ui.views.tournaments_view import TournamentsView
 from bowtally.ui.widgets.status_bar import StatusBar
 
-NAV_WIDTH = 200
-SETTINGS_KEY = "settings"
+NAV_WIDTH = 240
+NAME_CHARS = 20
 ICON_ROLE = Qt.ItemDataRole.UserRole + 1
 BADGE_ROLE = Qt.ItemDataRole.UserRole + 2
 # theme toggle: mode -> (next mode, icon, label)
@@ -27,13 +35,13 @@ MODE_CYCLE = {theme.MODE_SYSTEM: (theme.MODE_LIGHT, "monitor", "Wie Windows"),
               theme.MODE_LIGHT: (theme.MODE_DARK, "sun", "Hell"),
               theme.MODE_DARK: (theme.MODE_SYSTEM, "moon", "Dunkel")}
 SHORTCUTS = [
-    ("Strg+N", "Neu (Schütze, Klasse, Regelwerk, Turnier oder Teilnehmer zuweisen)"),
+    ("Strg+N", "Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer, Walk-in, Gebühr)"),
     ("Strg+F", "Suchfeld der aktuellen Ansicht"),
     ("Strg+S", "Speichern (Seitenpanel, Ergebniseingabe)"),
     ("Esc", "Seitenpanel schließen / Suche leeren / Eingabe verwerfen"),
     ("F5", "Ansicht neu laden"),
     ("F1", "Diese Übersicht"),
-    ("Enter", "Ausgewählten Eintrag öffnen / Seitenpanel speichern"),
+    ("Enter", "Ausgewählten Eintrag öffnen / Seitenpanel speichern / Einchecken"),
     ("Tab / Umschalt+Tab", "Ergebniseingabe: nächste / vorherige Scheibe"),
     ("Enter / ↓ / ↑", "Ergebniseingabe: nächster / vorheriger Teilnehmer"),
 ]
@@ -58,7 +66,7 @@ class ShortcutsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Tastenkürzel")
-        self.resize(560, 400)
+        self.resize(600, 420)
         table = QTableWidget(len(SHORTCUTS), 2)
         table.setHorizontalHeaderLabels(["Taste", "Aktion"])
         table.verticalHeader().hide()
@@ -81,13 +89,153 @@ class ShortcutsDialog(QDialog):
         lay.addLayout(row)
 
 
+class PhaseLogDialog(QDialog):
+    def __init__(self, tournament_id: int, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Phasenwechsel-Protokoll")
+        self.resize(760, 380)
+        table = DataTable(["Zeitpunkt", "Von", "Nach", "Erzwungen", "Warnungen"])
+        entries = ts.list_phase_log(tournament_id)
+        table.set_rows([[Cell(e.transitioned_at, text=f"{e.transitioned_at:%d.%m.%Y %H:%M}",
+                              sort=str(e.transitioned_at)),
+                         ts.PHASE_LABELS.get(e.from_phase, e.from_phase),
+                         ts.PHASE_LABELS.get(e.to_phase, e.to_phase),
+                         Cell(e.forced, chip=("Ja", "warning") if e.forced else ("Nein", "muted")),
+                         Cell("; ".join(e.warnings_at_transition or []) or "–",
+                              tooltip="\n".join(e.warnings_at_transition or []))]
+                        for e in entries], [e.id for e in entries])
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(button("Schließen", self.accept, "primary", "Protokoll schließen"))
+        lay = QVBoxLayout(self)
+        if not entries:
+            lay.addWidget(QLabel("Noch keine Phasenwechsel.", objectName="pageSubtitle"))
+        lay.addWidget(table, 1)
+        lay.addLayout(row)
+
+
+class TournamentPicker(QDialog):
+    """Modal tournament list for 'Turnier wechseln'."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Turnier wechseln")
+        self.resize(720, 460)
+        self.chosen = None
+        self.table = DataTable(["Datum", "Name", "Ort", "Phase", "Teilnehmer"])
+        items = ts.list_tournaments()
+        self.table.set_rows([[t.date, t.name, t.location,
+                              Cell(t.phase, chip=tournament_chip(t.phase)), len(t.participants)]
+                             for t in items], [t.id for t in items])
+        self.table.activated.connect(self._choose)
+        self.ok = button("Turnier öffnen", lambda: self._choose(self.table.selected_id()),
+                         "primary", "Ausgewähltes Turnier öffnen (Enter)")
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(button("Abbrechen", self.reject, tooltip="Nicht wechseln"))
+        row.addWidget(self.ok)
+        lay = QVBoxLayout(self)
+        lay.addWidget(self.table, 1)
+        lay.addLayout(row)
+
+    def _choose(self, tid):
+        if tid is not None:
+            self.chosen = tid
+            self.accept()
+
+
+class TournamentNavigator(QFrame):
+    """Sidebar block of the active tournament: name, phase list, next-phase button."""
+
+    def __init__(self, window: "MainWindow"):
+        super().__init__(objectName="tournamentNav")
+        self.window_ = window
+        self.name = QLabel(objectName="navTournamentName")
+        self.chip = StatusChip()
+        self.close_btn = QToolButton(objectName="iconButton")
+        self.close_btn.setToolTip("Turnier schließen (zurück zur Gesamtübersicht)")
+        self.close_btn.clicked.connect(lambda: context.set(None))
+        head = QHBoxLayout()
+        head.addWidget(self.name, 1)
+        head.addWidget(self.close_btn)
+        sub = QHBoxLayout()
+        sub.addWidget(self.chip)
+        sub.addStretch()
+        switch = QPushButton("Wechseln", objectName="link")
+        switch.setToolTip("Anderes Turnier öffnen")
+        switch.clicked.connect(window.switch_tournament)
+        sub.addWidget(switch)
+        self.phases = QGridLayout()
+        self.phases.setHorizontalSpacing(8)
+        self.phases.setVerticalSpacing(3)
+        self.next_btn = button("", window.next_phase, "primary")
+        self.next_btn.setObjectName("nextPhase")
+        log = QPushButton("Phasenwechsel-Protokoll ›", objectName="link")
+        log.setToolTip("Alle Phasenwechsel mit Zeitpunkt und übersprungenen Warnungen")
+        log.clicked.connect(lambda: PhaseLogDialog(context.tournament_id, window).exec())
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(14, 4, 14, 12)
+        lay.setSpacing(6)
+        lay.addLayout(head)
+        lay.addLayout(sub)
+        lay.addSpacing(4)
+        lay.addLayout(self.phases)
+        lay.addSpacing(4)
+        lay.addWidget(self.next_btn)
+        lay.addWidget(log, 0, Qt.AlignmentFlag.AlignLeft)
+
+    def refresh(self):
+        t = context.tournament()
+        self.setVisible(t is not None)
+        if t is None:
+            return
+        tcol = theme.current()
+        self.close_btn.setIcon(theme.icon("x"))
+        name = t.name if len(t.name) <= NAME_CHARS else t.name[:NAME_CHARS] + "…"
+        self.name.setText(name)
+        self.name.setToolTip(t.name)
+        self.chip.set_tournament_status(t.phase)
+        while self.phases.count():
+            item = self.phases.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        dates = ts.phase_dates(t.id)
+        current = ts.phase_index(t.phase)
+        for i, key in enumerate(ts.PHASES):
+            state = "done" if i < current else "current" if i == current else "todo"
+            if t.phase == "closed" and key == "closed":
+                state = "done"
+            icon = QLabel()
+            icon.setPixmap(theme.pixmap(
+                {"done": "check", "current": "target", "todo": "circle"}[state],
+                {"done": tcol["success"], "current": tcol["primary"],
+                 "todo": tcol["text2"]}[state], 14))
+            label = QLabel(ts.PHASE_LABELS[key], objectName="phaseLabel")
+            label.setProperty("state", "current" if i == current else state)
+            repolish(label)
+            when = dates.get(key) if i <= current else None
+            date_label = QLabel(f"{when:%d.%m.}" if when else ("aktuell" if i == current
+                                                               else ""), objectName="phaseDate")
+            self.phases.addWidget(icon, i, 0)
+            self.phases.addWidget(label, i, 1)
+            self.phases.addWidget(date_label, i, 2, Qt.AlignmentFlag.AlignRight)
+        self.phases.setColumnStretch(1, 1)
+        nxt = ts.next_phase(t.phase)
+        self.next_btn.setVisible(nxt is not None)
+        if nxt:
+            self.next_btn.setText(f"› Nächste Phase: {ts.PHASE_LABELS[nxt]}")
+            self.next_btn.setToolTip("Voraussetzungen prüfen und in die nächste Phase wechseln")
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("BowTally")
-        self.resize(1360, 840)
+        self.resize(1400, 880)
+        context.restore()
 
         self.dashboard = DashboardView()
+        self.guide = GuideView()
         self.archers = ArchersView()
         self.rules = RulesView()
         self.bow_classes = BowClassesView()
@@ -97,38 +245,38 @@ class MainWindow(QMainWindow):
 
         entries = [
             ("Dashboard", "dashboard", self.dashboard),
-            ("Schützen", "users", self.archers),
-            ("Regelwerke", "rules", self.rules),
-            ("Bogenklassen", "layers", self.bow_classes),
+            ("Leitfaden", "rules", self.guide),
             ("Turniere", "target", self.tournaments),
-            ("Einstellungen", "settings", SETTINGS_KEY),
+            ("Schützen", "users", self.archers),
+            ("Regelwerke", "file", self.rules),
+            ("Bogenklassen", "layers", self.bow_classes),
         ]
-        self.nav = QListWidget()
-        self.nav.setObjectName("navigation")
-        self.nav.setIconSize(QSize(18, 18))
-        self.nav.setItemDelegate(_NavDelegate(self.nav))
-        self.nav.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.nav = self._nav_list()
         for text, icon_name, target in entries:
             item = QListWidgetItem(text)
             item.setData(ICON_ROLE, icon_name)
-            if target != SETTINGS_KEY:
-                self.stack.addWidget(target)
-                item.setData(Qt.ItemDataRole.UserRole, self.stack.indexOf(target))
-            else:
-                item.setData(Qt.ItemDataRole.UserRole, SETTINGS_KEY)
+            self.stack.addWidget(target)
+            item.setData(Qt.ItemDataRole.UserRole, self.stack.indexOf(target))
             self.nav.addItem(item)
         self.nav.currentItemChanged.connect(self._navigate)
+        self.settings_nav = self._nav_list()
+        settings_item = QListWidgetItem("Einstellungen")
+        settings_item.setData(ICON_ROLE, "settings")
+        self.settings_nav.addItem(settings_item)
+        self.settings_nav.setFixedHeight(44)
+        self.settings_nav.itemClicked.connect(self._settings_clicked)
 
         self.logo = QLabel()
         title = QLabel("BowTally")
         title.setObjectName("appTitle")
         head = QHBoxLayout()
-        head.setContentsMargins(20, 20, 16, 16)
+        head.setContentsMargins(20, 20, 16, 12)
         head.setSpacing(10)
         head.addWidget(self.logo)
         head.addWidget(title)
         head.addStretch()
 
+        self.navigator = TournamentNavigator(self)
         self.theme_toggle = QPushButton()
         self.theme_toggle.setObjectName("themeToggle")
         self.theme_toggle.setToolTip("Darstellung umschalten (Wie Windows / Hell / Dunkel)")
@@ -142,7 +290,10 @@ class MainWindow(QMainWindow):
         side_lay.setContentsMargins(0, 0, 0, 12)
         side_lay.setSpacing(4)
         side_lay.addLayout(head)
+        side_lay.addWidget(self.navigator)
+        side_lay.addSpacing(6)
         side_lay.addWidget(self.nav, 1)
+        side_lay.addWidget(self.settings_nav)
         toggle_row = QHBoxLayout()
         toggle_row.setContentsMargins(10, 0, 10, 0)
         toggle_row.addWidget(self.theme_toggle)
@@ -166,7 +317,12 @@ class MainWindow(QMainWindow):
 
         self.dashboard.open_tournament.connect(self.open_tournament)
         self.dashboard.new_tournament.connect(self.new_tournament)
-        self.tournaments.changed.connect(self.update_badges)
+        self.dashboard.action.connect(self.run_action)
+        self.guide.action.connect(self.run_action)
+        self.tournaments.openRequested.connect(lambda tid: self.open_tournament(tid))
+        self.tournaments.changed.connect(self._data_changed)
+        context.changed.connect(self._context_changed)
+        context.dataChanged.connect(self._data_changed)
         QGuiApplication.styleHints().colorSchemeChanged.connect(self._system_scheme_changed)
         for keys, slot in ((QKeySequence.StandardKey.New, "shortcut_new"),
                            (QKeySequence.StandardKey.Find, "shortcut_find"),
@@ -175,8 +331,16 @@ class MainWindow(QMainWindow):
             QShortcut(keys, self, activated=lambda s=slot: self._dispatch(s))
         QShortcut(QKeySequence(Qt.Key.Key_F1), self, activated=self.show_shortcuts)
         self._refresh_chrome()
-        self.update_badges()
-        self.nav.setCurrentRow(0)
+        self._context_changed(context.tournament_id, initial=True)
+
+    @staticmethod
+    def _nav_list() -> QListWidget:
+        nav = QListWidget()
+        nav.setObjectName("navigation")
+        nav.setIconSize(QSize(18, 18))
+        nav.setItemDelegate(_NavDelegate(nav))
+        nav.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        return nav
 
     # ------------------------------------------------------------ shortcuts
     def _dispatch(self, method: str):
@@ -195,14 +359,16 @@ class MainWindow(QMainWindow):
     def _refresh_chrome(self):
         """Icons are pixmaps, so they are re-rendered in the current theme colors."""
         t = theme.current()
-        for row in range(self.nav.count()):
-            item = self.nav.item(row)
-            item.setIcon(theme.icon(item.data(ICON_ROLE), selected_color=t["on_primary"]))
+        for nav in (self.nav, self.settings_nav):
+            for row in range(nav.count()):
+                item = nav.item(row)
+                item.setIcon(theme.icon(item.data(ICON_ROLE), selected_color=t["on_primary"]))
         self.logo.setPixmap(theme.pixmap("target", t["primary"], 26))
         mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
         _next, icon_name, label = MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])
         self.theme_toggle.setIcon(theme.icon(icon_name))
         self.theme_toggle.setText(f"  {label}")
+        self.navigator.refresh()
 
     def _cycle_mode(self):
         mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
@@ -213,47 +379,184 @@ class MainWindow(QMainWindow):
         if ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM) == theme.MODE_SYSTEM:
             self.apply_theme()
 
-    def update_badges(self):
-        """Orange dot on 'Turniere' while a tournament is active."""
-        active = bool(ts.list_tournaments("active"))
-        for row in range(self.nav.count()):
-            item = self.nav.item(row)
-            if item.data(Qt.ItemDataRole.UserRole) == self.stack.indexOf(self.tournaments):
-                item.setData(BADGE_ROLE, active)
-                item.setToolTip("Mindestens ein Turnier ist aktiv" if active else "")
-
-    # ------------------------------------------------------------ navigation
-    def _navigate(self, current: QListWidgetItem, previous: QListWidgetItem | None):
-        if current is None:
-            return
-        target = current.data(Qt.ItemDataRole.UserRole)
-        page = self.stack.currentWidget()
-        leaving_ok = target == SETTINGS_KEY or not hasattr(page, "close_drawer") \
-            or page.close_drawer()
-        if target == SETTINGS_KEY or not leaving_ok:
-            if target == SETTINGS_KEY:
-                self.open_settings()
-            self.nav.blockSignals(True)
-            self.nav.setCurrentItem(previous)
-            self.nav.blockSignals(False)
-            return
-        self.stack.setCurrentIndex(target)   # views refresh themselves in showEvent
-        self.update_badges()
-
-    def select_page(self, widget: QWidget):
+    # ------------------------------------------------------------ tournament context
+    def _nav_item(self, widget: QWidget) -> QListWidgetItem | None:
         for row in range(self.nav.count()):
             if self.nav.item(row).data(Qt.ItemDataRole.UserRole) == self.stack.indexOf(widget):
-                self.nav.setCurrentRow(row)
-                return
+                return self.nav.item(row)
+        return None
+
+    def _context_changed(self, tournament_id, initial: bool = False):
+        self._nav_item(self.guide).setHidden(tournament_id is None)
+        self.navigator.refresh()
+        self.update_badges()
+        if tournament_id is None:
+            self.tournaments.show_list()
+            if initial or self.stack.currentWidget() is self.guide:
+                self.select_page(self.dashboard)
+        elif initial:
+            self.tournaments.open_tournament(tournament_id)
+            self.select_page(self.guide)
+        current = self.stack.currentWidget()
+        if hasattr(current, "refresh") and not initial:
+            current.refresh()
+
+    def _data_changed(self):
+        self.navigator.refresh()
+        self.update_badges()
+
+    def update_badges(self):
+        """Orange dot on 'Turniere': active tournament fully booked or scoring in progress."""
+        reasons = []
+        t = context.tournament()
+        if t is not None:
+            cap = ts._capacity(t)
+            if cap.is_full:
+                reasons.append(f"Maximale Teilnehmerzahl erreicht ({cap.active_count}/"
+                               f"{cap.max})")
+        if any(x.phase == "shooting" for x in ts.list_tournaments("shooting")):
+            reasons.append("Ein Turnier ist in der Phase „Schießen“")
+        item = self._nav_item(self.tournaments)
+        item.setData(BADGE_ROLE, bool(reasons))
+        item.setToolTip("\n".join(reasons))
 
     def open_tournament(self, tournament_id: int, tab: str = ""):
-        self.select_page(self.tournaments)
+        """Make the tournament active. Without tab the guide is shown first."""
+        if context.tournament_id != tournament_id:
+            context.set(tournament_id)
         self.tournaments.open_tournament(tournament_id, tab or None)
+        self.select_page(self.tournaments if tab else self.guide)
+
+    def switch_tournament(self):
+        picker = TournamentPicker(self)
+        if picker.exec() and picker.chosen is not None:
+            self.open_tournament(picker.chosen)
 
     def new_tournament(self):
         self.select_page(self.tournaments)
         self.tournaments.show_list()
         self.tournaments.list.new_item()
+
+    def next_phase(self):
+        t = context.tournament()
+        target = ts.next_phase(t.phase) if t else None
+        if target is None:
+            return
+        label = ts.PHASE_LABELS[target]
+        # check first, change only after the user agreed
+        conds = ts.get_phase_conditions(t.id, target)
+        errors = [c.message for c in conds if not c.ok and c.severity == "blocker"]
+        warnings = [c.message for c in conds if not c.ok and c.severity == "warning"]
+        if errors:
+            QMessageBox.critical(self, "Phasenwechsel nicht möglich",
+                                 f"Der Wechsel zu „{label}“ ist noch nicht möglich:\n\n"
+                                 + "\n".join(f"• {e}" for e in errors))
+            return
+        closing = "\n\nDanach sind keine Eingaben und Änderungen mehr möglich." \
+            if target == "closed" else ""
+        if warnings:
+            if not ConfirmDialog.ask(
+                    self, f"Wechsel zu „{label}“?",
+                    "Folgende Punkte sind noch offen:\n\n"
+                    + "\n".join(f"• {w}" for w in warnings)
+                    + "\n\nTrotzdem fortfahren? Der Wechsel wird mit diesen Hinweisen "
+                      "protokolliert." + closing, "Trotzdem wechseln",
+                    destructive=target == "closed"):
+                return
+        elif target == "closed" and not ConfirmDialog.ask(
+                self, "Turnier abschließen?", closing.strip(), "Abschließen"):
+            return
+        res = ts.transition_phase(t.id, target, force=True)
+        if res.errors:
+            show_error(self, ValueError("\n".join(res.errors)), "Phasenwechsel fehlgeschlagen")
+            return
+        Toast.show(self, f"Phase geändert: {label}", Toast.SUCCESS)
+        context.notify()
+        current = self.stack.currentWidget()
+        if hasattr(current, "refresh"):
+            current.refresh()
+
+    # ------------------------------------------------------------ direct links
+    def run_action(self, key: str):
+        t = context.tournament()
+        if t is None:
+            return
+        tabs = {"participants": "participants", "fees": "fees", "checkin": "checkin",
+                "scoring": "scoring", "results": "results"}
+        if key in tabs:
+            self.open_tournament(t.id, tabs[key])
+        elif key == "guide":
+            self.select_page(self.guide)
+        elif key == "revenue":
+            self.select_page(self.dashboard)
+        elif key == "edit":
+            self.tournaments.open_tournament(t.id)
+            self.tournaments.detail.edit()
+            context.notify()
+        elif key == "announcement":
+            self._generate_announcement(t.id)
+        elif key == "print_checkin":
+            self._print_checkin_list(t.id)
+        elif key == "scoring_incomplete":
+            self.open_tournament(t.id, "scoring")
+            self.tournaments.detail.scoring.show_incomplete()
+        elif key == "results_pdf":
+            self.open_tournament(t.id, "results")
+            self.tournaments.detail.results._create_pdf()
+        elif key == "export_all":
+            run_export(self, f"Turnier_{t.name}{FORMATS[0][2]}", FORMATS[0][1],
+                       tournament_sheets(t.id))
+
+    def _generate_announcement(self, tournament_id: int):
+        from bowtally.reports.announcement import generate_announcement_pdf
+        try:
+            with busy():
+                path = generate_announcement_pdf(tournament_id)
+        except Exception as exc:
+            show_error(self, exc, "Ausschreibung konnte nicht erstellt werden")
+            return
+        Toast.show(self, "Ausschreibung erstellt", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
+        context.notify()
+
+    def _print_checkin_list(self, tournament_id: int):
+        from bowtally.reports.participant_list import build_checkin_list
+        try:
+            with busy():
+                path = build_checkin_list(tournament_id)
+        except Exception as exc:
+            show_error(self, exc, "Einschreibeliste konnte nicht erstellt werden")
+            return
+        Toast.show(self, "Einschreibeliste erstellt", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
+
+    # ------------------------------------------------------------ navigation
+    def _navigate(self, current: QListWidgetItem, previous: QListWidgetItem | None):
+        if current is None:
+            return
+        page = self.stack.currentWidget()
+        if hasattr(page, "close_drawer") and not page.close_drawer():
+            self.nav.blockSignals(True)
+            self.nav.setCurrentItem(previous)
+            self.nav.blockSignals(False)
+            return
+        self.stack.setCurrentIndex(current.data(Qt.ItemDataRole.UserRole))
+        if self.stack.currentWidget() is self.tournaments and context.tournament_id:
+            self.tournaments.open_tournament(context.tournament_id)
+        self.update_badges()
+
+    def _settings_clicked(self, _item):
+        self.settings_nav.clearSelection()
+        self.open_settings()
+
+    def select_page(self, widget: QWidget):
+        item = self._nav_item(widget)
+        if item is None:
+            return
+        if self.nav.currentItem() is item:
+            self.stack.setCurrentWidget(widget)
+        else:
+            self.nav.setCurrentItem(item)
 
     def open_settings(self):
         dlg = SettingsDialog(self.apply_theme, self)
@@ -262,3 +565,11 @@ class MainWindow(QMainWindow):
         page = self.stack.currentWidget()
         if hasattr(page, "refresh"):
             page.refresh()
+
+    def closeEvent(self, event):
+        page = self.stack.currentWidget()
+        if hasattr(page, "close_drawer") and not page.close_drawer():
+            event.ignore()
+            return
+        super().closeEvent(event)
+
