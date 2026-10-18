@@ -18,7 +18,6 @@ env/
 # Build
 build/dist/
 build/work/
-build/Output/
 
 # Runtime data
 *.db

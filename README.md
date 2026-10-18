@@ -75,7 +75,7 @@ bowtally/
   ui/         PySide6-Oberfläche (Views, Dialoge, Widgets, Theme)
   reports/    PDF-Ergebnisliste (reportlab)
   io/         Import/Export CSV, XLSX, ODS
-build/        PyInstaller-Spec, Build-Skript, Inno-Setup-Skript
+build/        PyInstaller-Spec, Build-Skript, NSIS-Skript
 ```
 
 ## Build
@@ -85,11 +85,12 @@ build/        PyInstaller-Spec, Build-Skript, Inno-Setup-Skript
    build\build.bat
    ```
    Ergebnis: `build\dist\BowTally\BowTally.exe`
-2. **Installer erstellen** mit [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+2. **Installer erstellen** mit [NSIS 3](https://nsis.sourceforge.io/):
    ```bat
-   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\setup.iss
+   "C:\Program Files (x86)\NSIS\makensis.exe" build\setup.nsi
    ```
-   Ergebnis: `build\Output\BowTally-0.1.0-Setup.exe`
+   Ergebnis: `build\dist\BowTally-0.1.0-Setup.exe`
+   (andere Version: `makensis /DVERSION=0.2.0 build\setup.nsi`)
 
 ## Git-Remote
 
