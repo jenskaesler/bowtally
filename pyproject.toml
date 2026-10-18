@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bowtally"
+dynamic = ["version"]
+description = "Verwaltung und Auswertung von 3D-Bogenturnieren"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "jenskaesler" }]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Environment :: X11 Applications :: Qt",
+]
+dependencies = [
+    "PySide6>=6.6",
+    "SQLAlchemy>=2.0",
+    "alembic>=1.13",
+    "openpyxl>=3.1",
+    "odfpy>=1.4",
+    "reportlab>=4.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pyinstaller>=6"]
+
+[project.urls]
+Homepage = "https://github.com/jenskaesler/bowtally"
+
+[project.gui-scripts]
+bowtally = "bowtally.main:main"
+
+[tool.setuptools.packages.find]
+include = ["bowtally*"]
+
+[tool.setuptools.package-data]
+"bowtally.database" = ["alembic.ini", "migrations/*.py", "migrations/versions/*.py", "migrations/script.py.mako"]
+
+[tool.setuptools.dynamic]
+version = { attr = "bowtally.__version__.__version__" }
