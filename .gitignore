@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.eggs/
+dist/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Build
+build/dist/
+build/work/
+build/Output/
+
+# Runtime data
+*.db
+*.log
+
+# IDE
+.idea/
+.vscode/
