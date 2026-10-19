@@ -6,6 +6,48 @@ Alle nennenswerten Änderungen an BowTally. Format nach
 
 ## [Unveröffentlicht]
 
+## [0.6.0] – 2026-10-20
+
+### Hinzugefügt
+
+- **Phasenwechsel rückwärts**: Neue Schaltfläche „← Vorherige Phase" (rot) im Sidebar-Navigator
+  und „← Zur vorherigen Phase" im Protokoll-Dialog ermöglichen das manuelle Zurücksetzen der Phase.
+  Jeder Rückwärts-Wechsel wird als erzwungen im Protokoll festgehalten.
+- **Erststart-Assistent**: Beim ersten App-Start ohne Vereinsname erscheint ein überspringbarer
+  Einrichtungsdialog für Vereinsname, Ort und Verband.
+- **Backup-Tab in Einstellungen**: Lokales ZIP-Backup (NAS/USB) mit konfigurierbarer
+  Aufbewahrungsanzahl, Nextcloud-Upload per WebDAV sowie Wiederherstellung aus einer ZIP-Datei.
+- **Dashboard-Kacheln Regelwerke und Bogenklassen**: Zwei neue klickbare Kacheln auf dem
+  Haupt-Dashboard; ein Klick navigiert direkt zur jeweiligen Ansicht.
+- **Aktivitäts-Panel rechts**: Das „Letzte Aktivität"-Panel wurde auf die rechte Seite des
+  Haupt-Dashboards verschoben und ist über eine ◀/▶-Schaltfläche ein-/ausblendbar.
+- **Turnier-Dashboard-Kacheln klickbar**: Teilnehmer-, Einnahmen-, Fortschritts- und Phasen-Kachel
+  im Turnier-Dashboard navigieren per Klick zur zugehörigen Ansicht.
+- **Vereinsvorstand-Kontakte**: Fünf Vorstandsrollen (1./2. Vorsitzende/r, Kassenwart/in,
+  Sportleiter/in, Bogenreferent/in) mit Vor- und Nachname im Vereinsprofil hinterlegbar.
+  Datenbank-Migration 0005 fügt die zehn neuen Spalten hinzu.
+- **Turnier-Assistent Kontaktseite**: Dropdown zur Auswahl einer Vorstandsperson als
+  Kontaktname des Turniers.
+
+### Geändert
+
+- **Sidebar resizierbar**: Die linke Seitenleiste ist per Maus (QSplitter) in der Breite
+  veränderbar und über einen Burger-Button in einen Icon-Only-Modus kollabierbar.
+- **App-Logo klickbar**: Ein Klick auf das Logo oben links navigiert immer zum Haupt-Dashboard.
+- **Check-in-Verbesserungen**: Die Schaltfläche „Als Walk-in erfassen" wurde neben
+  „Einchecken" verschoben (rot), die Enter-Taste löst das Einchecken nicht mehr automatisch aus.
+- **Gebühren-Tab ausgeblendet**: In den Phasen Schießen, Wertung und Abgeschlossen wird der
+  Gebühren-Tab im Turnier-Detail ausgeblendet.
+- **Einstellungen-Beschriftungen**: Einheitliche Label-Breite (130 px) und mehrzeilige
+  Textfelder mit Mindesthöhe für 4 Zeilen statt fixer Höhe.
+- **Turnier-Assistent Zusammenfassung**: Tabellen-Zellbreite per HTML-Attribut gesetzt,
+  sodass Schlüssel und Werte in einer Spalte ausgerichtet sind.
+
+### Behoben
+
+- **Einnahmen-Dashboard zeigt 0 €**: Wenn `fee_amount_paid` nicht gesetzt war, wurde fälschlich
+  0 € angezeigt. Jetzt wird auf den Gebührenbetrag der zugewiesenen Startgebühr zurückgegriffen.
+
 ## [0.5.0] – 2026-10-19
 
 ### Hinzugefügt
@@ -145,7 +187,8 @@ Alle nennenswerten Änderungen an BowTally. Format nach
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.5.0...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jenskaesler/bowtally/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jenskaesler/bowtally/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jenskaesler/bowtally/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jenskaesler/bowtally/compare/v0.2.0...v0.3.0
