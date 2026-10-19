@@ -267,13 +267,13 @@ class MainWindow(QMainWindow):
         self.settings_nav.itemClicked.connect(self._settings_clicked)
 
         self.logo = QLabel()
-        title = QLabel("BowTally")
-        title.setObjectName("appTitle")
+        self.app_title_label = QLabel("BowTally")
+        self.app_title_label.setObjectName("appTitle")
         head = QHBoxLayout()
         head.setContentsMargins(20, 20, 16, 12)
         head.setSpacing(10)
         head.addWidget(self.logo)
-        head.addWidget(title)
+        head.addWidget(self.app_title_label)
         head.addStretch()
 
         self.navigator = TournamentNavigator(self)
@@ -332,6 +332,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence(Qt.Key.Key_F1), self, activated=self.show_shortcuts)
         self._refresh_chrome()
         self._context_changed(context.tournament_id, initial=True)
+        self._refresh_title()
 
     @staticmethod
     def _nav_list() -> QListWidget:
@@ -369,6 +370,10 @@ class MainWindow(QMainWindow):
         self.theme_toggle.setIcon(theme.icon(icon_name))
         self.theme_toggle.setText(f"  {label}")
         self.navigator.refresh()
+
+    def _refresh_title(self):
+        club_name = (ss.get_club_profile().get("club_name") or "").strip()
+        self.setWindowTitle(f"BowTally – {club_name}" if club_name else "BowTally")
 
     def _cycle_mode(self):
         mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
@@ -489,9 +494,11 @@ class MainWindow(QMainWindow):
             self.select_page(self.guide)
         elif key == "revenue":
             self.select_page(self.dashboard)
-        elif key == "edit":
+        elif key in ("edit", "edit_contact", "edit_bank", "edit_classes", "edit_fees"):
+            _pages = {"edit": 0, "edit_contact": 6, "edit_bank": 6,
+                      "edit_classes": 2, "edit_fees": 5}
             self.tournaments.open_tournament(t.id)
-            self.tournaments.detail.edit()
+            self.tournaments.detail.edit_at_page(_pages[key])
             context.notify()
         elif key == "announcement":
             self._generate_announcement(t.id)
@@ -562,6 +569,7 @@ class MainWindow(QMainWindow):
         dlg = SettingsDialog(self.apply_theme, self)
         dlg.exec()
         self.apply_theme()   # saved values, or revert an unsaved preview
+        self._refresh_title()
         page = self.stack.currentWidget()
         if hasattr(page, "refresh"):
             page.refresh()

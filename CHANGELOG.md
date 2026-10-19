@@ -6,6 +6,35 @@ Alle nennenswerten Änderungen an BowTally. Format nach
 
 ## [Unveröffentlicht]
 
+## [0.5.0] – 2026-10-19
+
+### Hinzugefügt
+
+- **Vereinsprofil erweitert**: Bankdaten (Kontoinhaber, IBAN, BIC, Verwendungszweck-Vorlage) und
+  Parcour-Beschreibung als neue Felder im Vereinsprofil hinterlegbar.
+- **Einstellungen neu strukturiert**: Fünf Tabs – Vereinsprofil (mit gruppierten Abschnitten),
+  Bankdaten, Design, Verhalten, Druck. Das Vereinsprofil ist in Gruppen (Verein, Adresse, Kontakt,
+  Parcour-Beschreibung, Notizen, Logo) mit Scroll-Bereich gegliedert.
+- **Vereinsname im Fenstertitel**: Die Titelleiste zeigt „BowTally – [Vereinsname]", sofern ein
+  Vereinsname hinterlegt ist.
+- **Vereinslogo auf beiden Dashboards**: Das Logo erscheint oben rechts im globalen Dashboard und
+  im Turnier-Dashboard.
+- **Dashboard-Erweiterungen**: Aktive Turniere zeigen die Auslastung als `(angemeldet/max)`.
+  Die Schützen-Kachel zeigt die Anzahl der Schützen ohne Vereinszugehörigkeit.
+- **Turnier-Assistent verbessert**:
+  - Reiter 1 (Stammdaten): Veranstalter und Ort per Knopf aus dem Vereinsprofil übernehmen.
+  - Reiter 2 (Regelwerk): Redesign mit formatierter Regelwerksbeschreibung als Karte rechts.
+  - Reiter 3 (Bogenklassen): Standardmäßig keine Klasse vorausgewählt; neuer „Eigene"-Knopf
+    wählt alle benutzerdefinierten Bogenklassen aus.
+  - Reiter 4 (Konfiguration): Parcour-Beschreibung per Knopf aus den Stammdaten übernehmen.
+  - Reiter 7 (Kontakt & Bank): Alle Bankdaten (IBAN, BIC, Kontoinhaber, Verwendungszweck) aus
+    dem Vereinsprofil importierbar.
+  - Reiter 9 (Zusammenfassung): Trennlinien zwischen Abschnitten, einheitlicher Einzug (140 px
+    feste Breite für Beschriftungen), grau dargestellte Labels für bessere Lesbarkeit.
+- **Leitfaden-Direktlinks**: Die drei „Turnier bearbeiten"-Knöpfe in den Phasen navigieren jetzt
+  direkt zur zugehörigen Assistentenseite (Grunddaten, Kontaktdaten, Bankdaten, Bogenklassen)
+  und tragen aussagekräftige Beschriftungen.
+
 ## [0.4.0] – 2026-10-19
 
 ### Hinzugefügt
@@ -116,7 +145,8 @@ Alle nennenswerten Änderungen an BowTally. Format nach
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.4.0...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jenskaesler/bowtally/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jenskaesler/bowtally/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jenskaesler/bowtally/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jenskaesler/bowtally/compare/v0.1.0...v0.2.0

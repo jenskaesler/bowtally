@@ -192,8 +192,12 @@ class TournamentDetail(QWidget):
             self.tabs.currentWidget().set_tournament(t)
 
     def edit(self):
+        self.edit_at_page(0)
+
+    def edit_at_page(self, page: int):
         if self.current is not None and \
-                TournamentWizard(ts.get_tournament(self.current.id), self).exec():
+                TournamentWizard(ts.get_tournament(self.current.id),
+                                 start_page=page, parent=self).exec():
             self.reload()
             self.changed.emit()
 

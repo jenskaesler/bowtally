@@ -15,9 +15,15 @@ CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten
 HIDDEN_CATEGORIES = {"internal"}
 MULTILINE_CATEGORIES = {"templates"}
 CLUB_LABELS = {
-    "club_name": "Vereinsname", "street": "Straße", "zip_code": "PLZ", "city": "Ort",
-    "country": "Land", "phone": "Telefon", "email": "E-Mail", "website": "Webseite",
-    "federation": "Verband", "club_number": "Verbandsnummer", "notes": "Notizen",
+    "club_name": "Vereinsname", "federation": "Verband", "club_number": "Verbandsnummer",
+    "street": "Straße", "zip_code": "PLZ", "city": "Ort", "country": "Land",
+    "phone": "Telefon", "email": "E-Mail", "website": "Webseite",
+}
+BANK_LABELS = {
+    "bank_account_holder": "Kontoinhaber",
+    "bank_iban": "IBAN",
+    "bank_bic": "BIC",
+    "bank_reference_template": "Verwendungszweck-Vorlage",
 }
 LOGO_PREVIEW = 120
 COLOR_ORDER = ["_background", "_surface", "_border", "_text", "_text_secondary"]
@@ -71,11 +77,15 @@ class SettingsDialog(QDialog):
         self.setWindowTitle("Einstellungen")
         self.resize(860, 720)
         self.settings = ss.all_settings()
+        self.club_edits: dict = {}
+        self.value_widgets: dict = {}
 
         tabs = QTabWidget()
         tabs.addTab(self._club_tab(), "Vereinsprofil")
+        tabs.addTab(self._bank_tab(), "Bankdaten")
         tabs.addTab(self._design_tab(), "Design")
-        tabs.addTab(self._other_tab(), "Druck und Verhalten")
+        tabs.addTab(self._category_tab("behavior", "ui"), "Verhalten")
+        tabs.addTab(self._category_tab("print", "templates"), "Druck")
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
                                    | QDialogButtonBox.StandardButton.Cancel)
@@ -91,19 +101,43 @@ class SettingsDialog(QDialog):
     # ------------------------------------------------------------ tab 1
     def _club_tab(self) -> QWidget:
         club = ss.get_club_profile()
-        w = QWidget()
-        form = QFormLayout(w)
-        self.club_edits = {}
-        for key, label in CLUB_LABELS.items():
-            edit = QPlainTextEdit() if key == "notes" else QLineEdit()
-            if key == "notes":
-                edit.setPlainText(club.get(key) or "")
-                edit.setFixedHeight(80)
-            else:
-                edit.setText(club.get(key) or "")
-            self.club_edits[key] = edit
-            form.addRow(label, edit)
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
+        lay.setSpacing(10)
 
+        for box_title, keys in (
+            ("Verein", ("club_name", "federation", "club_number")),
+            ("Adresse", ("street", "zip_code", "city", "country")),
+            ("Kontakt", ("phone", "email", "website")),
+        ):
+            box = QGroupBox(box_title)
+            form = QFormLayout(box)
+            for key in keys:
+                edit = QLineEdit(club.get(key) or "")
+                self.club_edits[key] = edit
+                form.addRow(CLUB_LABELS[key], edit)
+            lay.addWidget(box)
+
+        box_course = QGroupBox("Parcour-Beschreibung")
+        f_course = QFormLayout(box_course)
+        edit_course = QPlainTextEdit(club.get("course_description") or "")
+        edit_course.setFixedHeight(70)
+        edit_course.setPlaceholderText(
+            "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
+        self.club_edits["course_description"] = edit_course
+        f_course.addRow("Beschreibung", edit_course)
+        lay.addWidget(box_course)
+
+        box_notes = QGroupBox("Notizen")
+        f_notes = QFormLayout(box_notes)
+        edit_notes = QPlainTextEdit(club.get("notes") or "")
+        edit_notes.setFixedHeight(70)
+        self.club_edits["notes"] = edit_notes
+        f_notes.addRow("Notizen", edit_notes)
+        lay.addWidget(box_notes)
+
+        box_logo = QGroupBox("Logo")
+        logo_lay = QHBoxLayout(box_logo)
         self.logo_edit = QLineEdit(club.get("logo_path") or "")
         self.logo_edit.textChanged.connect(self._update_logo)
         self.logo_preview = QLabel()
@@ -118,12 +152,16 @@ class SettingsDialog(QDialog):
         row_btns.addStretch()
         col.addLayout(row_btns)
         col.addStretch()
-        row = QHBoxLayout()
-        row.addLayout(col, 1)
-        row.addWidget(self.logo_preview)
-        form.addRow("Logo", row)
+        logo_lay.addLayout(col, 1)
+        logo_lay.addWidget(self.logo_preview)
         self._update_logo(self.logo_edit.text())
-        return w
+        lay.addWidget(box_logo)
+        lay.addStretch()
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(inner)
+        return scroll
 
     def _browse_logo(self):
         path, _ = QFileDialog.getOpenFileName(self, "Logo auswählen", "",
@@ -205,15 +243,35 @@ class SettingsDialog(QDialog):
                 field.set_value(defaults[key])
         self._preview()
 
-    # ------------------------------------------------------------ tab 3
-    def _other_tab(self) -> QWidget:
+    # ------------------------------------------------------------ tab 2b (bank) / tabs 4+5
+    def _bank_tab(self) -> QWidget:
+        club = ss.get_club_profile()
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        box = QGroupBox("Bankverbindung")
+        form = QFormLayout(box)
+        for key, label in BANK_LABELS.items():
+            edit = QLineEdit(club.get(key) or "")
+            if key == "bank_iban":
+                edit.setPlaceholderText("DE00 0000 0000 0000 0000 00")
+            if key == "bank_reference_template":
+                edit.setPlaceholderText("z. B. 3D Turnier 2027, {name}, {bow_class}")
+            self.club_edits[key] = edit
+            form.addRow(label, edit)
+        hint = QLabel("Platzhalter Verwendungszweck: {name}, {bow_class}",
+                      objectName="pageSubtitle")
+        form.addRow("", hint)
+        lay.addWidget(box)
+        lay.addStretch()
+        return w
+
+    def _category_tab(self, *categories: str) -> QWidget:
         inner = QWidget()
         lay = QVBoxLayout(inner)
-        self.value_widgets = {}
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
             if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \
-                    or st.category in HIDDEN_CATEGORIES:
+                    or st.category not in categories or st.category in HIDDEN_CATEGORIES:
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
