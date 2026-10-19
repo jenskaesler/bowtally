@@ -6,6 +6,53 @@ Alle nennenswerten Änderungen an BowTally. Format nach
 
 ## [Unveröffentlicht]
 
+## [0.7.0] – 2026-10-20
+
+### Hinzugefügt
+
+- **Phase „Entwurf"**: Neue erste Phase vor der Ausschreibung. Neue Turniere starten jetzt im
+  Entwurfsstatus, in dem alle Daten frei bearbeitet werden können. Nach dem Wechsel in die
+  Einschreibungsphase ist der Turnier-Assistent gesperrt (Button ausgeblendet).
+  Datenbank-Migration 0006 fügt die Phase in bestehende Datenbanken ein.
+- **Turnier klonen**: Aus dem Aktionsmenü der Turnierliste lässt sich ein bestehendes Turnier als
+  Vorlage klonen. Der Assistent startet mit vorausgefüllten Daten; Teilnehmer und Ergebnisse
+  werden nicht übernommen.
+- **Dashboard-Kachel „Turnierarchiv"**: Neue Kachel in Zeile 1 zeigt die Anzahl
+  abgeschlossener Turniere und führt per Klick zur Turnierliste.
+- **Automatisches Backup beim Beenden**: Neuer Schalter im Backup-Tab der Einstellungen.
+  Beim Schließen der App wird ein lokales ZIP-Backup erstellt, sofern ein Backup-Pfad gesetzt ist.
+- **About-Dialog**: Neuer Eintrag „Über BowTally" in der Seitenleiste mit Versionsnummer,
+  Kurzbeschreibung, GitHub-Link, Entwicklerinfo und Lizenzhinweis.
+- **Lizenz**: Eigene Nicht-Kommerzielle-Copyleft-Lizenz. Kommerzielle Nutzung erfordert
+  schriftliche Genehmigung; Änderungen müssen auf GitHub veröffentlicht werden.
+
+### Geändert
+
+- **Dashboard Kacheln neu geordnet**: Zeile 1 zeigt Aktive Turniere, Nächstes Turnier und
+  Turnierarchiv; Zeile 2 zeigt Schützen, Regelwerke und Bogenklassen.
+- **Aktivitätspanel unter Kacheln**: Das „Letzte Aktivität"-Panel ist zurück unter den
+  Dashboard-Kacheln und per vertikalem QSplitter in der Höhe veränderbar.
+- **Einstellungen/Druck-Labels**: „Vereinslogo einfügen" (vorher „Vereinslogo einfügen in")
+  und „Einzelwertung einfügen" (vorher „Einzelwertung je Scheibe in Liste").
+- **Vereinslogo-Einstellung zusammengeführt**: Die separate Option „Vereinslogo klein am Ende
+  der Ausschreibung wiederholen" wurde entfernt. Die Option „Vereinslogo einfügen" steuert jetzt
+  beide Ausgaben (Ergebnisliste und Ausschreibungs-Footer).
+- **Turnierliste filtert abgeschlossene Turniere**: Neue Checkbox „Abgeschlossen anzeigen"
+  (Standard: ausgeblendet) in der Turnierliste.
+- **Seitenleiste eingeklappt**: Einstellungen, „Über BowTally" und Theme-Umschalter bleiben im
+  eingeklappten Zustand sichtbar (Icon-only). Nav-Liste kann auf minimale Icon-Breite schrumpfen.
+- **Phasenwechsel-Protokoll-Button**: Jetzt so breit wie der Nächste-Phase-Button.
+- **QCheckBox sichtbar**: Checkboxen im Einstellungsdialog erhalten explizites Styling
+  (Rahmen, Hintergrund, Primary-Farbe für den aktivierten Zustand).
+
+### Behoben
+
+- **Sidebar-Burger**: Icon fehlte → Burger-Button nutzt jetzt `QToolButton` mit Theme-Icon.
+- **Sidebar-Einklappen**: Logo und App-Titel wurden nicht ausgeblendet; beim Aufklappen wurde
+  fälschlicherweise in ein Turnier navigiert (nav-Signale nicht geblockt).
+- **Textboxen Beschreibung/Notizen**: Mehrzeilige Eingabefelder im Vereinsprofil zeigten nur
+  eine Zeile; fixe Höhe (90 px) wie die Textvorlagen-Boxen im Druck-Tab.
+
 ## [0.6.0] – 2026-10-20
 
 ### Hinzugefügt
@@ -187,7 +234,8 @@ Alle nennenswerten Änderungen an BowTally. Format nach
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.6.0...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/jenskaesler/bowtally/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jenskaesler/bowtally/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jenskaesler/bowtally/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jenskaesler/bowtally/compare/v0.3.0...v0.4.0

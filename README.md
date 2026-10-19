@@ -10,17 +10,18 @@ Anwendung gepflegt.
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **0.4.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **0.7.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 
 ### Turnierablauf
 
-- **Sieben Phasen** mit geführtem Ablauf: Ausschreibung → Vorbereitung → Anmeldung →
+- **Acht Phasen** mit geführtem Ablauf: Entwurf → Ausschreibung → Vorbereitung → Anmeldung →
   Einschreibung → Schießen → Auswertung → Abgeschlossen.
-  Vor jedem Phasenwechsel prüft BowTally die Voraussetzungen. Fehlt etwas Zwingendes, ist der
-  Wechsel gesperrt. Offene Punkte werden als Warnung angezeigt und können bewusst übergangen
-  werden. Jeder Wechsel wird protokolliert.
+  Im Entwurf können alle Turnierdaten frei bearbeitet werden. Ab der Einschreibungsphase sind
+  die Grunddaten gesperrt. Vor jedem Phasenwechsel prüft BowTally die Voraussetzungen. Fehlt
+  etwas Zwingendes, ist der Wechsel gesperrt. Offene Punkte werden als Warnung angezeigt und
+  können bewusst übergangen werden. Jeder Wechsel wird protokolliert.
 - **Aktives Turnier in der Seitenleiste**: Phasenübersicht mit Datum, Knopf „Nächste Phase“ und
   Phasenwechsel-Protokoll. Das zuletzt geöffnete Turnier wird beim Start wiederhergestellt.
 - **Leitfaden** je Phase: Erklärung, Aufgaben mit Direktlinks, Statusampeln für den nächsten
@@ -28,6 +29,8 @@ Aktuelle Version: **0.4.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
   Siegerehrung, Aushang).
 - **Turnier-Assistent** in neun Schritten: Grunddaten, Regelwerk, Bogenklassen, Parcours,
   Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
+- **Turnier klonen**: Ein bestehendes Turnier als Vorlage nutzen – der Assistent startet
+  vorausgefüllt, Teilnehmer und Ergebnisse werden nicht übernommen.
 
 ### Ausschreibung und Anmeldung
 
@@ -76,6 +79,10 @@ Aktuelle Version: **0.4.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 - Tastenkürzel: `Strg+N` Neu, `Strg+F` Suchen, `Strg+S` Speichern, `F5` Neu laden,
   `F1` Übersicht aller Kürzel.
 - Darstellung hell, dunkel oder wie Windows. Alle Farben und die Schriftart sind änderbar.
+- **Resizable Seitenleiste** mit Burger-Button zum Einklappen (Icon-only-Modus).
+- **Datensicherung**: Lokales ZIP-Backup, Nextcloud (WebDAV), automatisches Backup beim
+  Beenden. Wiederherstellung aus einer Backup-Datei direkt in den Einstellungen.
+- **Erststart-Assistent**: Beim ersten Start ohne Vereinsprofil erscheint ein Einrichtungsdialog.
 
 ## Schnellstart
 
@@ -176,7 +183,7 @@ kommt aus `bowtally/__version__.py`.
 | Anwendung | `build\dist\BowTally\BowTally.exe` |
 | Installer | `build\dist\BowTally-<version>-Setup.exe` |
 
-Nur den Installer neu bauen: `makensis /DVERSION=0.4.0 build\setup.nsi`
+Nur den Installer neu bauen: `makensis /DVERSION=0.7.0 build\setup.nsi`
 
 ### Release
 
@@ -195,5 +202,9 @@ git push -u origin main --tags
 
 ## Lizenz
 
-BowTally ist freie Software unter der **GNU General Public License v3.0**, siehe
+BowTally steht unter einer eigenen **Nicht-Kommerziellen Copyleft-Lizenz**, siehe
 [LICENSE](LICENSE).
+
+- **Keine kommerzielle Nutzung** ohne ausdrückliche schriftliche Genehmigung.
+- **Copyleft**: Änderungen am Quellcode müssen öffentlich auf GitHub veröffentlicht werden.
+- Für Lizenzanfragen: [mail@jens-kaesler.de](mailto:mail@jens-kaesler.de)
