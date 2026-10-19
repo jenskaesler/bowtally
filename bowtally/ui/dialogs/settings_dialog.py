@@ -34,6 +34,13 @@ CONTACT_ROLES = {
     "sports_dir": "Sportleiter/in",
     "bow_ref": "Bogenreferent/in",
 }
+COMBO_LABELS = {
+    ss.KEY_PRINT_ORIENTATION: {"portrait": "Hochformat", "landscape": "Querformat"},
+}
+LABEL_OVERRIDES = {
+    ss.KEY_PRINT_SHOW_LOGO: "Vereinslogo einfügen in",
+    ss.KEY_PRINT_SHOW_SCORES_PER_TARGET: "Einzelwertung je Scheibe in Liste",
+}
 LOGO_PREVIEW = 120
 COLOR_ORDER = ["_background", "_surface", "_border", "_text", "_text_secondary"]
 BRAND_COLORS = {ss.KEY_COLOR_PRIMARY, ss.KEY_COLOR_SECONDARY, ss.KEY_COLOR_ACCENT}
@@ -137,7 +144,7 @@ class SettingsDialog(QDialog):
         box_course = QGroupBox("Parcour-Beschreibung")
         f_course = QFormLayout(box_course)
         edit_course = QPlainTextEdit(club.get("course_description") or "")
-        edit_course.setMinimumHeight(88)
+        edit_course.setFixedHeight(90)
         edit_course.setPlaceholderText(
             "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
         self.club_edits["course_description"] = edit_course
@@ -147,7 +154,7 @@ class SettingsDialog(QDialog):
         box_notes = QGroupBox("Notizen")
         f_notes = QFormLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setMinimumHeight(88)
+        edit_notes.setFixedHeight(90)
         self.club_edits["notes"] = edit_notes
         f_notes.addRow(self._flbl("Notizen"), edit_notes)
         lay.addWidget(box_notes)
@@ -426,7 +433,7 @@ class SettingsDialog(QDialog):
                 lay.addWidget(box)
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
-            label = QLabel(st.description or st.key)
+            label = QLabel(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
             groups[st.category].addRow(label, widget)
@@ -450,10 +457,11 @@ class SettingsDialog(QDialog):
             w.setFixedHeight(90)
         elif st.key in ss.OPTIONS:
             w = QComboBox()
-            w.addItems(ss.OPTIONS[st.key])
-            if value and w.findText(value) < 0:
-                w.addItem(value)
-            w.setCurrentText(value)
+            display = COMBO_LABELS.get(st.key, {})
+            for val in ss.OPTIONS[st.key]:
+                w.addItem(display.get(val, val), val)
+            idx = w.findData(value) if value else -1
+            w.setCurrentIndex(idx if idx >= 0 else 0)
         elif st.value_type == "path":
             w = QWidget()
             w.edit = QLineEdit(value)
@@ -477,7 +485,8 @@ class SettingsDialog(QDialog):
         if isinstance(w, QSpinBox):
             return str(w.value())
         if isinstance(w, QComboBox):
-            return w.currentText()
+            data = w.currentData()
+            return data if data is not None else w.currentText()
         if isinstance(w, QLineEdit):
             return w.text().strip()
         if isinstance(w, QPlainTextEdit):

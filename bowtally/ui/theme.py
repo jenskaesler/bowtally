@@ -257,6 +257,18 @@ QPushButton#link {{
 }}
 QPushButton#link:hover {{ text-decoration: underline; background: transparent; }}
 
+/* checkboxes */
+QCheckBox {{ spacing: 8px; }}
+QCheckBox::indicator {{
+    width: 16px; height: 16px; border: 2px solid {t['border']}; border-radius: 4px;
+    background: {t['surface']};
+}}
+QCheckBox::indicator:hover {{ border-color: {t['primary']}; }}
+QCheckBox::indicator:checked {{
+    background: {t['primary']}; border-color: {t['primary']};
+}}
+QCheckBox::indicator:checked:hover {{ background: {t['primary_hover']}; border-color: {t['primary_hover']}; }}
+
 /* side drawer */
 QFrame#drawer {{ background: {t['surface']}; border-left: 1px solid {t['border']}; }}
 QFrame#drawer QScrollArea, QFrame#drawer QScrollArea > QWidget > QWidget {{
@@ -444,6 +456,7 @@ ICONS = {
     "calendar": '<rect x="3.5" y="5" width="17" height="15" rx="2"/>'
                 '<path d="M3.5 10h17M8 3v4M16 3v4"/>',
     "file": '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+    "menu": '<path d="M3 6h18M3 12h18M3 18h18"/>',
 }
 
 
