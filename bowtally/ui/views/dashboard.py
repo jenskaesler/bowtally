@@ -77,6 +77,7 @@ class GlobalDashboard(QWidget):
         grid = QGridLayout()
         grid.setSpacing(16)
 
+        # Row 0: Aktive Turniere | Nächstes Turnier | Turnierarchiv
         card, c = _card("Aktive Turniere")
         self.active_count = QLabel("0", objectName="cardValue")
         self.active_links = QVBoxLayout()
@@ -85,16 +86,6 @@ class GlobalDashboard(QWidget):
         c.addLayout(self.active_links)
         c.addStretch()
         grid.addWidget(card, 0, 0)
-
-        card, c = _card("Schützen")
-        self.archer_count = QLabel("0", objectName="cardValue")
-        self.club_count = QLabel(objectName="pageSubtitle")
-        self.no_club_lbl = QLabel(objectName="pageSubtitle")
-        c.addWidget(self.archer_count)
-        c.addWidget(self.club_count)
-        c.addWidget(self.no_club_lbl)
-        c.addStretch()
-        grid.addWidget(card, 0, 1)
 
         card, c = _card("Nächstes Turnier")
         self.next_name = QLabel(objectName="emptyTitle")
@@ -110,27 +101,45 @@ class GlobalDashboard(QWidget):
         c.addWidget(self.next_meta)
         c.addStretch()
         c.addLayout(row)
-        grid.addWidget(card, 0, 2)
+        grid.addWidget(card, 0, 1)
 
-        rules_card, c = _card("Regelwerke")
+        archive_card, c = _card("Turnierarchiv",
+                                on_click=lambda: self.navigate.emit("tournaments"))
+        self.archive_count = QLabel("0", objectName="cardValue")
+        c.addWidget(self.archive_count)
+        c.addWidget(_link("Alle Turniere →", lambda: self.navigate.emit("tournaments"),
+                          "Turnierliste öffnen"))
+        c.addStretch()
+        grid.addWidget(archive_card, 0, 2)
+
+        # Row 1: Schützen | Regelwerke | Bogenklassen
+        card, c = _card("Schützen")
+        self.archer_count = QLabel("0", objectName="cardValue")
+        self.club_count = QLabel(objectName="pageSubtitle")
+        self.no_club_lbl = QLabel(objectName="pageSubtitle")
+        c.addWidget(self.archer_count)
+        c.addWidget(self.club_count)
+        c.addWidget(self.no_club_lbl)
+        c.addStretch()
+        grid.addWidget(card, 1, 0)
+
+        rules_card, c = _card("Regelwerke",
+                               on_click=lambda: self.navigate.emit("rules"))
         self.rules_count = QLabel("0", objectName="cardValue")
         c.addWidget(self.rules_count)
         c.addWidget(_link("Regelwerke öffnen →", lambda: self.navigate.emit("rules"),
                           "Regelwerke verwalten"))
         c.addStretch()
-        rules_card.setCursor(Qt.CursorShape.PointingHandCursor)
-        rules_card.mousePressEvent = lambda _e: self.navigate.emit("rules")
-        grid.addWidget(rules_card, 1, 0)
+        grid.addWidget(rules_card, 1, 1)
 
-        bow_card, c = _card("Bogenklassen")
+        bow_card, c = _card("Bogenklassen",
+                             on_click=lambda: self.navigate.emit("bow_classes"))
         self.bow_count = QLabel("0", objectName="cardValue")
         c.addWidget(self.bow_count)
         c.addWidget(_link("Bogenklassen öffnen →", lambda: self.navigate.emit("bow_classes"),
                           "Bogenklassen verwalten"))
         c.addStretch()
-        bow_card.setCursor(Qt.CursorShape.PointingHandCursor)
-        bow_card.mousePressEvent = lambda _e: self.navigate.emit("bow_classes")
-        grid.addWidget(bow_card, 1, 1)
+        grid.addWidget(bow_card, 1, 2)
 
         grid.setRowStretch(0, 0)
         for col in range(3):
@@ -177,8 +186,9 @@ class GlobalDashboard(QWidget):
 
     def refresh(self):
         tournaments = ts.list_tournaments()
-        active = [t for t in tournaments if t.phase != "closed"]
+        active = [t for t in tournaments if t.phase not in ("closed", "draft")]
         self.active_count.setText(str(len(active)))
+        self.archive_count.setText(str(sum(t.phase == "closed" for t in tournaments)))
         _clear(self.active_links)
         for t in sorted(active, key=lambda t: t.date)[:ACTIVE_LINKS]:
             active_count = sum(ts.is_active_participant(p) for p in t.participants)

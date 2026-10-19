@@ -13,9 +13,9 @@ from bowtally.services.tournament_service import PHASE_LABELS
 from bowtally.ui import repolish, theme
 
 CHIP_ROLE = Qt.ItemDataRole.UserRole + 10      # item data: (text, kind)
-PHASE_KINDS = {"announcement": "neutral", "preparation": "neutral", "registration": "primary",
-               "checkin": "primary", "shooting": "success", "scoring": "success",
-               "closed": "muted"}
+PHASE_KINDS = {"draft": "muted", "announcement": "neutral", "preparation": "neutral",
+               "registration": "primary", "checkin": "primary", "shooting": "success",
+               "scoring": "success", "closed": "muted"}
 REGISTRATION_KINDS = {"registered": "muted", "confirmed": "primary", "checked_in": "success",
                       "dns": "warning", "dnf": "warning", "dsq": "danger", "withdrawn": "muted"}
 PAYMENT_KINDS = {"unpaid": "danger", "pending": "warning", "paid": "success"}

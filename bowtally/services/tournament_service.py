@@ -130,7 +130,7 @@ def save_tournament(data: dict, bow_class_ids: list[int], tournament_id: int | N
             raise ValidationError(f"Das Regelwerk '{rule.name}' erlaubt höchstens "
                                   f"{rule.max_shots_per_target} Schuss je Scheibe.")
         if tournament_id is None:
-            t = Tournament(status="draft", phase="announcement", phase_changed_at=datetime.now(),
+            t = Tournament(status="draft", phase="draft", phase_changed_at=datetime.now(),
                            checklist_state={}, **data)
             s.add(t)
             s.flush()

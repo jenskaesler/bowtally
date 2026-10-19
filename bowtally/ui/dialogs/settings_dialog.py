@@ -38,9 +38,10 @@ COMBO_LABELS = {
     ss.KEY_PRINT_ORIENTATION: {"portrait": "Hochformat", "landscape": "Querformat"},
 }
 LABEL_OVERRIDES = {
-    ss.KEY_PRINT_SHOW_LOGO: "Vereinslogo einfügen in",
-    ss.KEY_PRINT_SHOW_SCORES_PER_TARGET: "Einzelwertung je Scheibe in Liste",
+    ss.KEY_PRINT_SHOW_LOGO: "Vereinslogo einfügen",
+    ss.KEY_PRINT_SHOW_SCORES_PER_TARGET: "Einzelwertung einfügen",
 }
+HIDDEN_KEYS = {"print_announcement_logo_footer"}
 LOGO_PREVIEW = 120
 COLOR_ORDER = ["_background", "_surface", "_border", "_text", "_text_secondary"]
 BRAND_COLORS = {ss.KEY_COLOR_PRIMARY, ss.KEY_COLOR_SECONDARY, ss.KEY_COLOR_ACCENT}
@@ -311,6 +312,13 @@ class SettingsDialog(QDialog):
         w = QWidget()
         lay = QVBoxLayout(w)
 
+        auto_box = QGroupBox("Automatisches Backup")
+        auto_lay = QVBoxLayout(auto_box)
+        self._backup_on_close = QCheckBox("Backup beim Beenden der App erstellen")
+        self._backup_on_close.setChecked(ss.get_bool("backup_on_close"))
+        auto_lay.addWidget(self._backup_on_close)
+        lay.addWidget(auto_box)
+
         local_box = QGroupBox("Lokales Backup (NAS / USB)")
         local_form = QFormLayout(local_box)
         self._backup_path_edit = QLineEdit(ss.get("backup_local_path") or "")
@@ -378,7 +386,8 @@ class SettingsDialog(QDialog):
                      "backup_retention": str(self._backup_retention.value()),
                      "backup_nc_url": self._nc_url.text().strip(),
                      "backup_nc_user": self._nc_user.text().strip(),
-                     "backup_nc_pass": self._nc_pass.text().strip()})
+                     "backup_nc_pass": self._nc_pass.text().strip(),
+                     "backup_on_close": "true" if self._backup_on_close.isChecked() else "false"})
 
     def _do_local_backup(self, bs):
         self._save_backup_settings()
@@ -425,6 +434,7 @@ class SettingsDialog(QDialog):
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
             if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \
+                    or st.key in HIDDEN_KEYS \
                     or st.category not in categories or st.category in HIDDEN_CATEGORIES:
                 continue
             if st.category not in groups:

@@ -169,12 +169,14 @@ def _club_address(club: dict) -> str:
 
 
 class TournamentWizard(QWizard):
-    def __init__(self, tournament=None, start_page: int = 0, parent=None):
+    def __init__(self, tournament=None, start_page: int = 0, clone: bool = False, parent=None):
         super().__init__(parent)
-        self.tournament = tournament
+        self._template = tournament if clone else None
+        self.tournament = None if clone else tournament
         self.created_id: int | None = None
         self._start_page = start_page
-        self.setWindowTitle("Turnier bearbeiten" if tournament else "Neues Turnier")
+        self.setWindowTitle("Turnier klonen" if clone
+                            else ("Turnier bearbeiten" if tournament else "Neues Turnier"))
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
         self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage)
         self.resize(860, 680)
@@ -205,7 +207,8 @@ class TournamentWizard(QWizard):
             self.next()
 
     def _t(self, attr, default=None):
-        value = getattr(self.tournament, attr, None) if self.tournament else None
+        source = self.tournament or self._template
+        value = getattr(source, attr, None) if source else None
         return default if value is None else value
 
     # ------------------------------------------------------------ 1 basics

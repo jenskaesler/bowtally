@@ -192,7 +192,7 @@ class TournamentNavigator(QFrame):
         lay.addLayout(self.phases)
         lay.addSpacing(4)
         lay.addWidget(self.next_btn)
-        lay.addWidget(self.log_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        lay.addWidget(self.log_btn)
 
     def refresh(self):
         t = context.tournament()
@@ -380,21 +380,30 @@ class MainWindow(QMainWindow):
         self.logo.setVisible(not collapsed)
         self.app_title_label.setVisible(not collapsed)
         self.navigator.setVisible(not collapsed and context.tournament_id is not None)
-        self.settings_nav.setVisible(not collapsed)
-        self.theme_toggle.setVisible(not collapsed)
         self.nav.blockSignals(True)
+        self.settings_nav.blockSignals(True)
         if collapsed:
             for row in range(self.nav.count()):
                 self.nav.item(row).setText("")
+            for row in range(self.settings_nav.count()):
+                self.settings_nav.item(row).setText("")
+            self.theme_toggle.setText("")
             self.splitter.setSizes([SIDEBAR_ICON_ONLY, self.width() - SIDEBAR_ICON_ONLY])
         else:
             labels = ["Dashboard", "Leitfaden", "Turniere",
                       "Schützen", "Regelwerke", "Bogenklassen"]
             for row in range(self.nav.count()):
                 self.nav.item(row).setText(labels[row])
-            self._context_changed(context.tournament_id)  # re-apply hidden state for Leitfaden
+            self.settings_nav.item(0).setText("Einstellungen")
+            self.settings_nav.item(1).setText("Über BowTally")
+            # restore theme toggle label
+            mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
+            _next, _icon, label = MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])
+            self.theme_toggle.setText(f"  {label}")
+            self._context_changed(context.tournament_id)
             self.splitter.setSizes([NAV_WIDTH, self.width() - NAV_WIDTH])
         self.nav.blockSignals(False)
+        self.settings_nav.blockSignals(False)
 
     @staticmethod
     def _nav_list() -> QListWidget:
@@ -403,6 +412,7 @@ class MainWindow(QMainWindow):
         nav.setIconSize(QSize(18, 18))
         nav.setItemDelegate(_NavDelegate(nav))
         nav.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        nav.setMinimumWidth(0)
         return nav
 
     # ------------------------------------------------------------ shortcuts
@@ -677,5 +687,11 @@ class MainWindow(QMainWindow):
         if hasattr(page, "close_drawer") and not page.close_drawer():
             event.ignore()
             return
+        if ss.get_bool("backup_on_close"):
+            try:
+                from bowtally.services import backup_service as bs
+                bs.backup_local()
+            except Exception:
+                pass
         super().closeEvent(event)
 
