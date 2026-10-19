@@ -63,6 +63,11 @@ def next_phase(phase: str) -> str | None:
     return PHASES[i + 1] if i + 1 < len(PHASES) else None
 
 
+def prev_phase(phase: str) -> str | None:
+    i = phase_index(phase)
+    return PHASES[i - 1] if i > 0 else None
+
+
 def is_active_participant(p) -> bool:
     return p.registration_status not in INACTIVE_REGISTRATION
 
@@ -421,6 +426,23 @@ def transition_phase(tournament_id: int, target_phase: str,
     return TransitionResult(True, warnings, [], applied=True)
 
 
+def transition_phase_backward(tournament_id: int) -> None:
+    """Revert one phase backwards. No conditions; logs as forced."""
+    t = get_tournament(tournament_id)
+    target = prev_phase(t.phase)
+    if target is None:
+        raise ValidationError("Bereits in der ersten Phase.")
+    with session_scope() as s:
+        t = s.get(Tournament, tournament_id)
+        s.add(PhaseTransitionLog(
+            tournament_id=tournament_id, from_phase=t.phase, to_phase=target,
+            transitioned_at=datetime.now(), forced=True,
+            warnings_at_transition=["Rückwärts-Phasenwechsel (manuell)"]))
+        t.phase = target
+        t.phase_changed_at = datetime.now()
+        t.status = PHASE_STATUS.get(target, "draft")
+
+
 def list_phase_log(tournament_id: int) -> list[PhaseTransitionLog]:
     with session_scope() as s:
         return list(s.scalars(select(PhaseTransitionLog)
@@ -549,7 +571,9 @@ def get_revenue_summary(tournament_id: int) -> RevenueSummary:
     t = get_tournament(tournament_id)
     counted = [p for p in t.participants if p.registration_status in REVENUE_REGISTRATION]
     expected = sum(p.entry_fee.amount for p in counted if p.entry_fee)
-    received = sum(p.fee_amount_paid or 0 for p in t.participants if p.payment_status == "paid")
+    received = sum((p.fee_amount_paid if p.fee_amount_paid is not None
+                    else (p.entry_fee.amount if p.entry_fee else 0))
+                   for p in t.participants if p.payment_status == "paid")
     rows = []
     for fee in t.fees:
         n = sum(p.entry_fee_id == fee.id for p in counted)

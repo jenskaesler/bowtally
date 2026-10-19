@@ -4,7 +4,7 @@ from PySide6.QtCore import QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
                                QHBoxLayout, QHeaderView, QLabel, QListWidget, QListWidgetItem,
-                               QMainWindow, QMessageBox, QPushButton, QStackedWidget,
+                               QMainWindow, QMessageBox, QPushButton, QSplitter, QStackedWidget,
                                QStyledItemDelegate, QTableWidget, QTableWidgetItem, QToolButton,
                                QVBoxLayout, QWidget)
 
@@ -27,6 +27,8 @@ from bowtally.ui.views.tournaments_view import TournamentsView
 from bowtally.ui.widgets.status_bar import StatusBar
 
 NAV_WIDTH = 240
+SIDEBAR_MIN = 52          # icon-only collapsed width
+SIDEBAR_ICON_ONLY = 52    # same as min; keeps icon visible
 NAME_CHARS = 20
 ICON_ROLE = Qt.ItemDataRole.UserRole + 1
 BADGE_ROLE = Qt.ItemDataRole.UserRole + 2
@@ -90,7 +92,7 @@ class ShortcutsDialog(QDialog):
 
 
 class PhaseLogDialog(QDialog):
-    def __init__(self, tournament_id: int, parent=None):
+    def __init__(self, tournament_id: int, parent=None, back=None):
         super().__init__(parent)
         self.setWindowTitle("Phasenwechsel-Protokoll")
         self.resize(760, 380)
@@ -105,6 +107,12 @@ class PhaseLogDialog(QDialog):
                               tooltip="\n".join(e.warnings_at_transition or []))]
                         for e in entries], [e.id for e in entries])
         row = QHBoxLayout()
+        if back is not None:
+            def _go_back():
+                self.accept()
+                back()
+            row.addWidget(button("← Zur vorherigen Phase", _go_back, "danger",
+                                 "Dialog schließen und Phase zurückwechseln"))
         row.addStretch()
         row.addWidget(button("Schließen", self.accept, "primary", "Protokoll schließen"))
         lay = QVBoxLayout(self)
@@ -170,9 +178,14 @@ class TournamentNavigator(QFrame):
         self.phases.setVerticalSpacing(3)
         self.next_btn = button("", window.next_phase, "primary")
         self.next_btn.setObjectName("nextPhase")
-        log = QPushButton("Phasenwechsel-Protokoll ›", objectName="link")
-        log.setToolTip("Alle Phasenwechsel mit Zeitpunkt und übersprungenen Warnungen")
-        log.clicked.connect(lambda: PhaseLogDialog(context.tournament_id, window).exec())
+        self.prev_btn = button("← Vorherige Phase", window.prev_phase, "danger",
+                               "Zur vorherigen Phase zurückwechseln")
+        self.prev_btn.setObjectName("prevPhase")
+        self.log_btn = button("Phasenwechsel-Protokoll",
+                              lambda: PhaseLogDialog(context.tournament_id, window,
+                                                     back=window.prev_phase).exec(),
+                              "danger",
+                              "Alle Phasenwechsel anzeigen, rückwärts navigieren")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(14, 4, 14, 12)
         lay.setSpacing(6)
@@ -182,7 +195,8 @@ class TournamentNavigator(QFrame):
         lay.addLayout(self.phases)
         lay.addSpacing(4)
         lay.addWidget(self.next_btn)
-        lay.addWidget(log, 0, Qt.AlignmentFlag.AlignLeft)
+        lay.addWidget(self.prev_btn)
+        lay.addWidget(self.log_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
     def refresh(self):
         t = context.tournament()
@@ -225,6 +239,8 @@ class TournamentNavigator(QFrame):
         if nxt:
             self.next_btn.setText(f"› Nächste Phase: {ts.PHASE_LABELS[nxt]}")
             self.next_btn.setToolTip("Voraussetzungen prüfen und in die nächste Phase wechseln")
+        prv = ts.prev_phase(t.phase)
+        self.prev_btn.setVisible(prv is not None and t.status != "closed")
 
 
 class MainWindow(QMainWindow):
@@ -267,6 +283,9 @@ class MainWindow(QMainWindow):
         self.settings_nav.itemClicked.connect(self._settings_clicked)
 
         self.logo = QLabel()
+        self.logo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.logo.setToolTip("Zur Hauptübersicht")
+        self.logo.mousePressEvent = lambda _e: self.select_page(self.dashboard)
         self.app_title_label = QLabel("BowTally")
         self.app_title_label.setObjectName("appTitle")
         head = QHBoxLayout()
@@ -282,13 +301,24 @@ class MainWindow(QMainWindow):
         self.theme_toggle.setToolTip("Darstellung umschalten (Wie Windows / Hell / Dunkel)")
         self.theme_toggle.clicked.connect(self._cycle_mode)
 
+        self._sidebar_collapsed = False
+        self.burger_btn = QPushButton("☰")
+        self.burger_btn.setObjectName("burgerButton")
+        self.burger_btn.setFixedSize(32, 32)
+        self.burger_btn.setToolTip("Seitenleiste ein-/ausblenden")
+        self.burger_btn.clicked.connect(self._toggle_sidebar)
+        burger_row = QHBoxLayout()
+        burger_row.setContentsMargins(8, 8, 8, 0)
+        burger_row.addWidget(self.burger_btn)
+        burger_row.addStretch()
+
         side = QWidget()
         side.setObjectName("sidebar")
         side.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        side.setFixedWidth(NAV_WIDTH)
         side_lay = QVBoxLayout(side)
         side_lay.setContentsMargins(0, 0, 0, 12)
         side_lay.setSpacing(4)
+        side_lay.addLayout(burger_row)
         side_lay.addLayout(head)
         side_lay.addWidget(self.navigator)
         side_lay.addSpacing(6)
@@ -299,17 +329,29 @@ class MainWindow(QMainWindow):
         toggle_row.addWidget(self.theme_toggle)
         side_lay.addLayout(toggle_row)
 
-        central = QWidget()
-        lay = QHBoxLayout(central)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(0)
-        lay.addWidget(side)
         content = QWidget()
         content.setObjectName("contentArea")
         c_lay = QVBoxLayout(content)
         c_lay.setContentsMargins(28, 22, 20, 16)
         c_lay.addWidget(self.stack)
-        lay.addWidget(content, 1)
+
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.setObjectName("mainSplitter")
+        self.splitter.setHandleWidth(2)
+        self.splitter.addWidget(side)
+        self.splitter.addWidget(content)
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([NAV_WIDTH, 1160])
+        self.splitter.setCollapsible(0, False)
+        self.splitter.setCollapsible(1, False)
+        self._side_widget = side
+
+        central = QWidget()
+        lay = QHBoxLayout(central)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+        lay.addWidget(self.splitter)
         self.setCentralWidget(central)
         self.status = StatusBar()
         self.status.helpRequested.connect(self.show_shortcuts)
@@ -318,6 +360,7 @@ class MainWindow(QMainWindow):
         self.dashboard.open_tournament.connect(self.open_tournament)
         self.dashboard.new_tournament.connect(self.new_tournament)
         self.dashboard.action.connect(self.run_action)
+        self.dashboard.navigate.connect(self._navigate_to)
         self.guide.action.connect(self.run_action)
         self.tournaments.openRequested.connect(lambda tid: self.open_tournament(tid))
         self.tournaments.changed.connect(self._data_changed)
@@ -333,6 +376,26 @@ class MainWindow(QMainWindow):
         self._refresh_chrome()
         self._context_changed(context.tournament_id, initial=True)
         self._refresh_title()
+
+    def _toggle_sidebar(self):
+        self._sidebar_collapsed = not self._sidebar_collapsed
+        if self._sidebar_collapsed:
+            self.splitter.setSizes([SIDEBAR_ICON_ONLY, self.width() - SIDEBAR_ICON_ONLY])
+            self.app_title_label.hide()
+            self.navigator.hide()
+            self.settings_nav.hide()
+            self.theme_toggle.hide()
+            for row in range(self.nav.count()):
+                self.nav.item(row).setText("")
+        else:
+            self.splitter.setSizes([NAV_WIDTH, self.width() - NAV_WIDTH])
+            self.app_title_label.show()
+            self.navigator.show()
+            self.settings_nav.show()
+            self.theme_toggle.show()
+            labels = ["Dashboard", "Leitfaden", "Turniere", "Schützen", "Regelwerke", "Bogenklassen"]
+            for row in range(self.nav.count()):
+                self.nav.item(row).setText(labels[row])
 
     @staticmethod
     def _nav_list() -> QListWidget:
@@ -442,6 +505,31 @@ class MainWindow(QMainWindow):
         self.tournaments.show_list()
         self.tournaments.list.new_item()
 
+    def prev_phase(self):
+        t = context.tournament()
+        if t is None:
+            return
+        target = ts.prev_phase(t.phase)
+        if target is None:
+            return
+        label = ts.PHASE_LABELS[target]
+        if not ConfirmDialog.ask(
+                self, f"Phasenwechsel rückgängig: {label}",
+                f"Die Phase wird auf '{label}' zurückgesetzt.\n\n"
+                "Dieser Schritt wird im Protokoll als erzwungener Wechsel festgehalten.",
+                "Zurücksetzen", destructive=True):
+            return
+        try:
+            ts.transition_phase_backward(t.id)
+        except Exception as exc:
+            show_error(self, exc, "Phasenwechsel fehlgeschlagen")
+            return
+        Toast.show(self, f"Phase zurückgesetzt: {label}", Toast.WARNING)
+        context.notify()
+        current = self.stack.currentWidget()
+        if hasattr(current, "refresh"):
+            current.refresh()
+
     def next_phase(self):
         t = context.tournament()
         target = ts.next_phase(t.phase) if t else None
@@ -480,6 +568,12 @@ class MainWindow(QMainWindow):
         current = self.stack.currentWidget()
         if hasattr(current, "refresh"):
             current.refresh()
+
+    def _navigate_to(self, key: str):
+        targets = {"rules": self.rules, "bow_classes": self.bow_classes,
+                   "archers": self.archers, "tournaments": self.tournaments}
+        if key in targets:
+            self.select_page(targets[key])
 
     # ------------------------------------------------------------ direct links
     def run_action(self, key: str):

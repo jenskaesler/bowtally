@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QDialog, QDia
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import button, show_error
 
+LABEL_W = 130
+
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
                    "templates": "Textvorlagen (Ausschreibung)"}
 HIDDEN_CATEGORIES = {"internal"}
@@ -24,6 +26,13 @@ BANK_LABELS = {
     "bank_iban": "IBAN",
     "bank_bic": "BIC",
     "bank_reference_template": "Verwendungszweck-Vorlage",
+}
+CONTACT_ROLES = {
+    "first_board": "1. Vorsitzender/in",
+    "second_board": "2. Vorsitzender/in",
+    "treasurer": "Kassenwart/-in",
+    "sports_dir": "Sportleiter/in",
+    "bow_ref": "Bogenreferent/in",
 }
 LOGO_PREVIEW = 120
 COLOR_ORDER = ["_background", "_surface", "_border", "_text", "_text_secondary"]
@@ -86,6 +95,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._design_tab(), "Design")
         tabs.addTab(self._category_tab("behavior", "ui"), "Verhalten")
         tabs.addTab(self._category_tab("print", "templates"), "Druck")
+        tabs.addTab(self._backup_tab(), "Backup")
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
                                    | QDialogButtonBox.StandardButton.Cancel)
@@ -97,6 +107,12 @@ class SettingsDialog(QDialog):
         lay = QVBoxLayout(self)
         lay.addWidget(tabs)
         lay.addWidget(buttons)
+
+    @staticmethod
+    def _flbl(text: str) -> QLabel:
+        lbl = QLabel(text)
+        lbl.setMinimumWidth(LABEL_W)
+        return lbl
 
     # ------------------------------------------------------------ tab 1
     def _club_tab(self) -> QWidget:
@@ -115,26 +131,44 @@ class SettingsDialog(QDialog):
             for key in keys:
                 edit = QLineEdit(club.get(key) or "")
                 self.club_edits[key] = edit
-                form.addRow(CLUB_LABELS[key], edit)
+                form.addRow(self._flbl(CLUB_LABELS[key]), edit)
             lay.addWidget(box)
 
         box_course = QGroupBox("Parcour-Beschreibung")
         f_course = QFormLayout(box_course)
         edit_course = QPlainTextEdit(club.get("course_description") or "")
-        edit_course.setFixedHeight(70)
+        edit_course.setMinimumHeight(88)
         edit_course.setPlaceholderText(
             "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
         self.club_edits["course_description"] = edit_course
-        f_course.addRow("Beschreibung", edit_course)
+        f_course.addRow(self._flbl("Beschreibung"), edit_course)
         lay.addWidget(box_course)
 
         box_notes = QGroupBox("Notizen")
         f_notes = QFormLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setFixedHeight(70)
+        edit_notes.setMinimumHeight(88)
         self.club_edits["notes"] = edit_notes
-        f_notes.addRow("Notizen", edit_notes)
+        f_notes.addRow(self._flbl("Notizen"), edit_notes)
         lay.addWidget(box_notes)
+
+        box_contacts = QGroupBox("Vereinsvorstand")
+        f_contacts = QFormLayout(box_contacts)
+        for role_key, role_label in CONTACT_ROLES.items():
+            fname_edit = QLineEdit(club.get(f"{role_key}_fname") or "")
+            fname_edit.setPlaceholderText("Vorname")
+            lname_edit = QLineEdit(club.get(f"{role_key}_lname") or "")
+            lname_edit.setPlaceholderText("Nachname")
+            self.club_edits[f"{role_key}_fname"] = fname_edit
+            self.club_edits[f"{role_key}_lname"] = lname_edit
+            pair_widget = QWidget()
+            pair_lay = QHBoxLayout(pair_widget)
+            pair_lay.setContentsMargins(0, 0, 0, 0)
+            pair_lay.setSpacing(8)
+            pair_lay.addWidget(fname_edit)
+            pair_lay.addWidget(lname_edit)
+            f_contacts.addRow(self._flbl(role_label), pair_widget)
+        lay.addWidget(box_contacts)
 
         box_logo = QGroupBox("Logo")
         logo_lay = QHBoxLayout(box_logo)
@@ -264,6 +298,119 @@ class SettingsDialog(QDialog):
         lay.addWidget(box)
         lay.addStretch()
         return w
+
+    def _backup_tab(self) -> QWidget:
+        from bowtally.services import backup_service as bs
+        w = QWidget()
+        lay = QVBoxLayout(w)
+
+        local_box = QGroupBox("Lokales Backup (NAS / USB)")
+        local_form = QFormLayout(local_box)
+        self._backup_path_edit = QLineEdit(ss.get("backup_local_path") or "")
+        self._backup_path_edit.setPlaceholderText("Pfad zum Backup-Ordner …")
+        browse_btn = button("…", lambda: self._browse_backup_path())
+        path_row = QHBoxLayout()
+        path_row.setContentsMargins(0, 0, 0, 0)
+        path_row.addWidget(self._backup_path_edit, 1)
+        path_row.addWidget(browse_btn)
+        path_widget = QWidget()
+        path_widget.setLayout(path_row)
+        self._backup_retention = QSpinBox()
+        self._backup_retention.setRange(1, 99)
+        self._backup_retention.setValue(int(ss.get("backup_retention", "10") or 10))
+        self._backup_retention.setSuffix(" Backups behalten")
+        local_form.addRow(self._flbl("Backup-Pfad"), path_widget)
+        local_form.addRow(self._flbl("Aufbewahrung"), self._backup_retention)
+        local_btns = QHBoxLayout()
+        local_btns.addWidget(button("Backup jetzt erstellen", lambda: self._do_local_backup(bs),
+                                    "primary", "Datenbank als ZIP in den Backup-Ordner sichern"))
+        local_btns.addStretch()
+        lay.addWidget(local_box)
+        lay.addLayout(local_btns)
+
+        nc_box = QGroupBox("Nextcloud")
+        nc_form = QFormLayout(nc_box)
+        self._nc_url = QLineEdit(ss.get("backup_nc_url") or "")
+        self._nc_url.setPlaceholderText("https://nextcloud.example.com")
+        self._nc_user = QLineEdit(ss.get("backup_nc_user") or "")
+        self._nc_pass = QLineEdit(ss.get("backup_nc_pass") or "")
+        self._nc_pass.setEchoMode(QLineEdit.EchoMode.Password)
+        nc_form.addRow(self._flbl("URL"), self._nc_url)
+        nc_form.addRow(self._flbl("Benutzername"), self._nc_user)
+        nc_form.addRow(self._flbl("Passwort"), self._nc_pass)
+        nc_btns = QHBoxLayout()
+        nc_btns.addWidget(button("Zu Nextcloud sichern", lambda: self._do_nc_backup(bs),
+                                 tooltip="Backup in Nextcloud hochladen"))
+        nc_btns.addStretch()
+        lay.addWidget(nc_box)
+        lay.addLayout(nc_btns)
+
+        restore_box = QGroupBox("Wiederherstellen")
+        restore_lay = QVBoxLayout(restore_box)
+        restore_lay.addWidget(QLabel("Wähle eine lokale Backup-Datei (.zip):",
+                                     objectName="pageSubtitle"))
+        restore_btns = QHBoxLayout()
+        restore_btns.addWidget(button("Backup wiederherstellen",
+                                      lambda: self._do_restore(bs),
+                                      "danger",
+                                      "Backup-ZIP auswählen und Datenbank ersetzen"))
+        restore_btns.addStretch()
+        restore_lay.addLayout(restore_btns)
+        lay.addWidget(restore_box)
+        lay.addStretch()
+        return w
+
+    def _browse_backup_path(self):
+        path = QFileDialog.getExistingDirectory(self, "Backup-Ordner auswählen",
+                                                self._backup_path_edit.text())
+        if path:
+            self._backup_path_edit.setText(path)
+
+    def _save_backup_settings(self):
+        ss.set_many({"backup_local_path": self._backup_path_edit.text().strip(),
+                     "backup_retention": str(self._backup_retention.value()),
+                     "backup_nc_url": self._nc_url.text().strip(),
+                     "backup_nc_user": self._nc_user.text().strip(),
+                     "backup_nc_pass": self._nc_pass.text().strip()})
+
+    def _do_local_backup(self, bs):
+        self._save_backup_settings()
+        try:
+            path = bs.backup_local()
+        except Exception as exc:
+            show_error(self, exc, "Backup fehlgeschlagen")
+            return
+        from bowtally.ui.components.toast import Toast
+        Toast.show(self, f"Backup erstellt: {path}", Toast.SUCCESS)
+
+    def _do_nc_backup(self, bs):
+        self._save_backup_settings()
+        try:
+            bs.backup_nextcloud()
+        except Exception as exc:
+            show_error(self, exc, "Nextcloud-Backup fehlgeschlagen")
+            return
+        from bowtally.ui.components.toast import Toast
+        Toast.show(self, "Backup zu Nextcloud hochgeladen", Toast.SUCCESS)
+
+    def _do_restore(self, bs):
+        path, _ = QFileDialog.getOpenFileName(self, "Backup auswählen", "",
+                                               "ZIP-Dateien (*.zip)")
+        if not path:
+            return
+        from bowtally.ui.components.confirm_dialog import ConfirmDialog
+        if not ConfirmDialog.ask(self, "Datenbank wiederherstellen?",
+                                 "Die aktuelle Datenbank wird durch das Backup ersetzt.\n"
+                                 "Dieser Vorgang kann nicht rückgängig gemacht werden.",
+                                 "Wiederherstellen", destructive=True):
+            return
+        try:
+            bs.restore(path)
+        except Exception as exc:
+            show_error(self, exc, "Wiederherstellung fehlgeschlagen")
+            return
+        from bowtally.ui.components.toast import Toast
+        Toast.show(self, "Backup wiederhergestellt – bitte Anwendung neu starten", Toast.SUCCESS)
 
     def _category_tab(self, *categories: str) -> QWidget:
         inner = QWidget()
