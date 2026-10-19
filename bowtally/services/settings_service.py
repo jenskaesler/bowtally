@@ -44,7 +44,9 @@ THEME_MODE_LABELS = {"system": "Wie Windows", "light": "Hell", "dark": "Dunkel"}
 DEFAULTS = {key: value for key, value, *_ in DEFAULT_SETTINGS}
 
 CLUB_FIELDS = ["club_name", "street", "zip_code", "city", "country", "phone", "email",
-               "website", "logo_path", "federation", "club_number", "notes"]
+               "website", "logo_path", "federation", "club_number",
+               "bank_account_holder", "bank_iban", "bank_bic", "bank_reference_template",
+               "course_description", "notes"]
 
 
 def all_settings() -> list[AppSetting]:

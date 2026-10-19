@@ -47,6 +47,11 @@ class ClubProfile(Base):
     logo_path: Mapped[str | None] = mapped_column(Text)
     federation: Mapped[str | None] = mapped_column(Text)
     club_number: Mapped[str | None] = mapped_column(Text)
+    bank_account_holder: Mapped[str | None] = mapped_column(Text)
+    bank_iban: Mapped[str | None] = mapped_column(Text)
+    bank_bic: Mapped[str | None] = mapped_column(Text)
+    bank_reference_template: Mapped[str | None] = mapped_column(Text)
+    course_description: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now, onupdate=_now)
 

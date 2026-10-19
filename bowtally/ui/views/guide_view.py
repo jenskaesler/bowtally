@@ -30,16 +30,16 @@ class Task:
 
 PHASE_TASKS = {
     "announcement": [
-        Task("Turnierdaten prüfen", "edit", "Turnier bearbeiten"),
-        Task("Kontaktdaten hinterlegen", "edit", "Turnier bearbeiten", auto="contact"),
-        Task("Bankdaten eintragen", "edit", "Turnier bearbeiten", auto="bank"),
+        Task("Turnierdaten prüfen", "edit", "Grunddaten bearbeiten"),
+        Task("Kontaktdaten hinterlegen", "edit_contact", "Kontaktdaten eingeben", auto="contact"),
+        Task("Bankdaten eintragen", "edit_bank", "Bankdaten eingeben", auto="bank"),
         Task("Startgebühren festlegen", "fees", "Startgebühren", auto="fees"),
         Task("Ausschreibungs-PDF generieren", "announcement", "PDF generieren",
              auto="announcement_current"),
         Task("Ausschreibung versenden (E-Mail, Aushang, Website)"),
     ],
     "preparation": [
-        Task("Bogenklassen im Turnier prüfen", "edit", "Turnier bearbeiten"),
+        Task("Bogenklassen im Turnier prüfen", "edit_classes", "Bogenklassen bearbeiten"),
         Task("Parcours planen und aufbauen", manual="parcours_ready"),
         Task("Helfer einteilen (Notizen unten)", manual="helpers_assigned"),
         Task("Anmeldeliste vorbereiten", "participants", "Teilnehmerverwaltung"),

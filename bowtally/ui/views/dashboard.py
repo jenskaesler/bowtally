@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """Dashboard: global overview, or - with an active tournament - the tournament dashboard."""
+import os
 from datetime import date
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
                                QStackedWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
+from bowtally.services import settings_service as svc
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button
 from bowtally.ui.components.capacity_bar import CapacityBar, ProgressBar
@@ -82,8 +85,10 @@ class GlobalDashboard(QWidget):
         card, c = _card("Schützen")
         self.archer_count = QLabel("0", objectName="cardValue")
         self.club_count = QLabel(objectName="pageSubtitle")
+        self.no_club_lbl = QLabel(objectName="pageSubtitle")
         c.addWidget(self.archer_count)
         c.addWidget(self.club_count)
+        c.addWidget(self.no_club_lbl)
         c.addStretch()
         grid.addWidget(card, 0, 1)
 
@@ -114,6 +119,12 @@ class GlobalDashboard(QWidget):
         grid.setRowStretch(1, 1)
         for col in range(3):
             grid.setColumnStretch(col, 1)
+        self._logo_lbl = QLabel()
+        self._logo_lbl.setFixedSize(56, 56)
+        self._logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._logo_lbl.hide()
+        self.header.add(self._logo_lbl)
+
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.header)
@@ -127,17 +138,31 @@ class GlobalDashboard(QWidget):
         self.active_count.setText(str(len(active)))
         _clear(self.active_links)
         for t in sorted(active, key=lambda t: t.date)[:ACTIVE_LINKS]:
+            active_count = sum(ts.is_active_participant(p) for p in t.participants)
+            cap = f"{active_count}/{t.max_participants}" if t.max_participants else str(active_count)
             self.active_links.addWidget(_link(
-                f"{t.date:%d.%m.%Y}  {t.name}  →",
+                f"{t.date:%d.%m.%Y}  {t.name}  ({cap})  →",
                 lambda _=False, tid=t.id: self.open_tournament.emit(tid, ""),
-                f"Turnier öffnen ({ts.PHASE_LABELS[t.phase]})"))
+                f"Turnier öffnen ({ts.PHASE_LABELS[t.phase]})  ·  {cap} Teilnehmer"))
         if not active:
             self.active_links.addWidget(QLabel("Kein laufendes Turnier", objectName="pageSubtitle"))
         archers = md.list_archers()
-        clubs = {a.club.strip().lower() for a in archers if a.club}
+        clubs = {a.club.strip().lower() for a in archers if a.club and a.club.strip()}
+        no_club = sum(1 for a in archers if not (a.club and a.club.strip()))
         self.archer_count.setText(str(len(archers)))
         self.club_count.setText(f"aktive Schützen aus {len(clubs)} Vereinen" if clubs
                                 else "noch keine Vereine")
+        self.no_club_lbl.setText(f"{no_club} ohne Vereinszugehörigkeit")
+        self.no_club_lbl.setVisible(no_club > 0)
+        logo_path = svc.get_club_profile().get("logo_path") or ""
+        if logo_path and os.path.exists(logo_path):
+            pix = QPixmap(logo_path).scaled(56, 56, Qt.AspectRatioMode.KeepAspectRatio,
+                                            Qt.TransformationMode.SmoothTransformation)
+            self._logo_lbl.setPixmap(pix)
+            self._logo_lbl.show()
+        else:
+            self._logo_lbl.clear()
+            self._logo_lbl.hide()
         upcoming = sorted((t for t in active if t.date >= date.today()), key=lambda t: t.date)
         nxt = upcoming[0] if upcoming else None
         self._next_id = nxt.id if nxt else None
@@ -183,6 +208,11 @@ class TournamentDashboard(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.header = PageHeader("")
+        self._logo_lbl = QLabel()
+        self._logo_lbl.setFixedSize(56, 56)
+        self._logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._logo_lbl.hide()
+        self.header.add(self._logo_lbl)
         self.grid = QGridLayout()
         self.grid.setSpacing(16)
         for col in range(3):
@@ -198,6 +228,15 @@ class TournamentDashboard(QWidget):
         t = context.tournament()
         if t is None:
             return
+        logo_path = svc.get_club_profile().get("logo_path") or ""
+        if logo_path and os.path.exists(logo_path):
+            pix = QPixmap(logo_path).scaled(56, 56, Qt.AspectRatioMode.KeepAspectRatio,
+                                            Qt.TransformationMode.SmoothTransformation)
+            self._logo_lbl.setPixmap(pix)
+            self._logo_lbl.show()
+        else:
+            self._logo_lbl.clear()
+            self._logo_lbl.hide()
         self.header.set_title(t.name)
         self.header.set_subtitle(f"{t.date:%d.%m.%Y} ({countdown(t.date)}) · "
                                  f"{t.location or 'Ort offen'} · Phase "

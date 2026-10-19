@@ -3,7 +3,7 @@
 
 Every page shows a step indicator, a title and a short explanation.
 """
-from PySide6.QtCore import QDate, Qt, QTime
+from PySide6.QtCore import QDate, Qt, QTime, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDateEdit, QDoubleSpinBox,
                                QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
@@ -139,11 +139,41 @@ class FeeTable(QWidget):
         return out
 
 
+def _field_row(field: QWidget, btn: "QWidget | None") -> QWidget:
+    if btn is None:
+        return field
+    w = QWidget()
+    row = QHBoxLayout(w)
+    row.setContentsMargins(0, 0, 0, 0)
+    row.addWidget(field, 1)
+    row.addWidget(btn)
+    return w
+
+
+def _fill_if_empty(edit: QLineEdit, value: str):
+    if value and not edit.text().strip():
+        edit.setText(value)
+
+
+def _fill_text_if_empty(edit: QPlainTextEdit, value: str):
+    if value and not edit.toPlainText().strip():
+        edit.setPlainText(value)
+
+
+def _club_address(club: dict) -> str:
+    parts = [club.get("street") or ""]
+    city_part = " ".join(filter(None, [club.get("zip_code"), club.get("city")]))
+    if city_part:
+        parts.append(city_part)
+    return ", ".join(p for p in parts if p)
+
+
 class TournamentWizard(QWizard):
-    def __init__(self, tournament=None, parent=None):
+    def __init__(self, tournament=None, start_page: int = 0, parent=None):
         super().__init__(parent)
         self.tournament = tournament
         self.created_id: int | None = None
+        self._start_page = start_page
         self.setWindowTitle("Turnier bearbeiten" if tournament else "Neues Turnier")
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
         self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage)
@@ -162,6 +192,17 @@ class TournamentWizard(QWizard):
                      self._page_config(), self._page_deadlines(), self._page_fees(),
                      self._page_contact(), self._page_texts(), self._page_summary()):
             self.addPage(page)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self._start_page > 0:
+            target = self._start_page
+            self._start_page = 0
+            QTimer.singleShot(0, lambda: self._advance_to(target))
+
+    def _advance_to(self, target: int):
+        while self.currentId() < target:
+            self.next()
 
     def _t(self, attr, default=None):
         value = getattr(self.tournament, attr, None) if self.tournament else None
@@ -183,11 +224,22 @@ class TournamentWizard(QWizard):
         page = _Page(0, "Grunddaten", "Wie heißt das Turnier, wann und wo findet es statt? "
                      "Pflicht ist nur der Name.", lambda: bool(self.name.text().strip()))
         self.name.textChanged.connect(page.completeChanged)
+        club = ss.get_club_profile()
         form = QFormLayout()
         form.addRow("Turniername *", self.name)
         form.addRow("Datum *", self.date)
-        form.addRow("Ort", self.location)
-        form.addRow("Veranstalter", self.organizer)
+        loc_row = _field_row(self.location,
+                             button("Aus Stammdaten", lambda: _fill_if_empty(
+                                 self.location, _club_address(club)),
+                                    tooltip="Vereinsadresse übernehmen")
+                             if club.get("city") else None)
+        form.addRow("Ort", loc_row)
+        org_row = _field_row(self.organizer,
+                             button("Aus Stammdaten", lambda: _fill_if_empty(
+                                 self.organizer, club.get("club_name", "")),
+                                    tooltip="Vereinsname als Veranstalter übernehmen")
+                             if club.get("club_name") else None)
+        form.addRow("Veranstalter", org_row)
         form.addRow("Beschreibung (intern)", self.description)
         page.body.addLayout(form)
         page.body.addStretch()
@@ -202,26 +254,26 @@ class TournamentWizard(QWizard):
             self.rule_list.addItem(item)
             if self.tournament and r.id == self.tournament.scoring_rule_id:
                 self.rule_list.setCurrentItem(item)
-        self.matrix = QTableWidget(0, 2)
-        self.matrix.setHorizontalHeaderLabels(["Zone", "Punkte"])
-        self.matrix.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.matrix.verticalHeader().hide()
-        self.matrix.setShowGrid(False)
-        self.matrix.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.matrix.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        self.rule_info = QLabel(objectName="pageSubtitle")
-        self.rule_info.setWordWrap(True)
-        page = _Page(1, "Regelwerk", "Nach welchem Regelwerk wird gewertet? Rechts siehst du "
-                     "die Punkte je Trefferzone. Es gibt bewusst keine Vorauswahl.",
+        self.rule_detail = QLabel()
+        self.rule_detail.setWordWrap(True)
+        self.rule_detail.setTextFormat(Qt.TextFormat.RichText)
+        self.rule_detail.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.rule_detail.setObjectName("card")
+        self.rule_detail.setMinimumWidth(200)
+        page = _Page(1, "Regelwerk",
+                     "Welches Regelwerk gilt? Links auswählen – rechts siehst du Details "
+                     "und die Punktevergabe. Es gibt keine Vorauswahl.",
                      lambda: self.selected_rule() is not None)
         self.rule_list.currentItemChanged.connect(lambda *_: (self._show_rule(),
                                                               page.completeChanged.emit()))
+        left = QVBoxLayout()
+        left.addWidget(QLabel("Regelwerk auswählen", objectName="fieldLabel"))
+        left.addWidget(self.rule_list, 1)
         right = QVBoxLayout()
-        right.addWidget(QLabel("Punktematrix", objectName="fieldLabel"))
-        right.addWidget(self.matrix, 1)
-        right.addWidget(self.rule_info)
+        right.addWidget(self.rule_detail, 1)
         row = QHBoxLayout()
-        row.addWidget(self.rule_list, 1)
+        row.setSpacing(14)
+        row.addLayout(left, 1)
         row.addLayout(right, 1)
         page.body.addLayout(row)
         self._show_rule()
@@ -236,19 +288,29 @@ class TournamentWizard(QWizard):
 
     def _show_rule(self):
         rule = self.selected_rule()
-        zones = rule.ring_values if rule else []
-        self.matrix.setRowCount(len(zones))
-        for i, z in enumerate(zones):
-            self.matrix.setItem(i, 0, QTableWidgetItem(z["zone"]))
-            pts = QTableWidgetItem(str(z["points"]))
-            pts.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            self.matrix.setItem(i, 1, pts)
-        self.rule_info.setText(
-            f"{rule.max_shots_per_target} Schuss je Scheibe"
-            f"{', Nachschuss erlaubt' if rule.allow_retry_shot else ''}. "
-            f"{(rule.rules_json or {}).get('note', '')}" if rule
-            else "Bitte links ein Regelwerk auswählen.")
-        if rule and hasattr(self, "shots"):
+        if not rule:
+            self.rule_detail.setText(
+                "<p style='color:gray;padding:12px'>Bitte links ein Regelwerk auswählen.</p>")
+            return
+        zones_html = "".join(
+            f"<tr><td style='padding:2px 20px 2px 0;color:gray'>{z['zone']}</td>"
+            f"<td style='text-align:right;font-weight:bold'>{z['points']}</td></tr>"
+            for z in rule.ring_values
+        )
+        note = (rule.rules_json or {}).get("note", "")
+        retry = "  ·  Nachschuss erlaubt" if rule.allow_retry_shot else ""
+        builtin = "  <span style='color:gray'>(eingebaut)</span>" if rule.is_builtin else ""
+        html = (
+            f"<div style='padding:12px'>"
+            f"<p style='font-size:12pt;font-weight:bold;margin:0 0 6px'>{rule.name}{builtin}</p>"
+            f"<p style='margin:0 0 4px;color:gray'>"
+            f"{rule.max_shots_per_target} Schuss je Scheibe{retry}</p>"
+            + (f"<p style='margin:4px 0'>{note}</p>" if note else "")
+            + f"<p style='font-weight:bold;margin:12px 0 4px'>Punkte je Trefferzone</p>"
+            f"<table>{zones_html}</table></div>"
+        )
+        self.rule_detail.setText(html)
+        if hasattr(self, "shots"):
             self.shots.setMaximum(rule.max_shots_per_target)
             if not self.tournament:
                 self.shots.setValue(rule.max_shots_per_target)
@@ -258,7 +320,7 @@ class TournamentWizard(QWizard):
         selected = {bc.id for bc in self.tournament.bow_classes} if self.tournament else None
         self.class_chips: dict[int, QPushButton] = {}
         page = _Page(2, "Bogenklassen", "Welche Klassen werden gewertet? Zum An- und Abwählen "
-                     "einfach anklicken. Eingebaute Klassen sind vorausgewählt.",
+                     "einfach anklicken. Standardmäßig keine vorausgewählt.",
                      lambda: any(c.isChecked() for c in self.class_chips.values()))
         inner = QWidget()
         grid = QGridLayout(inner)
@@ -266,7 +328,7 @@ class TournamentWizard(QWizard):
         for i, bc in enumerate(self.classes):
             chip = QPushButton(f"{bc.name}  ({bc.abbreviation})" if bc.abbreviation else bc.name,
                                objectName="chip", checkable=True)
-            chip.setChecked(bc.id in selected if selected is not None else bc.is_builtin)
+            chip.setChecked(bc.id in selected if selected is not None else False)
             chip.setToolTip(bc.description or bc.name)
             chip.toggled.connect(page.completeChanged)
             self.class_chips[bc.id] = chip
@@ -281,6 +343,8 @@ class TournamentWizard(QWizard):
                                tooltip="Alle Klassen auswählen"))
         tools.addWidget(button("Keine", lambda: self._set_all_classes(False),
                                tooltip="Auswahl aufheben"))
+        tools.addWidget(button("Eigene", self._set_custom_classes,
+                               tooltip="Nur benutzerdefinierte Klassen auswählen"))
         tools.addStretch()
         page.body.addLayout(tools)
         page.body.addWidget(scroll, 1)
@@ -289,6 +353,12 @@ class TournamentWizard(QWizard):
     def _set_all_classes(self, checked: bool):
         for chip in self.class_chips.values():
             chip.setChecked(checked)
+
+    def _set_custom_classes(self):
+        custom_ids = {bc.id for bc in self.classes if not bc.is_builtin}
+        if custom_ids:
+            for cid, chip in self.class_chips.items():
+                chip.setChecked(cid in custom_ids)
 
     # ------------------------------------------------------------ 4 config
     def _page_config(self) -> QWizardPage:
@@ -310,10 +380,17 @@ class TournamentWizard(QWizard):
                      "Schüsse je Scheibe? Startgruppen sind optional und werden bei der "
                      "Startnummernvergabe reihum verteilt.")
         form = QFormLayout()
+        club = ss.get_club_profile()
+        course_desc = club.get("course_description") or ""
+        notes_row = _field_row(
+            self.course_notes,
+            button("Aus Stammdaten", lambda: _fill_text_if_empty(self.course_notes, course_desc),
+                   tooltip="Parcour-Beschreibung aus Vereinsprofil übernehmen")
+            if course_desc else None)
         form.addRow("Anzahl Scheiben", self.targets)
         form.addRow("Schüsse je Scheibe", self.shots)
         form.addRow("Startgruppen", self.groups)
-        form.addRow("Hinweise zum Parcours", self.course_notes)
+        form.addRow("Hinweise zum Parcours", notes_row)
         page.body.addLayout(form)
         page.body.addStretch()
         return page
@@ -395,10 +472,9 @@ class TournamentWizard(QWizard):
                      "Startgeld überwiesen? Platzhalter im Verwendungszweck: {name}, "
                      "{bow_class}.")
         club = ss.get_club_profile()
-        if any(club.get(k) for k in ("club_name", "phone", "email")):
+        if any(club.get(k) for k in ("club_name", "phone", "email", "bank_iban")):
             btn = button("Aus Vereinsprofil übernehmen", lambda: self._from_club(club),
-                         tooltip="Telefon, E-Mail und Vereinsname (als Kontoinhaber) "
-                                 "übernehmen")
+                         tooltip="Kontakt- und Bankdaten aus dem Vereinsprofil übernehmen")
             page.body.addWidget(btn, 0, Qt.AlignmentFlag.AlignLeft)
         form = QFormLayout()
         form.addRow(QLabel("Kontaktperson", objectName="sectionTitle"))
@@ -415,9 +491,14 @@ class TournamentWizard(QWizard):
         return page
 
     def _from_club(self, club: dict):
-        for edit, value in ((self.contact_phone, club.get("phone")),
-                            (self.contact_email, club.get("email")),
-                            (self.bank_holder, club.get("club_name"))):
+        for edit, value in (
+            (self.contact_phone, club.get("phone")),
+            (self.contact_email, club.get("email")),
+            (self.bank_holder, club.get("bank_account_holder") or club.get("club_name")),
+            (self.bank_iban, club.get("bank_iban")),
+            (self.bank_bic, club.get("bank_bic")),
+            (self.bank_reference, club.get("bank_reference_template")),
+        ):
             if value and not edit.text().strip():
                 edit.setText(value)
 
@@ -520,16 +601,23 @@ class TournamentWizard(QWizard):
             (7, "Hinweise und Texte", [("Einleitung", short(self.intro.toPlainText()) or "–"),
                                        ("Hinweise", f"{legal_count} Einträge")]),
         ]
+        lbl = "color:gray;padding:2px 18px 2px 0;vertical-align:top;white-space:nowrap;width:140px"
+        val = "padding:2px 0;vertical-align:top"
         html = []
         for step, title, rows in sections:
-            html.append(f"<p style='margin-top:10px'><b style='font-size:11pt'>{title}</b>"
-                        f"&nbsp;&nbsp;<a href='{step}'>Bearbeiten</a></p><table cellpadding='3'>")
-            html += [f"<tr><td style='padding-right:16px'>{esc(k)}</td><td>{esc(v)}</td></tr>"
+            html.append(
+                f"<p style='margin-top:16px;margin-bottom:2px'>"
+                f"<b style='font-size:11pt'>{title}</b>"
+                f"&nbsp;&nbsp;<a href='{step}'>Bearbeiten</a></p>"
+                f"<hr style='border:none;border-top:1px solid #aaa;margin:0 0 4px'>"
+                f"<table width='100%' cellspacing='0' cellpadding='0'>"
+            )
+            html += [f"<tr><td style='{lbl}'>{esc(k)}</td><td style='{val}'>{esc(v)}</td></tr>"
                      for k, v in rows]
             if step == 5 and not fees:
-                html.append(f"<tr><td colspan='2' style='color:{warning}'><b>Warnung:</b> "
-                            "Keine Startgebühr angelegt. Ohne Gebühr ist kein Wechsel in die "
-                            "Anmeldephase möglich.</td></tr>")
+                html.append(f"<tr><td colspan='2' style='color:{warning};padding:4px 0'>"
+                            "<b>Warnung:</b> Keine Startgebühr angelegt. Ohne Gebühr ist kein "
+                            "Wechsel in die Anmeldephase möglich.</td></tr>")
             html.append("</table>")
         self.summary.setText("".join(html))
 
