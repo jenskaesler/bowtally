@@ -54,25 +54,28 @@ DEFAULT_SETTINGS = [
 
 # Reference data, inserted by migration 0003 (key, label, sort_order, description)
 TOURNAMENT_PHASES = [
-    ("announcement", "Ausschreibung", 1,
+    ("draft", "Entwurf", 1,
+     "Das Turnier wird angelegt. Alle Turnierdaten können frei bearbeitet werden. "
+     "Wechsle zur Ausschreibung, wenn alles fertig ist."),
+    ("announcement", "Ausschreibung", 2,
      "Das Turnier wird geplant und ausgeschrieben. Lege Kontakt- und Bankdaten sowie die "
      "Startgebühren fest und erstelle das Ausschreibungs-PDF zum Versenden."),
-    ("preparation", "Vorbereitung", 2,
+    ("preparation", "Vorbereitung", 3,
      "Die Ausschreibung ist versendet. Jetzt werden Parcours und Helfer geplant und die "
      "Anmeldung vorbereitet."),
-    ("registration", "Anmeldung", 3,
+    ("registration", "Anmeldung", 4,
      "Anmeldungen gehen ein. Erfasse Teilnehmer, bestätige Anmeldungen und verbuche "
      "Zahlungseingänge."),
-    ("checkin", "Einschreibung", 4,
+    ("checkin", "Einschreibung", 5,
      "Turniertag: Die Teilnehmer melden sich vor Ort an. Checke sie in der Einschreibe-Ansicht "
      "ein und kläre offene Zahlungen."),
-    ("shooting", "Schießen", 5,
+    ("shooting", "Schießen", 6,
      "Der Parcours läuft. Trage die Ergebnisse der Schießkarten ein und behalte den "
      "Fortschritt je Klasse im Blick."),
-    ("scoring", "Auswertung", 6,
+    ("scoring", "Auswertung", 7,
      "Alle Gruppen sind zurück. Prüfe die Ergebnisse auf Vollständigkeit, erstelle die "
      "Ergebnisliste und bereite die Siegerehrung vor."),
-    ("closed", "Abgeschlossen", 7,
+    ("closed", "Abgeschlossen", 8,
      "Das Turnier ist beendet. Ergebnisse und Teilnehmerdaten sind gesperrt und bleiben "
      "für Auswertungen und Exporte erhalten."),
 ]

@@ -2,7 +2,7 @@
 """Tournament list and tournament detail (participants, check-in, score entry, results,
 entry fees). Opening a tournament makes it the active tournament context."""
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QStackedWidget, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QStackedWidget, QTabWidget, QVBoxLayout, QWidget
 
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, show_error
@@ -37,21 +37,26 @@ class TournamentList(ListView):
                            "Neues Turnier")
         super().__init__("Turniere", HEADERS, empty, None, "Name, Ort oder Phase …")
         empty.actionTriggered.connect(self.new_item)
-        self.header.add(button("Neues Turnier", self.new_item, "primary",
+        self._show_closed = QCheckBox("Abgeschlossen anzeigen")
+        self._show_closed.toggled.connect(self.refresh)
+        self.header.add(self._show_closed,
+                        button("Neues Turnier", self.new_item, "primary",
                                "Neues Turnier mit dem Assistenten anlegen (Strg+N)"))
         self.table.activated.connect(self.openRequested.emit)
         self._items = {}
 
     def refresh(self):
-        items = ts.list_tournaments()
-        self._items = {t.id: t for t in items}
+        all_items = ts.list_tournaments()
+        items = all_items if self._show_closed.isChecked() else [
+            t for t in all_items if t.phase != "closed"]
+        self._items = {t.id: t for t in all_items}
         self.table.set_rows([[t.date, Cell(t.name, bold=t.id == context.tournament_id),
                               t.location, Cell(t.phase, chip=tournament_chip(t.phase)),
                               len(t.participants),
                               t.scoring_rule.name if t.scoring_rule else None] for t in items],
                             [t.id for t in items])
-        running = sum(t.phase != "closed" for t in items)
-        self.header.set_subtitle(f"{len(items)} Turniere | {running} laufend"
+        running = sum(t.phase != "closed" for t in all_items)
+        self.header.set_subtitle(f"{len(all_items)} Turniere | {running} laufend"
                                  + (" | fett = geöffnet" if context.tournament_id else ""))
         self.on_selection(self.table.selected_ids())
 
@@ -63,13 +68,17 @@ class TournamentList(ListView):
         if t is None:
             self.action_bar.set_actions("", [])
             return
-        closed = t.status == "closed"
+        edit_locked = ts.phase_index(t.phase) >= ts.phase_index("checkin")
         self.action_bar.set_actions(t.name, [
             Action("Turnier öffnen", lambda: self.openRequested.emit(t.id),
                    tooltip="Als aktives Turnier öffnen: Leitfaden, Teilnehmer, Ergebnisse "
                            "(Enter)"),
-            Action("Bearbeiten", self.edit_item, enabled=not closed,
-                   tooltip=CLOSED_HINT if closed else "Turnierdaten im Assistenten bearbeiten"),
+            Action("Bearbeiten", self.edit_item, enabled=not edit_locked,
+                   tooltip=CLOSED_HINT if t.status == "closed"
+                   else ("Gesperrt ab Einschreibungsphase" if edit_locked
+                         else "Turnierdaten im Assistenten bearbeiten")),
+            Action("Klonen", self.clone_item,
+                   tooltip="Turnier als Vorlage klonen (ohne Teilnehmer und Ergebnisse)"),
             Action("Löschen", self.delete_item, "danger",
                    tooltip="Turnier mit allen Teilnehmern und Ergebnissen löschen")])
 
@@ -77,9 +86,11 @@ class TournamentList(ListView):
         t = self._items.get(row_id)
         if t is None:
             return []
-        closed = t.status == "closed"
+        edit_locked = ts.phase_index(t.phase) >= ts.phase_index("checkin")
         return [("Turnier öffnen", lambda: self.openRequested.emit(t.id)),
-                ("Bearbeiten", self.edit_item, not closed, CLOSED_HINT),
+                ("Bearbeiten", self.edit_item, not edit_locked,
+                 "Gesperrt ab Einschreibungsphase" if edit_locked else CLOSED_HINT),
+                ("Klonen", self.clone_item),
                 None,
                 ("Löschen", self.delete_item)]
 
@@ -91,10 +102,19 @@ class TournamentList(ListView):
 
     def edit_item(self):
         t = self._selected()
-        if t is not None and t.status != "closed" and \
+        if t is not None and ts.phase_index(t.phase) < ts.phase_index("checkin") and \
                 TournamentWizard(ts.get_tournament(t.id), self).exec():
             self.refresh()
             self.changed.emit()
+
+    def clone_item(self):
+        t = self._selected()
+        if t is None:
+            return
+        wiz = TournamentWizard(ts.get_tournament(t.id), clone=True, parent=self)
+        if wiz.exec() and wiz.created_id:
+            self.changed.emit()
+            self.openRequested.emit(wiz.created_id)
 
     def delete_item(self):
         t = self._selected()
@@ -188,10 +208,8 @@ class TournamentDetail(QWidget):
             f"{t.scoring_rule.name if t.scoring_rule else '–'} · "
             f"{t.num_targets} Scheiben × {t.shots_per_target} Schuss · "
             f"{len(t.participants)} Teilnehmer")
-        closed = t.status == "closed"
-        self.btn_edit.setEnabled(not closed)
-        self.btn_edit.setToolTip(CLOSED_HINT if closed
-                                 else "Alle Turnierdaten im Assistenten bearbeiten")
+        edit_locked = ts.phase_index(t.phase) >= ts.phase_index("checkin")
+        self.btn_edit.setVisible(not edit_locked)
         if refresh_tab:
             self.tabs.currentWidget().set_tournament(t)
 

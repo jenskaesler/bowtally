@@ -209,7 +209,7 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
         story += [Spacer(1, 6 * mm), Paragraph(_esc(closing), st["p"])]
     if club.get("club_name"):
         story.append(Paragraph(_esc(club["club_name"]), st["sign"]))
-    if ss.get_bool("print_announcement_logo_footer"):
+    if ss.get_bool("print_show_logo"):
         small = _logo(club.get("logo_path"), *LOGO_FOOTER)
         if small is not None:
             small.hAlign = "LEFT"

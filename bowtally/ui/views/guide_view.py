@@ -29,6 +29,12 @@ class Task:
 
 
 PHASE_TASKS = {
+    "draft": [
+        Task("Turnierdaten eingeben", "edit", "Grunddaten bearbeiten"),
+        Task("Bogenklassen festlegen", "edit_classes", "Bogenklassen bearbeiten"),
+        Task("Startgebühren anlegen", "fees", "Startgebühren"),
+        Task("Wenn alles bereit ist: in die Ausschreibungs-Phase wechseln"),
+    ],
     "announcement": [
         Task("Turnierdaten prüfen", "edit", "Grunddaten bearbeiten"),
         Task("Kontaktdaten hinterlegen", "edit_contact", "Kontaktdaten eingeben", auto="contact"),
@@ -76,6 +82,7 @@ PHASE_TASKS = {
     ],
 }
 PHASE_CHECKS = {
+    "draft": [],
     "announcement": ["contact", "bank", "fees", "announced", "announcement_current"],
     "preparation": ["fees", "announcement_current"],
     "registration": ["participants", "all_confirmed", "all_paid"],
