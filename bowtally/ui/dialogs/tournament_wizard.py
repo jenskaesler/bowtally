@@ -634,8 +634,9 @@ class TournamentWizard(QWizard):
                 f"&nbsp;&nbsp;<a href='{step}'>Bearbeiten</a></p>"
                 f"<hr style='border:none;border-top:1px solid #aaa;margin:0 0 4px'>"
                 f"<table width='100%' cellspacing='0' cellpadding='0'>"
+                f"<colgroup><col width='160'/><col/></colgroup>"
             )
-            html += [f"<tr><td width='140' style='{lbl}'>{esc(k)}</td>"
+            html += [f"<tr><td style='{lbl}'>{esc(k)}</td>"
                      f"<td style='{val}'>{esc(v)}</td></tr>"
                      for k, v in rows]
             if step == 5 and not fees:

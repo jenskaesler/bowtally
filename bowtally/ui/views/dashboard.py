@@ -6,7 +6,7 @@ from datetime import date
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
-                               QStackedWidget, QVBoxLayout, QWidget)
+                               QSplitter, QStackedWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
@@ -136,27 +136,17 @@ class GlobalDashboard(QWidget):
         for col in range(3):
             grid.setColumnStretch(col, 1)
 
-        # Activity panel (right side, collapsible)
-        self._act_toggle = QPushButton("◀", objectName="link")
-        self._act_toggle.setToolTip("Aktivitätspanel ein-/ausblenden")
-        self._act_toggle.setFixedWidth(28)
-        self._act_toggle.clicked.connect(self._toggle_activity)
         empty = EmptyState("clock", "Noch keine Ergebnisse erfasst",
                            "Hier erscheinen die zuletzt eingegebenen Wertungen.")
         self.activity = DataTable(["Zeit", "Turnier", "Schütze", "Scheibe", "Punkte"], empty)
         self.activity.activated.connect(self._open_activity)
         self.activity.setToolTip("Doppelklick öffnet die Ergebniseingabe")
-        act_title_row = QHBoxLayout()
-        act_title_row.addWidget(QLabel("Letzte Aktivität", objectName="sectionTitle"))
-        act_title_row.addStretch()
-        act_title_row.addWidget(self._act_toggle)
         self._act_panel = QFrame(objectName="card")
         act_lay = QVBoxLayout(self._act_panel)
         act_lay.setContentsMargins(18, 14, 18, 16)
         act_lay.setSpacing(6)
-        act_lay.addLayout(act_title_row)
+        act_lay.addWidget(QLabel("Letzte Aktivität", objectName="sectionTitle"))
         act_lay.addWidget(self.activity, 1)
-        self._act_panel.setFixedWidth(300)
 
         self._logo_lbl = QLabel()
         self._logo_lbl.setFixedSize(56, 56)
@@ -164,27 +154,26 @@ class GlobalDashboard(QWidget):
         self._logo_lbl.hide()
         self.header.add(self._logo_lbl)
 
-        left = QWidget()
-        left_lay = QVBoxLayout(left)
-        left_lay.setContentsMargins(0, 0, 0, 0)
-        left_lay.addWidget(self.header)
-        left_lay.addLayout(grid)
-        left_lay.addStretch(1)
+        top = QWidget()
+        top_lay = QVBoxLayout(top)
+        top_lay.setContentsMargins(0, 0, 0, 0)
+        top_lay.addLayout(grid)
+        top_lay.addStretch(1)
 
-        lay = QHBoxLayout(self)
+        self._splitter = QSplitter(Qt.Orientation.Vertical)
+        self._splitter.setChildrenCollapsible(False)
+        self._splitter.addWidget(top)
+        self._splitter.addWidget(self._act_panel)
+        self._splitter.setSizes([320, 200])
+
+        lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(16)
-        lay.addWidget(left, 1)
-        lay.addWidget(self._act_panel)
+        lay.setSpacing(0)
+        lay.addWidget(self.header)
+        lay.addWidget(self._splitter, 1)
 
         self._next_id = None
         self._activity = []
-
-    def _toggle_activity(self):
-        expanded = self.activity.isVisible()
-        self.activity.setVisible(not expanded)
-        self._act_toggle.setText("▶" if expanded else "◀")
-        self._act_panel.setFixedWidth(52 if expanded else 300)
 
     def refresh(self):
         tournaments = ts.list_tournaments()

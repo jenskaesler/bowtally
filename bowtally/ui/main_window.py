@@ -178,9 +178,6 @@ class TournamentNavigator(QFrame):
         self.phases.setVerticalSpacing(3)
         self.next_btn = button("", window.next_phase, "primary")
         self.next_btn.setObjectName("nextPhase")
-        self.prev_btn = button("← Vorherige Phase", window.prev_phase, "danger",
-                               "Zur vorherigen Phase zurückwechseln")
-        self.prev_btn.setObjectName("prevPhase")
         self.log_btn = button("Phasenwechsel-Protokoll",
                               lambda: PhaseLogDialog(context.tournament_id, window,
                                                      back=window.prev_phase).exec(),
@@ -195,7 +192,6 @@ class TournamentNavigator(QFrame):
         lay.addLayout(self.phases)
         lay.addSpacing(4)
         lay.addWidget(self.next_btn)
-        lay.addWidget(self.prev_btn)
         lay.addWidget(self.log_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
     def refresh(self):
@@ -239,8 +235,6 @@ class TournamentNavigator(QFrame):
         if nxt:
             self.next_btn.setText(f"› Nächste Phase: {ts.PHASE_LABELS[nxt]}")
             self.next_btn.setToolTip("Voraussetzungen prüfen und in die nächste Phase wechseln")
-        prv = ts.prev_phase(t.phase)
-        self.prev_btn.setVisible(prv is not None and t.status != "closed")
 
 
 class MainWindow(QMainWindow):
@@ -279,7 +273,10 @@ class MainWindow(QMainWindow):
         settings_item = QListWidgetItem("Einstellungen")
         settings_item.setData(ICON_ROLE, "settings")
         self.settings_nav.addItem(settings_item)
-        self.settings_nav.setFixedHeight(44)
+        about_item = QListWidgetItem("Über BowTally")
+        about_item.setData(ICON_ROLE, "info")
+        self.settings_nav.addItem(about_item)
+        self.settings_nav.setFixedHeight(88)
         self.settings_nav.itemClicked.connect(self._settings_clicked)
 
         self.logo = QLabel()
@@ -302,8 +299,8 @@ class MainWindow(QMainWindow):
         self.theme_toggle.clicked.connect(self._cycle_mode)
 
         self._sidebar_collapsed = False
-        self.burger_btn = QPushButton("☰")
-        self.burger_btn.setObjectName("burgerButton")
+        self.burger_btn = QToolButton()
+        self.burger_btn.setObjectName("iconButton")
         self.burger_btn.setFixedSize(32, 32)
         self.burger_btn.setToolTip("Seitenleiste ein-/ausblenden")
         self.burger_btn.clicked.connect(self._toggle_sidebar)
@@ -379,23 +376,25 @@ class MainWindow(QMainWindow):
 
     def _toggle_sidebar(self):
         self._sidebar_collapsed = not self._sidebar_collapsed
-        if self._sidebar_collapsed:
-            self.splitter.setSizes([SIDEBAR_ICON_ONLY, self.width() - SIDEBAR_ICON_ONLY])
-            self.app_title_label.hide()
-            self.navigator.hide()
-            self.settings_nav.hide()
-            self.theme_toggle.hide()
+        collapsed = self._sidebar_collapsed
+        self.logo.setVisible(not collapsed)
+        self.app_title_label.setVisible(not collapsed)
+        self.navigator.setVisible(not collapsed and context.tournament_id is not None)
+        self.settings_nav.setVisible(not collapsed)
+        self.theme_toggle.setVisible(not collapsed)
+        self.nav.blockSignals(True)
+        if collapsed:
             for row in range(self.nav.count()):
                 self.nav.item(row).setText("")
+            self.splitter.setSizes([SIDEBAR_ICON_ONLY, self.width() - SIDEBAR_ICON_ONLY])
         else:
-            self.splitter.setSizes([NAV_WIDTH, self.width() - NAV_WIDTH])
-            self.app_title_label.show()
-            self.navigator.show()
-            self.settings_nav.show()
-            self.theme_toggle.show()
-            labels = ["Dashboard", "Leitfaden", "Turniere", "Schützen", "Regelwerke", "Bogenklassen"]
+            labels = ["Dashboard", "Leitfaden", "Turniere",
+                      "Schützen", "Regelwerke", "Bogenklassen"]
             for row in range(self.nav.count()):
                 self.nav.item(row).setText(labels[row])
+            self._context_changed(context.tournament_id)  # re-apply hidden state for Leitfaden
+            self.splitter.setSizes([NAV_WIDTH, self.width() - NAV_WIDTH])
+        self.nav.blockSignals(False)
 
     @staticmethod
     def _nav_list() -> QListWidget:
@@ -428,6 +427,7 @@ class MainWindow(QMainWindow):
                 item = nav.item(row)
                 item.setIcon(theme.icon(item.data(ICON_ROLE), selected_color=t["on_primary"]))
         self.logo.setPixmap(theme.pixmap("target", t["primary"], 26))
+        self.burger_btn.setIcon(theme.icon("menu", t["text2"]))
         mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
         _next, icon_name, label = MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])
         self.theme_toggle.setIcon(theme.icon(icon_name))
@@ -646,9 +646,13 @@ class MainWindow(QMainWindow):
             self.tournaments.open_tournament(context.tournament_id)
         self.update_badges()
 
-    def _settings_clicked(self, _item):
+    def _settings_clicked(self, item):
         self.settings_nav.clearSelection()
-        self.open_settings()
+        if item.data(ICON_ROLE) == "info":
+            from bowtally.ui.dialogs.about_dialog import AboutDialog
+            AboutDialog(self).exec()
+        else:
+            self.open_settings()
 
     def select_page(self, widget: QWidget):
         item = self._nav_item(widget)
