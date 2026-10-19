@@ -37,8 +37,11 @@ def countdown(d: date) -> str:
     return f"in {days} Tagen" if days > 0 else f"vor {-days} Tagen"
 
 
-def _card(title: str) -> tuple[QFrame, QVBoxLayout]:
+def _card(title: str, on_click=None) -> tuple[QFrame, QVBoxLayout]:
     frame = QFrame(objectName="card")
+    if on_click is not None:
+        frame.setCursor(Qt.CursorShape.PointingHandCursor)
+        frame.mousePressEvent = lambda _e: on_click()
     lay = QVBoxLayout(frame)
     lay.setContentsMargins(18, 14, 18, 16)
     lay.setSpacing(6)
@@ -65,6 +68,7 @@ def _clear(layout):
 class GlobalDashboard(QWidget):
     open_tournament = Signal(int, str)
     new_tournament = Signal()
+    navigate = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -108,29 +112,79 @@ class GlobalDashboard(QWidget):
         c.addLayout(row)
         grid.addWidget(card, 0, 2)
 
-        card, c = _card("Letzte Aktivität")
+        rules_card, c = _card("Regelwerke")
+        self.rules_count = QLabel("0", objectName="cardValue")
+        c.addWidget(self.rules_count)
+        c.addWidget(_link("Regelwerke öffnen →", lambda: self.navigate.emit("rules"),
+                          "Regelwerke verwalten"))
+        c.addStretch()
+        rules_card.setCursor(Qt.CursorShape.PointingHandCursor)
+        rules_card.mousePressEvent = lambda _e: self.navigate.emit("rules")
+        grid.addWidget(rules_card, 1, 0)
+
+        bow_card, c = _card("Bogenklassen")
+        self.bow_count = QLabel("0", objectName="cardValue")
+        c.addWidget(self.bow_count)
+        c.addWidget(_link("Bogenklassen öffnen →", lambda: self.navigate.emit("bow_classes"),
+                          "Bogenklassen verwalten"))
+        c.addStretch()
+        bow_card.setCursor(Qt.CursorShape.PointingHandCursor)
+        bow_card.mousePressEvent = lambda _e: self.navigate.emit("bow_classes")
+        grid.addWidget(bow_card, 1, 1)
+
+        grid.setRowStretch(0, 0)
+        for col in range(3):
+            grid.setColumnStretch(col, 1)
+
+        # Activity panel (right side, collapsible)
+        self._act_toggle = QPushButton("◀", objectName="link")
+        self._act_toggle.setToolTip("Aktivitätspanel ein-/ausblenden")
+        self._act_toggle.setFixedWidth(28)
+        self._act_toggle.clicked.connect(self._toggle_activity)
         empty = EmptyState("clock", "Noch keine Ergebnisse erfasst",
                            "Hier erscheinen die zuletzt eingegebenen Wertungen.")
         self.activity = DataTable(["Zeit", "Turnier", "Schütze", "Scheibe", "Punkte"], empty)
         self.activity.activated.connect(self._open_activity)
         self.activity.setToolTip("Doppelklick öffnet die Ergebniseingabe")
-        c.addWidget(self.activity, 1)
-        grid.addWidget(card, 1, 0, 1, 3)
-        grid.setRowStretch(1, 1)
-        for col in range(3):
-            grid.setColumnStretch(col, 1)
+        act_title_row = QHBoxLayout()
+        act_title_row.addWidget(QLabel("Letzte Aktivität", objectName="sectionTitle"))
+        act_title_row.addStretch()
+        act_title_row.addWidget(self._act_toggle)
+        self._act_panel = QFrame(objectName="card")
+        act_lay = QVBoxLayout(self._act_panel)
+        act_lay.setContentsMargins(18, 14, 18, 16)
+        act_lay.setSpacing(6)
+        act_lay.addLayout(act_title_row)
+        act_lay.addWidget(self.activity, 1)
+        self._act_panel.setFixedWidth(300)
+
         self._logo_lbl = QLabel()
         self._logo_lbl.setFixedSize(56, 56)
         self._logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._logo_lbl.hide()
         self.header.add(self._logo_lbl)
 
-        lay = QVBoxLayout(self)
+        left = QWidget()
+        left_lay = QVBoxLayout(left)
+        left_lay.setContentsMargins(0, 0, 0, 0)
+        left_lay.addWidget(self.header)
+        left_lay.addLayout(grid)
+        left_lay.addStretch(1)
+
+        lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(self.header)
-        lay.addLayout(grid, 1)
+        lay.setSpacing(16)
+        lay.addWidget(left, 1)
+        lay.addWidget(self._act_panel)
+
         self._next_id = None
         self._activity = []
+
+    def _toggle_activity(self):
+        expanded = self.activity.isVisible()
+        self.activity.setVisible(not expanded)
+        self._act_toggle.setText("▶" if expanded else "◀")
+        self._act_panel.setFixedWidth(52 if expanded else 300)
 
     def refresh(self):
         tournaments = ts.list_tournaments()
@@ -179,6 +233,8 @@ class GlobalDashboard(QWidget):
             self.next_btn.setText("Neues Turnier")
             self.next_btn.setToolTip("Neues Turnier mit dem Assistenten anlegen")
         self.next_chip.setVisible(nxt is not None)
+        self.rules_count.setText(str(len(sc.list_rules())))
+        self.bow_count.setText(str(len(md.list_bow_classes())))
         self._activity = sc.recent_scores()
         self.activity.set_rows(
             [[Cell(a["entered_at"], text=f"{a['entered_at']:%d.%m. %H:%M}"
@@ -253,7 +309,7 @@ class TournamentDashboard(QWidget):
         self.grid.addWidget(self._schedule_card(t), 1, 2)
 
     def _participants_card(self, t, stats):
-        card, c = _card("Teilnehmer")
+        card, c = _card("Teilnehmer", on_click=lambda: self.action.emit("participants"))
         s = stats.by_status
         c.addWidget(QLabel(str(stats.total), objectName="cardValue"))
         c.addWidget(QLabel(f"{s['registered']} gemeldet · {s['confirmed']} bestätigt · "
@@ -279,7 +335,7 @@ class TournamentDashboard(QWidget):
 
     def _revenue_card(self, t):
         rev = ts.get_revenue_summary(t.id)
-        card, c = _card("Einnahmen")
+        card, c = _card("Einnahmen", on_click=lambda: self.action.emit("fees"))
         c.addWidget(QLabel(money(rev.received), objectName="cardValue"))
         c.addWidget(QLabel(f"eingegangen von {money(rev.expected)} erwartet",
                            objectName="pageSubtitle"))
@@ -309,7 +365,7 @@ class TournamentDashboard(QWidget):
 
     def _progress_card(self, t):
         prog = ts.get_completion_progress(t.id)
-        card, c = _card("Ergebnisfortschritt")
+        card, c = _card("Ergebnisfortschritt", on_click=lambda: self.action.emit("scoring"))
         c.addWidget(QLabel(f"{prog.percentage:.0f} %", objectName="cardValue"))
         bar = ProgressBar()
         bar.set_value(prog.percentage)
@@ -335,7 +391,7 @@ class TournamentDashboard(QWidget):
         return card
 
     def _phase_card(self, t):
-        card, c = _card("Aktuelle Phase")
+        card, c = _card("Aktuelle Phase", on_click=lambda: self.action.emit("guide"))
         chip = StatusChip()
         chip.set_tournament_status(t.phase)
         f = chip.font()
@@ -400,6 +456,7 @@ class DashboardView(QWidget):
     open_tournament = Signal(int, str)
     new_tournament = Signal()
     action = Signal(str)
+    navigate = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -407,6 +464,7 @@ class DashboardView(QWidget):
         self.tournament_view = TournamentDashboard()
         self.global_view.open_tournament.connect(self.open_tournament)
         self.global_view.new_tournament.connect(self.new_tournament)
+        self.global_view.navigate.connect(self.navigate)
         self.tournament_view.action.connect(self.action)
         self.stack = QStackedWidget()
         self.stack.addWidget(self.global_view)

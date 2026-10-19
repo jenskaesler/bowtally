@@ -5,7 +5,7 @@ Every page shows a step indicator, a title and a short explanation.
 """
 from PySide6.QtCore import QDate, Qt, QTime, QTimer
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDateEdit, QDoubleSpinBox,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox,
                                QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
                                QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit,
                                QPushButton, QScrollArea, QSpinBox, QTableWidget,
@@ -476,6 +476,29 @@ class TournamentWizard(QWizard):
             btn = button("Aus Vereinsprofil übernehmen", lambda: self._from_club(club),
                          tooltip="Kontakt- und Bankdaten aus dem Vereinsprofil übernehmen")
             page.body.addWidget(btn, 0, Qt.AlignmentFlag.AlignLeft)
+        _CONTACT_ROLES = [
+            ("first_board", "1. Vorsitzender/in"),
+            ("second_board", "2. Vorsitzender/in"),
+            ("treasurer", "Kassenwart/-in"),
+            ("sports_dir", "Sportleiter/in"),
+            ("bow_ref", "Bogenreferent/in"),
+        ]
+        role_contacts = [(key, label, f"{club.get(f'{key}_fname','') or ''} "
+                          f"{club.get(f'{key}_lname','') or ''}".strip())
+                         for key, label in _CONTACT_ROLES]
+        role_contacts = [(k, l, n) for k, l, n in role_contacts if n]
+        if role_contacts:
+            self._contact_combo = QComboBox()
+            for _, label, name in role_contacts:
+                self._contact_combo.addItem(f"{label}: {name}", name)
+            import_row = QHBoxLayout()
+            import_row.addWidget(QLabel("Kontaktperson aus Vorstand:"))
+            import_row.addWidget(self._contact_combo, 1)
+            import_row.addWidget(button("Übernehmen",
+                                        lambda: self.contact_name.setText(
+                                            self._contact_combo.currentData() or ""),
+                                        tooltip="Ausgewählte Person als Kontaktname übernehmen"))
+            page.body.addLayout(import_row)
         form = QFormLayout()
         form.addRow(QLabel("Kontaktperson", objectName="sectionTitle"))
         form.addRow("Name", self.contact_name)
@@ -612,7 +635,8 @@ class TournamentWizard(QWizard):
                 f"<hr style='border:none;border-top:1px solid #aaa;margin:0 0 4px'>"
                 f"<table width='100%' cellspacing='0' cellpadding='0'>"
             )
-            html += [f"<tr><td style='{lbl}'>{esc(k)}</td><td style='{val}'>{esc(v)}</td></tr>"
+            html += [f"<tr><td width='140' style='{lbl}'>{esc(k)}</td>"
+                     f"<td style='{val}'>{esc(v)}</td></tr>"
                      for k, v in rows]
             if step == 5 and not fees:
                 html.append(f"<tr><td colspan='2' style='color:{warning};padding:4px 0'>"

@@ -53,6 +53,17 @@ class ClubProfile(Base):
     bank_reference_template: Mapped[str | None] = mapped_column(Text)
     course_description: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
+    # Vereinsvorstand (first/last name per role)
+    first_board_fname: Mapped[str | None] = mapped_column(Text)
+    first_board_lname: Mapped[str | None] = mapped_column(Text)
+    second_board_fname: Mapped[str | None] = mapped_column(Text)
+    second_board_lname: Mapped[str | None] = mapped_column(Text)
+    treasurer_fname: Mapped[str | None] = mapped_column(Text)
+    treasurer_lname: Mapped[str | None] = mapped_column(Text)
+    sports_dir_fname: Mapped[str | None] = mapped_column(Text)
+    sports_dir_lname: Mapped[str | None] = mapped_column(Text)
+    bow_ref_fname: Mapped[str | None] = mapped_column(Text)
+    bow_ref_lname: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 

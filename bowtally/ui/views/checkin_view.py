@@ -34,7 +34,6 @@ class CheckinView(QWidget):
         f.setPointSize(14)
         self.search.setFont(f)
         self.search.searchChanged.connect(self._search)
-        self.search.returnPressed.connect(self._enter)
         self.counter = QLabel(objectName="bigCounter")
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(320)
@@ -42,9 +41,8 @@ class CheckinView(QWidget):
         self.btn_checkin = button("Einchecken", self.checkin_selected, "primary",
                                   "Ausgewählten Teilnehmer einchecken (Enter)")
         self.btn_checkin.setMinimumHeight(46)
-        self.btn_walkin = button("Als Walk-in erfassen", self.open_walk_in,
-                                 tooltip="Neuen Teilnehmer vor Ort erfassen und direkt "
-                                         "einchecken")
+        self.btn_walkin = button("Als Walk-in erfassen", self.open_walk_in, "danger",
+                                 "Neuen Teilnehmer vor Ort erfassen und direkt einchecken")
         self.payment_warning = QLabel(PAYMENT_WARNING, objectName="dangerText")
         self.payment_warning.hide()
         self.not_found = QLabel(objectName="pageSubtitle")
@@ -67,11 +65,11 @@ class CheckinView(QWidget):
         search_row = QHBoxLayout()
         search_row.addWidget(self.search, 1)
         search_row.addWidget(self.btn_checkin)
+        search_row.addWidget(self.btn_walkin)
         actions = QHBoxLayout()
         actions.addWidget(self.payment_warning)
         actions.addStretch()
         actions.addWidget(self.not_found)
-        actions.addWidget(self.btn_walkin)
 
         main = QVBoxLayout()
         main.setContentsMargins(0, 12, 0, 0)

@@ -54,11 +54,16 @@ def main() -> int:
                              f"Pfad: {config.DB_PATH}\nLog: {config.LOG_PATH}")
         return 1
 
+    from bowtally.services import settings_service as ss
     from bowtally.ui import theme
     from bowtally.ui.main_window import MainWindow
     theme.apply(app)
     window = MainWindow()
     window.show()
+    if not (ss.get_club_profile().get("club_name") or "").strip():
+        from bowtally.ui.dialogs.first_run_wizard import FirstRunWizard
+        FirstRunWizard(window).exec()
+        window._refresh_title()
     return app.exec()
 
 

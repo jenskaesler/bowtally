@@ -46,7 +46,12 @@ DEFAULTS = {key: value for key, value, *_ in DEFAULT_SETTINGS}
 CLUB_FIELDS = ["club_name", "street", "zip_code", "city", "country", "phone", "email",
                "website", "logo_path", "federation", "club_number",
                "bank_account_holder", "bank_iban", "bank_bic", "bank_reference_template",
-               "course_description", "notes"]
+               "course_description", "notes",
+               "first_board_fname", "first_board_lname",
+               "second_board_fname", "second_board_lname",
+               "treasurer_fname", "treasurer_lname",
+               "sports_dir_fname", "sports_dir_lname",
+               "bow_ref_fname", "bow_ref_lname"]
 
 
 def all_settings() -> list[AppSetting]:
