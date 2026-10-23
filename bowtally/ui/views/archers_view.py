@@ -81,7 +81,7 @@ class ArchersView(ListView):
                               if a.default_bow_class else None,
                               a.member_number,
                               Cell(a.active, chip=("Aktiv", "success") if a.active
-                                   else ("Inaktiv", "neutral"))] for a in visible],
+                                   else ("Inaktiv", "danger"))] for a in visible],
                             [a.id for a in visible])
         clubs = {a.club.strip().lower() for a in archers if a.club}
         active = sum(a.active for a in archers)

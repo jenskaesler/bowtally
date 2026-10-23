@@ -325,9 +325,9 @@ QLabel#statusChip[kind="danger"] {{
 /* tournament navigator (sidebar) */
 QFrame#tournamentNav {{ background: transparent; border-bottom: 1px solid {t['border']}; }}
 QLabel#navTournamentName {{ font-size: 11pt; font-weight: 700; }}
-QLabel#phaseLabel {{ color: {t['text2']}; }}
-QLabel#phaseLabel[state="current"] {{ color: {t['primary']}; font-weight: 700; }}
-QLabel#phaseLabel[state="done"] {{ color: {t['text']}; }}
+QLabel#phaseLabel {{ color: {t['text2']}; padding: 1px 5px; border-radius: 5px; border: 1px solid transparent; }}
+QLabel#phaseLabel[state="current"] {{ background: {t['success_soft']}; color: {t['success']}; border-color: {t['success']}; font-weight: 700; }}
+QLabel#phaseLabel[state="done"] {{ background: {t['pressed']}; color: {t['text']}; }}
 QLabel#phaseDate {{ color: {t['text2']}; font-size: 8.5pt; }}
 QFrame#separator {{ background: {t['border']}; max-height: 1px; min-height: 1px; }}
 

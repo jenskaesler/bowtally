@@ -216,7 +216,7 @@ class TournamentNavigator(QFrame):
             icon = QLabel()
             icon.setPixmap(theme.pixmap(
                 {"done": "check", "current": "target", "todo": "circle"}[state],
-                {"done": tcol["success"], "current": tcol["primary"],
+                {"done": tcol["success"], "current": tcol["success"],
                  "todo": tcol["text2"]}[state], 14))
             label = QLabel(ts.PHASE_LABELS[key], objectName="phaseLabel")
             label.setProperty("state", "current" if i == current else state)
