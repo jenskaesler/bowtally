@@ -490,20 +490,20 @@ class TournamentWizard(QWizard):
                           f"{club.get(f'{key}_lname','') or ''}".strip())
                          for key, label in _CONTACT_ROLES]
         role_contacts = [(k, l, n) for k, l, n in role_contacts if n]
+        form = QFormLayout()
+        form.addRow(QLabel("Kontaktperson", objectName="sectionTitle"))
         if role_contacts:
             self._contact_combo = QComboBox()
             for _, label, name in role_contacts:
                 self._contact_combo.addItem(f"{label}: {name}", name)
-            import_row = QHBoxLayout()
-            import_row.addWidget(QLabel("Kontaktperson:"))
-            import_row.addWidget(self._contact_combo, 1)
-            import_row.addWidget(button("Übernehmen",
-                                        lambda: self.contact_name.setText(
-                                            self._contact_combo.currentData() or ""),
-                                        tooltip="Ausgewählte Person als Kontaktname übernehmen"))
-            page.body.addLayout(import_row)
-        form = QFormLayout()
-        form.addRow(QLabel("Kontaktperson", objectName="sectionTitle"))
+            _pick_row = QHBoxLayout()
+            _pick_row.setContentsMargins(0, 0, 0, 0)
+            _pick_row.addWidget(self._contact_combo, 1)
+            _pick_row.addWidget(button("Übernehmen",
+                                       lambda: self.contact_name.setText(
+                                           self._contact_combo.currentData() or ""),
+                                       tooltip="Ausgewählte Person als Kontaktname übernehmen"))
+            form.addRow("Vorstand", _pick_row)
         form.addRow("Name", self.contact_name)
         form.addRow("Telefon", self.contact_phone)
         form.addRow("E-Mail", self.contact_email)
