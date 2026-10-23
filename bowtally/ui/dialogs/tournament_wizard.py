@@ -491,20 +491,20 @@ class TournamentWizard(QWizard):
                          for key, label in _CONTACT_ROLES]
         role_contacts = [(k, l, n) for k, l, n in role_contacts if n]
         form = QFormLayout()
-        form.addRow(QLabel("Kontaktperson", objectName="sectionTitle"))
         if role_contacts:
             self._contact_combo = QComboBox()
             for _, label, name in role_contacts:
                 self._contact_combo.addItem(f"{label}: {name}", name)
-            _pick_row = QHBoxLayout()
-            _pick_row.setContentsMargins(0, 0, 0, 0)
-            _pick_row.addWidget(self._contact_combo, 1)
-            _pick_row.addWidget(button("Übernehmen",
-                                       lambda: self.contact_name.setText(
-                                           self._contact_combo.currentData() or ""),
-                                       tooltip="Ausgewählte Person als Kontaktname übernehmen"))
-            form.addRow("Vorstand", _pick_row)
-        form.addRow("Name", self.contact_name)
+            stored = self._t("contact_name", "")
+            idx = self._contact_combo.findData(stored)
+            if idx >= 0:
+                self._contact_combo.setCurrentIndex(idx)
+            self.contact_name.setText(self._contact_combo.currentData() or "")
+            self._contact_combo.currentIndexChanged.connect(
+                lambda: self.contact_name.setText(self._contact_combo.currentData() or ""))
+            form.addRow("Kontaktperson", self._contact_combo)
+        else:
+            form.addRow("Kontaktperson", self.contact_name)
         form.addRow("Telefon", self.contact_phone)
         form.addRow("E-Mail", self.contact_email)
         form.addRow(QLabel("Bankverbindung", objectName="sectionTitle"))
@@ -517,9 +517,7 @@ class TournamentWizard(QWizard):
         return page
 
     def _from_club(self, club: dict):
-        treasurer = f"{club.get('treasurer_fname') or ''} {club.get('treasurer_lname') or ''}".strip()
         for edit, value in (
-            (self.contact_name, treasurer or None),
             (self.contact_phone, club.get("phone")),
             (self.contact_email, club.get("email")),
             (self.bank_holder, club.get("bank_account_holder") or club.get("club_name")),
@@ -527,7 +525,7 @@ class TournamentWizard(QWizard):
             (self.bank_bic, club.get("bank_bic")),
             (self.bank_reference, club.get("bank_reference_template")),
         ):
-            if value and not edit.text().strip():
+            if value:
                 edit.setText(value)
 
     # ------------------------------------------------------------ 8 texts

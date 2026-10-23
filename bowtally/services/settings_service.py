@@ -39,7 +39,7 @@ OPTIONS = {
     KEY_UI_LANGUAGE: ["de"],
     KEY_UI_THEME_MODE: ["system", "light", "dark"],
 }
-THEME_MODE_LABELS = {"system": "Wie Windows", "light": "Hell", "dark": "Dunkel"}
+THEME_MODE_LABELS = {"system": "System", "light": "Hell", "dark": "Dunkel"}
 
 DEFAULTS = {key: value for key, value, *_ in DEFAULT_SETTINGS}
 
