@@ -230,11 +230,10 @@ class HelpDialog(QDialog):
         self._browser = QTextBrowser()
         self._browser.setOpenExternalLinks(True)
 
-        splitter = QSplitter()
-        splitter.addWidget(self._nav)
-        splitter.addWidget(self._browser)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizes([210, 750])
+        self._splitter = QSplitter()
+        self._splitter.addWidget(self._nav)
+        self._splitter.addWidget(self._browser)
+        self._splitter.setStretchFactor(1, 1)
 
         self._nav.currentRowChanged.connect(self._show_section)
         self._nav.setCurrentRow(0)
@@ -246,8 +245,12 @@ class HelpDialog(QDialog):
         close_row.addWidget(button("Schließen", self.accept, "primary"))
 
         lay = QVBoxLayout(self)
-        lay.addWidget(splitter, 1)
+        lay.addWidget(self._splitter, 1)
         lay.addLayout(close_row)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._splitter.setSizes([210, self._splitter.width() - 210 - self._splitter.handleWidth()])
 
     def _apply_browser_css(self):
         t = theme.current()

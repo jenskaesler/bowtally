@@ -393,12 +393,13 @@ class ParticipantsView(QWidget):
                 ps.set_registration_status(p.id, status)
         except Exception as exc:
             show_error(self, exc)
+        promoted = 0
+        if status in ("withdrawn", "dsq"):
+            promoted = ts.promote_from_waitlist(self.tournament.id)
         Toast.show(self, f"Status: {ps.REGISTRATION_LABELS[status]}", Toast.SUCCESS)
         self._reload()
-        if status in ("withdrawn", "dsq"):
-            wl = sum(p.registration_status == "waitlisted" for p in self._parts.values())
-            if wl:
-                Toast.show(self, f"{wl} Personen auf Warteliste", Toast.INFO)
+        if promoted:
+            Toast.show(self, f"{promoted} Teilnehmer von Warteliste nachgerückt", Toast.SUCCESS)
 
     def _set_payment(self, status: str):
         for p in self._selected():
@@ -465,8 +466,11 @@ class ParticipantsView(QWidget):
         with busy():
             for p in sel:
                 ts.remove_participant(p.id)
+        promoted = ts.promote_from_waitlist(self.tournament.id)
         Toast.show(self, f"{len(sel)} Teilnehmer entfernt", Toast.SUCCESS)
         self._reload()
+        if promoted:
+            Toast.show(self, f"{promoted} Teilnehmer von Warteliste nachgerückt", Toast.SUCCESS)
 
     # ------------------------------------------------------------ add / import
     def pick_archers(self):

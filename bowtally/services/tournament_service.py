@@ -547,6 +547,57 @@ def get_active_participant_count(tournament_id: int) -> int:
     return capacity_info(tournament_id).active_count
 
 
+def promote_from_waitlist(tournament_id: int) -> int:
+    """Promote waitlisted participants when slots are free. Returns count promoted.
+
+    Solo participants (no club) advance individually by timestamp.
+    Same-club groups advance together only when all members fit.
+    """
+    from bowtally.services.settings_service import get as _get_setting
+    if _get_setting("waitlist_mode", "block") != "auto":
+        return 0
+    t = get_tournament(tournament_id)
+    cap = _capacity(t)
+    free = (cap.max - cap.active_count) if cap.max else 0
+    if free <= 0:
+        return 0
+    waitlisted = [p for p in t.participants if p.registration_status == "waitlisted"]
+    if not waitlisted:
+        return 0
+
+    by_club: dict = {}
+    for p in waitlisted:
+        by_club.setdefault(p.archer.club or None, []).append(p)
+
+    _MIN = datetime.min
+    entities: list[tuple] = []
+    for key, members in by_club.items():
+        ts_val = min((p.created_at or _MIN) for p in members)
+        if key is None:
+            for p in members:
+                entities.append((p.created_at or _MIN, [p]))
+        else:
+            entities.append((ts_val, members))
+    entities.sort(key=lambda x: x[0])
+
+    promote_ids = []
+    for _, members in entities:
+        if free <= 0:
+            break
+        if len(members) <= free:
+            promote_ids.extend(p.id for p in members)
+            free -= len(members)
+
+    if promote_ids:
+        with session_scope() as s:
+            for pid in promote_ids:
+                p = s.get(TournamentParticipant, pid)
+                if p and p.registration_status == "waitlisted":
+                    p.registration_status = "registered"
+
+    return len(promote_ids)
+
+
 def is_registration_open(tournament_id: int) -> bool:
     t = get_tournament(tournament_id)
     deadline_ok = t.registration_deadline is None or date.today() <= t.registration_deadline
