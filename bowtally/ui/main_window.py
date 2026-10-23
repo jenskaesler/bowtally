@@ -174,6 +174,15 @@ class TournamentNavigator(QFrame):
         self.phases = QGridLayout()
         self.phases.setHorizontalSpacing(8)
         self.phases.setVerticalSpacing(3)
+        self._btn_tdash = QPushButton("Turnier-Dashboard", objectName="link")
+        self._btn_tdash.setIconSize(QSize(16, 16))
+        self._btn_tdash.clicked.connect(lambda: window.select_page(window.dashboard))
+        self._btn_guide_nav = QPushButton("Leitfaden", objectName="link")
+        self._btn_guide_nav.setIconSize(QSize(16, 16))
+        self._btn_guide_nav.clicked.connect(lambda: window.select_page(window.guide))
+        self._btn_tours_nav = QPushButton("Turniere", objectName="link")
+        self._btn_tours_nav.setIconSize(QSize(16, 16))
+        self._btn_tours_nav.clicked.connect(lambda: window.select_page(window.tournaments))
         self.next_btn = button("", window.next_phase, "primary")
         self.next_btn.setObjectName("nextPhase")
         self.log_btn = button("Phasenwechsel-Protokoll",
@@ -186,6 +195,9 @@ class TournamentNavigator(QFrame):
         lay.setSpacing(6)
         lay.addLayout(head)
         lay.addLayout(sub)
+        lay.addWidget(self._btn_tdash)
+        lay.addWidget(self._btn_guide_nav)
+        lay.addWidget(self._btn_tours_nav)
         lay.addSpacing(4)
         lay.addLayout(self.phases)
         lay.addSpacing(4)
@@ -195,9 +207,12 @@ class TournamentNavigator(QFrame):
     def refresh(self):
         t = context.tournament()
         self.setVisible(t is not None)
+        tcol = theme.current()
+        self._btn_tdash.setIcon(theme.icon("dashboard"))
+        self._btn_guide_nav.setIcon(theme.icon("rules"))
+        self._btn_tours_nav.setIcon(theme.icon("target"))
         if t is None:
             return
-        tcol = theme.current()
         self.close_btn.setIcon(theme.icon("x"))
         name = t.name if len(t.name) <= NAME_CHARS else t.name[:NAME_CHARS] + "…"
         self.name.setText(name)
@@ -267,6 +282,7 @@ class MainWindow(QMainWindow):
             item.setData(Qt.ItemDataRole.UserRole, self.stack.indexOf(target))
             self.nav.addItem(item)
         self.nav.currentItemChanged.connect(self._navigate)
+        self._nav_item(self.guide).setHidden(True)  # always in tournament section, never in main nav
         self.settings_nav = self._nav_list()
         settings_item = QListWidgetItem("Einstellungen")
         settings_item.setData(ICON_ROLE, "settings")
@@ -419,7 +435,7 @@ class MainWindow(QMainWindow):
         return None
 
     def _context_changed(self, tournament_id, initial: bool = False):
-        self._nav_item(self.guide).setHidden(tournament_id is None)
+        self._nav_item(self.tournaments).setHidden(tournament_id is not None)
         self.navigator.refresh()
         self.update_badges()
         if tournament_id is None:
