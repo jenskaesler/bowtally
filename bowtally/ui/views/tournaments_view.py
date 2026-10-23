@@ -86,8 +86,8 @@ class TournamentList(ListView):
                    tooltip=CLOSED_HINT if t.status == "closed"
                    else ("Gesperrt ab Einschreibungsphase" if edit_locked
                          else "Turnierdaten im Assistenten bearbeiten")),
-            Action("Klonen", self.clone_item,
-                   tooltip="Turnier als Vorlage klonen (ohne Teilnehmer und Ergebnisse)"),
+            Action("Kopieren", self.clone_item,
+                   tooltip="Turnier als Vorlage kopieren (ohne Teilnehmer und Ergebnisse)"),
             Action("Löschen", self.delete_item, "danger",
                    tooltip="Turnier mit allen Teilnehmern und Ergebnissen löschen")])
 
@@ -99,7 +99,7 @@ class TournamentList(ListView):
         return [("Turnier öffnen", lambda: self.openRequested.emit(t.id)),
                 ("Bearbeiten", self.edit_item, not edit_locked,
                  "Gesperrt ab Einschreibungsphase" if edit_locked else CLOSED_HINT),
-                ("Klonen", self.clone_item),
+                ("Kopieren", self.clone_item),
                 None,
                 ("Löschen", self.delete_item)]
 
