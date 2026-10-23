@@ -174,8 +174,8 @@ def save_bow_class(data: dict, class_id: int | None = None) -> BowClass:
             if bc is None:
                 raise ValidationError("Bogenklasse nicht gefunden.")
             if bc.is_builtin:
-                raise ValidationError("Eingebaute Bogenklassen sind schreibgeschützt. "
-                                      "Bitte klonen.")
+                raise ValidationError("Standard-Bogenklassen sind schreibgeschützt. "
+                                      "Bitte kopieren.")
             for k, v in data.items():
                 setattr(bc, k, v)
         s.flush()
@@ -201,7 +201,7 @@ def delete_bow_class(class_id: int) -> None:
         if bc is None:
             return
         if bc.is_builtin:
-            raise ValidationError("Eingebaute Bogenklassen können nicht gelöscht werden.")
+            raise ValidationError("Standard-Bogenklassen können nicht gelöscht werden.")
         in_use = (s.scalar(select(func.count()).select_from(TournamentParticipant)
                            .where(TournamentParticipant.bow_class_id == class_id))
                   or s.scalar(select(func.count()).select_from(tournament_bow_classes)

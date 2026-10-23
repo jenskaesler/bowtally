@@ -2,11 +2,11 @@
 """Scoring rules: drawer CRUD with zone editor, clone, delete. Builtin rules are read-only."""
 import json
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHeaderView, QLineEdit,
-                               QPlainTextEdit, QSpinBox, QTableWidgetItem, QToolButton,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHeaderView, QHBoxLayout,
+                               QLineEdit, QPlainTextEdit, QSpinBox, QTableWidgetItem,
+                               QToolButton, QVBoxLayout, QWidget)
 
 from bowtally.services import scoring_service as sc
 from bowtally.ui import button, show_error, theme
@@ -173,14 +173,28 @@ class RulesView(ListView):
         self.table.activated.connect(self.edit_item)
         self._rules = {}
         self._editing_id = None
+        self._show_mine = QCheckBox("Meine Regelwerke anzeigen")
+        _s = QSettings("BowTally", "BowTally")
+        self._show_mine.setChecked(_s.value("rules/show_mine", False, type=bool))
+        self._show_mine.toggled.connect(self.refresh)
+        self._show_mine.toggled.connect(
+            lambda v: QSettings("BowTally", "BowTally").setValue("rules/show_mine", v))
+        _footer = QWidget()
+        _fl = QHBoxLayout(_footer)
+        _fl.setContentsMargins(0, 4, 0, 0)
+        _fl.addWidget(self._show_mine)
+        _fl.addStretch()
+        self.main_layout.insertWidget(2, _footer)
 
     def refresh(self):
         rules = sc.list_rules()
         self._rules = {r.id: r for r in rules}
+        visible = ([r for r in rules if not r.is_builtin]
+                   if self._show_mine.isChecked() else rules)
         self.table.set_rows([[Cell(r.name, tooltip=READ_ONLY_HINT if r.is_builtin else ""),
                               zone_summary(r), r.max_shots_per_target, r.allow_retry_shot,
-                              builtin_chip(r.is_builtin)] for r in rules],
-                            [r.id for r in rules])
+                              builtin_chip(r.is_builtin)] for r in visible],
+                            [r.id for r in visible])
         custom = sum(not r.is_builtin for r in rules)
         self.header.set_subtitle(f"{len(rules)} Regelwerke | {custom} benutzerdefiniert")
         self.on_selection(self.table.selected_ids())
@@ -196,20 +210,20 @@ class RulesView(ListView):
         locked = r.is_builtin
         self.action_bar.set_actions(r.name, [
             Action("Bearbeiten", self.edit_item, enabled=not locked,
-                   tooltip="Bearbeiten (eingebaute Einträge sind schreibgeschützt)" if locked
+                   tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Im Seitenpanel bearbeiten"),
-            Action("Klonen", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
+            Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
-                   tooltip="Löschen (eingebaute Einträge sind schreibgeschützt)" if locked
+                   tooltip="Löschen (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Regelwerk löschen (mit Rückfrage)")])
 
     def context_entries(self, row_id):
         r = self._rules.get(row_id)
         if r is None:
             return []
-        hint = "Eingebaute Einträge sind schreibgeschützt" if r.is_builtin else ""
+        hint = "Standard-Einträge sind schreibgeschützt" if r.is_builtin else ""
         return [("Bearbeiten", self.edit_item, not r.is_builtin, hint),
-                ("Klonen", self.clone_item),
+                ("Kopieren", self.clone_item),
                 None,
                 ("Löschen", self.delete_item, not r.is_builtin, hint)]
 

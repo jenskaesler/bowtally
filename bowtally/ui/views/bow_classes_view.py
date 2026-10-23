@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Bow classes: drawer CRUD, clone, delete; order by drag and drop (sort_order persisted)."""
-from PySide6.QtWidgets import QComboBox, QLineEdit, QPlainTextEdit
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
 
 from bowtally.services import master_data_service as md
 from bowtally.ui import button, show_error
@@ -14,11 +15,11 @@ from bowtally.ui.views import ListView
 
 HEADERS = ["Bezeichnung", "Kürzel", "Altersgruppe", "Typ"]
 AGE_GROUPS = ["Jugend", "Erwachsene", "Senioren", "Offen"]
-READ_ONLY_HINT = "Schreibgeschützt. Klonen für anpassbare Kopie."
+READ_ONLY_HINT = "Schreibgeschützt. Kopieren für anpassbare Kopie."
 
 
 def builtin_chip(builtin: bool) -> Cell:
-    return Cell(builtin, chip=("Eingebaut", "muted") if builtin
+    return Cell(builtin, chip=("Standard", "muted") if builtin
                 else ("Benutzerdefiniert", "primary"))
 
 
@@ -48,13 +49,27 @@ class BowClassesView(ListView):
         self.table.reordered.connect(self._save_order)
         self._classes = {}
         self._editing_id = None
+        self._show_mine = QCheckBox("Meine Bogenklassen anzeigen")
+        _s = QSettings("BowTally", "BowTally")
+        self._show_mine.setChecked(_s.value("bow_classes/show_mine", False, type=bool))
+        self._show_mine.toggled.connect(self.refresh)
+        self._show_mine.toggled.connect(
+            lambda v: QSettings("BowTally", "BowTally").setValue("bow_classes/show_mine", v))
+        _footer = QWidget()
+        _fl = QHBoxLayout(_footer)
+        _fl.setContentsMargins(0, 4, 0, 0)
+        _fl.addWidget(self._show_mine)
+        _fl.addStretch()
+        self.main_layout.insertWidget(2, _footer)
 
     def refresh(self):
         classes = md.list_bow_classes()
         self._classes = {bc.id: bc for bc in classes}
+        visible = ([bc for bc in classes if not bc.is_builtin]
+                   if self._show_mine.isChecked() else classes)
         self.table.set_rows([[Cell(bc.name, tooltip=READ_ONLY_HINT if bc.is_builtin else ""),
                               bc.abbreviation, bc.age_group, builtin_chip(bc.is_builtin)]
-                             for bc in classes], [bc.id for bc in classes])
+                             for bc in visible], [bc.id for bc in visible])
         custom = sum(not bc.is_builtin for bc in classes)
         self.header.set_subtitle(f"{len(classes)} Klassen | {custom} benutzerdefiniert | "
                                  "Reihenfolge per Drag-and-Drop")
@@ -71,20 +86,20 @@ class BowClassesView(ListView):
         locked = bc.is_builtin
         self.action_bar.set_actions(bc.name, [
             Action("Bearbeiten", self.edit_item, enabled=not locked,
-                   tooltip="Bearbeiten (eingebaute Einträge sind schreibgeschützt)" if locked
+                   tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Im Seitenpanel bearbeiten"),
-            Action("Klonen", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
+            Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
-                   tooltip="Löschen (eingebaute Einträge sind schreibgeschützt)" if locked
+                   tooltip="Löschen (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Bogenklasse löschen (mit Rückfrage)")])
 
     def context_entries(self, row_id):
         bc = self._classes.get(row_id)
         if bc is None:
             return []
-        hint = "Eingebaute Einträge sind schreibgeschützt" if bc.is_builtin else ""
+        hint = "Standard-Einträge sind schreibgeschützt" if bc.is_builtin else ""
         return [("Bearbeiten", self.edit_item, not bc.is_builtin, hint),
-                ("Klonen", self.clone_item),
+                ("Kopieren", self.clone_item),
                 None,
                 ("Löschen", self.delete_item, not bc.is_builtin, hint)]
 

@@ -175,7 +175,7 @@ class TournamentWizard(QWizard):
         self.tournament = None if clone else tournament
         self.created_id: int | None = None
         self._start_page = start_page
-        self.setWindowTitle("Turnier klonen" if clone
+        self.setWindowTitle("Turnier kopieren" if clone
                             else ("Turnier bearbeiten" if tournament else "Neues Turnier"))
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
         self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage)
@@ -252,7 +252,7 @@ class TournamentWizard(QWizard):
     def _page_rule(self) -> QWizardPage:
         self.rule_list = QListWidget()
         for r in self.rules:
-            item = QListWidgetItem(r.name + ("  ·  eingebaut" if r.is_builtin else ""))
+            item = QListWidgetItem(r.name + ("  ·  standard" if r.is_builtin else ""))
             item.setData(Qt.ItemDataRole.UserRole, r.id)
             self.rule_list.addItem(item)
             if self.tournament and r.id == self.tournament.scoring_rule_id:
@@ -302,7 +302,7 @@ class TournamentWizard(QWizard):
         )
         note = (rule.rules_json or {}).get("note", "")
         retry = "  ·  Nachschuss erlaubt" if rule.allow_retry_shot else ""
-        builtin = "  <span style='color:gray'>(eingebaut)</span>" if rule.is_builtin else ""
+        builtin = "  <span style='color:gray'>(standard)</span>" if rule.is_builtin else ""
         html = (
             f"<div style='padding:12px'>"
             f"<p style='font-size:12pt;font-weight:bold;margin:0 0 6px'>{rule.name}{builtin}</p>"

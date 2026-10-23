@@ -61,8 +61,8 @@ def save_rule(data: dict, rule_id: int | None = None) -> ScoringRule:
             if rule is None:
                 raise ValidationError("Regelwerk nicht gefunden.")
             if rule.is_builtin:
-                raise ValidationError("Eingebaute Regelwerke sind schreibgeschützt. "
-                                      "Bitte klonen.")
+                raise ValidationError("Standard-Regelwerke sind schreibgeschützt. "
+                                      "Bitte kopieren.")
             for k, v in data.items():
                 setattr(rule, k, v)
         s.flush()
@@ -91,7 +91,7 @@ def delete_rule(rule_id: int) -> None:
         if rule is None:
             return
         if rule.is_builtin:
-            raise ValidationError("Eingebaute Regelwerke können nicht gelöscht werden.")
+            raise ValidationError("Standard-Regelwerke können nicht gelöscht werden.")
         if s.scalar(select(func.count(Tournament.id))
                     .where(Tournament.scoring_rule_id == rule_id)):
             raise ValidationError("Das Regelwerk wird von einem Turnier verwendet.")
