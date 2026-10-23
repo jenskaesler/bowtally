@@ -10,7 +10,7 @@ Anwendung gepflegt.
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **2026.10.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.10.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 
@@ -202,7 +202,7 @@ kommt aus `bowtally/__version__.py`.
 | Anwendung | `build\dist\BowTally\BowTally.exe` |
 | Installer | `build\dist\BowTally-<version>-Setup.exe` |
 
-Nur den Installer neu bauen: `makensis /DVERSION=2026.10.0 build\setup.nsi`
+Nur den Installer neu bauen: `makensis /DVERSION=2026.10.1 build\setup.nsi`
 
 ### Release
 

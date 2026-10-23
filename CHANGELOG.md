@@ -6,6 +6,15 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.10.1] – 2026-10-24
+
+### Verbessert
+
+- **UX: Checkbox-Labels** präziser: „Abgeschlossene Turniere anzeigen" und „Inaktive Schützen anzeigen"
+- **Leitfaden → Einnahmen**: Navigiert jetzt direkt zum Turnier-Dashboard statt zur globalen Übersicht
+- **Rechtsklick-Menüs**: Tooltips entfernt; Bedingungen im Teilnehmer-Menü präzisiert (Bestätigen nur für Gemeldet/Warteliste, Zahlung nur bei hinterlegter Gebühr, DNS/Zurückziehen nur für aktive Teilnehmer)
+- **App-Hilfe**: Umbau von Tab-Widget auf geteilte Ansicht (Liste links, Inhalt rechts); 9 Abschnitte auf 7 zusammengeführt; neuer Abschnitt „Rechtsklick-Menüs"
+
 ## [2026.10.0] – 2026-10-24
 
 ### Hinzugefügt
@@ -273,7 +282,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.0...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.1...HEAD
+[2026.10.1]: https://github.com/jenskaesler/bowtally/compare/v2026.10.0...v2026.10.1
 [2026.10.0]: https://github.com/jenskaesler/bowtally/compare/v0.7.0...v2026.10.0
 [0.7.0]: https://github.com/jenskaesler/bowtally/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jenskaesler/bowtally/compare/v0.5.0...v0.6.0
