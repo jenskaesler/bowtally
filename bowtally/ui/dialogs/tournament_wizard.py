@@ -517,7 +517,9 @@ class TournamentWizard(QWizard):
         return page
 
     def _from_club(self, club: dict):
+        treasurer = f"{club.get('treasurer_fname') or ''} {club.get('treasurer_lname') or ''}".strip()
         for edit, value in (
+            (self.contact_name, treasurer or None),
             (self.contact_phone, club.get("phone")),
             (self.contact_email, club.get("email")),
             (self.bank_holder, club.get("bank_account_holder") or club.get("club_name")),
@@ -537,8 +539,8 @@ class TournamentWizard(QWizard):
         self.legal = QPlainTextEdit(self._t("legal_notes", ss.get("default_legal_notes", "")))
         self.closing = QPlainTextEdit(closing)
         self.closing.setPlaceholderText(CLOSING_PLACEHOLDER)
-        for w, h in ((self.intro, 80), (self.legal, 130), (self.closing, 60)):
-            w.setFixedHeight(h)
+        for w in (self.intro, self.legal, self.closing):
+            w.setFixedHeight(130)
         page = _Page(7, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
                      "eine Zeile je Hinweis.")
         form = QFormLayout()
@@ -590,7 +592,10 @@ class TournamentWizard(QWizard):
         names = [bc.name for bc in self.classes if bc.id in self._class_ids()]
         groups = ts.split_groups(self.groups.text())
         fees = self.fee_table.fees()
-        warning = theme.current()["warning"]
+        t = theme.current()
+        warning = t["warning"]
+        border_col = t["border"]
+        surface = t["surface"]
 
         def esc(s):
             return str(s).replace("&", "&amp;").replace("<", "&lt;")
@@ -627,26 +632,26 @@ class TournamentWizard(QWizard):
             (7, "Hinweise und Texte", [("Einleitung", short(self.intro.toPlainText()) or "–"),
                                        ("Hinweise", f"{legal_count} Einträge")]),
         ]
-        lbl = "color:gray;padding:2px 18px 2px 0;vertical-align:top;white-space:nowrap;width:140px"
-        val = "padding:2px 0;vertical-align:top"
+        lbl = f"color:{t['text2']};padding:3px 14px 3px 8px;vertical-align:top;white-space:nowrap"
+        val = "padding:3px 8px 3px 0;vertical-align:top"
+        hdr = f"padding:6px 10px;border-bottom:1px solid {border_col}"
         html = []
         for step, title, rows in sections:
             html.append(
-                f"<p style='margin-top:16px;margin-bottom:2px'>"
-                f"<b style='font-size:11pt'>{title}</b>"
-                f"&nbsp;&nbsp;<a href='{step}'>Bearbeiten</a></p>"
-                f"<hr style='border:none;border-top:1px solid #aaa;margin:0 0 4px'>"
-                f"<table width='100%' cellspacing='0' cellpadding='0'>"
-                f"<colgroup><col width='160'/><col/></colgroup>"
+                f"<table width='100%' cellspacing='0' cellpadding='0' "
+                f"style='border:1px solid {border_col}'>"
+                f"<tr><td colspan='2' bgcolor='{surface}' style='{hdr}'>"
+                f"<b style='font-size:10pt'>{title}</b>"
+                f"&nbsp;&nbsp;<a href='{step}'>Bearbeiten</a></td></tr>"
             )
-            html += [f"<tr><td style='{lbl}'>{esc(k)}</td>"
+            html += [f"<tr><td width='150' style='{lbl}'>{esc(k)}</td>"
                      f"<td style='{val}'>{esc(v)}</td></tr>"
                      for k, v in rows]
             if step == 5 and not fees:
-                html.append(f"<tr><td colspan='2' style='color:{warning};padding:4px 0'>"
+                html.append(f"<tr><td colspan='2' style='color:{warning};padding:4px 8px'>"
                             "<b>Warnung:</b> Keine Startgebühr angelegt. Ohne Gebühr ist kein "
                             "Wechsel in die Anmeldephase möglich.</td></tr>")
-            html.append("</table>")
+            html.append("</table><br>")
         self.summary.setText("".join(html))
 
     def _create(self) -> bool:
