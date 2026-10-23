@@ -166,7 +166,7 @@ class SettingsDialog(QDialog):
         box_notes = QGroupBox("Notizen")
         QVBoxLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setMinimumHeight(120)
+        edit_notes.setMinimumHeight(edit_notes.fontMetrics().lineSpacing() * 5 + 12)
         self.club_edits["notes"] = edit_notes
         box_notes.layout().addWidget(edit_notes)
         lay.addWidget(box_notes)
