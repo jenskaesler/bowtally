@@ -44,7 +44,7 @@ LABEL_OVERRIDES = {
     ss.KEY_UI_LANGUAGE: "Sprache",
     ss.KEY_FONT_FAMILY: "Schriftart",
     ss.KEY_RESULT_TIEBREAK_MODE: "Tie-Break-Logik",
-    ss.KEY_RESULT_AUTO_RANK: "Rang automatisch neu berechnen",
+    ss.KEY_RESULT_AUTO_RANK: "automatisch neu berechnen",
     ss.KEY_PRINT_PAPER_SIZE: "Papiergröße",
     ss.KEY_PRINT_ORIENTATION: "Format",
 }
@@ -150,10 +150,23 @@ class SettingsDialog(QDialog):
                 form.addRow(self._flbl(CLUB_LABELS[key]), edit)
             lay.addWidget(box)
 
+        box_default_contact = QGroupBox("Standard-Kontaktperson")
+        form_dc = QFormLayout(box_default_contact)
+        self._default_contact_combo = QComboBox()
+        for role_key, role_label in CONTACT_ROLES.items():
+            self._default_contact_combo.addItem(role_label, role_key)
+        stored_role = ss.get("default_contact_role", "treasurer")
+        idx = self._default_contact_combo.findData(stored_role)
+        if idx >= 0:
+            self._default_contact_combo.setCurrentIndex(idx)
+        self.value_widgets["default_contact_role"] = self._default_contact_combo
+        form_dc.addRow(self._flbl("Rolle"), self._default_contact_combo)
+        lay.addWidget(box_default_contact)
+
         box_notes = QGroupBox("Notizen")
         QVBoxLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setMinimumHeight(90)
+        edit_notes.setMinimumHeight(120)
         self.club_edits["notes"] = edit_notes
         box_notes.layout().addWidget(edit_notes)
         lay.addWidget(box_notes)
@@ -238,7 +251,7 @@ class SettingsDialog(QDialog):
             values.get(ss.KEY_UI_THEME_MODE) or "system")))
         self.mode.currentIndexChanged.connect(self._preview)
         mode_row = QFormLayout()
-        mode_row.addRow("Darstellung", self.mode)
+        mode_row.addRow(self._flbl("Darstellung"), self.mode)
         lay.addLayout(mode_row)
 
         self.color_fields: dict[str, ColorField] = {}
@@ -304,7 +317,7 @@ class SettingsDialog(QDialog):
             if key == "bank_reference_template":
                 edit.setPlaceholderText("z. B. 3D Turnier 2027, {name}, {bow_class}")
             self.club_edits[key] = edit
-            form.addRow(label, edit)
+            form.addRow(self._flbl(label), edit)
         hint = QLabel("Platzhalter Verwendungszweck: {name}, {bow_class}",
                       objectName="pageSubtitle")
         form.addRow("", hint)
@@ -454,12 +467,12 @@ class SettingsDialog(QDialog):
                 groups[st.category] = QFormLayout(box)
                 lay.addWidget(box)
                 if st.category == "templates":
-                    lbl = QLabel("Parcour-Beschreibung")
+                    lbl = self._flbl("Parcours-Beschreibung")
                     lbl.setWordWrap(True)
                     groups["templates"].addRow(lbl, edit_course)
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
-            label = QLabel(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
+            label = self._flbl(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
             groups[st.category].addRow(label, widget)
@@ -484,7 +497,7 @@ class SettingsDialog(QDialog):
                 lay.addWidget(box)
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
-            label = QLabel(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
+            label = self._flbl(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
             groups[st.category].addRow(label, widget)

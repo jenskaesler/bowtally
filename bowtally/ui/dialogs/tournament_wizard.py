@@ -505,9 +505,12 @@ class TournamentWizard(QWizard):
             if idx >= 0:
                 self._contact_combo.setCurrentIndex(idx)
             else:
-                treasurer_idx = next((i for i, (k, *_) in enumerate(role_contacts)
-                                      if k == "treasurer"), 0)
-                self._contact_combo.setCurrentIndex(treasurer_idx)
+                default_role = ss.get("default_contact_role", "treasurer")
+                default_idx = next((i for i, (k, *_) in enumerate(role_contacts)
+                                    if k == default_role),
+                                   next((i for i, (k, *_) in enumerate(role_contacts)
+                                         if k == "treasurer"), 0))
+                self._contact_combo.setCurrentIndex(default_idx)
             self.contact_name.setText(self._contact_combo.currentData() or "")
             self._contact_combo.currentIndexChanged.connect(
                 lambda: self.contact_name.setText(self._contact_combo.currentData() or ""))
