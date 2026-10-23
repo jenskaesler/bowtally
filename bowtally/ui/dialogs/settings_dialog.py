@@ -143,21 +143,21 @@ class SettingsDialog(QDialog):
             lay.addWidget(box)
 
         box_course = QGroupBox("Parcour-Beschreibung")
-        f_course = QFormLayout(box_course)
+        QVBoxLayout(box_course)
         edit_course = QPlainTextEdit(club.get("course_description") or "")
-        edit_course.setFixedHeight(90)
+        edit_course.setMinimumHeight(90)
         edit_course.setPlaceholderText(
             "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
         self.club_edits["course_description"] = edit_course
-        f_course.addRow(self._flbl("Beschreibung"), edit_course)
+        box_course.layout().addWidget(edit_course)
         lay.addWidget(box_course)
 
         box_notes = QGroupBox("Notizen")
-        f_notes = QFormLayout(box_notes)
+        QVBoxLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setFixedHeight(90)
+        edit_notes.setMinimumHeight(90)
         self.club_edits["notes"] = edit_notes
-        f_notes.addRow(self._flbl("Notizen"), edit_notes)
+        box_notes.layout().addWidget(edit_notes)
         lay.addWidget(box_notes)
 
         box_contacts = QGroupBox("Vereinsvorstand")
