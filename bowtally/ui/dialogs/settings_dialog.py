@@ -163,15 +163,6 @@ class SettingsDialog(QDialog):
         form_dc.addRow(self._flbl("Rolle"), self._default_contact_combo)
         lay.addWidget(box_default_contact)
 
-        box_notes = QGroupBox("Notizen")
-        QVBoxLayout(box_notes)
-        edit_notes = QPlainTextEdit(club.get("notes") or "")
-        _lh = QApplication.instance().fontMetrics().lineSpacing()
-        edit_notes.setFixedHeight(_lh * 5 + 14)
-        self.club_edits["notes"] = edit_notes
-        box_notes.layout().addWidget(edit_notes)
-        lay.addWidget(box_notes)
-
         box_logo = QGroupBox("Logo")
         logo_lay = QHBoxLayout(box_logo)
         self.logo_edit = QLineEdit(club.get("logo_path") or "")
