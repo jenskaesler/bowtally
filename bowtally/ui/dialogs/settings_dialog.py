@@ -37,6 +37,7 @@ CONTACT_ROLES = {
 COMBO_LABELS = {
     ss.KEY_PRINT_ORIENTATION: {"portrait": "Hochformat", "landscape": "Querformat"},
     ss.KEY_UI_LANGUAGE: {"de": "Deutsch"},
+    "waitlist_mode": {"block": "Gesperrt (kein Nachrücken)", "auto": "Automatisch (Warteliste)"},
 }
 LABEL_OVERRIDES = {
     ss.KEY_PRINT_SHOW_LOGO: "Vereinslogo einfügen",
@@ -50,6 +51,7 @@ LABEL_OVERRIDES = {
     "announcement_payment_hint": "Überweisungshinweis",
     "announcement_group_hint": "Gruppenhinweis",
     "default_legal_notes": "Wichtige Hinweise",
+    "waitlist_mode": "Warteliste bei Vollbelegung",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
 LOGO_PREVIEW = 120
@@ -114,6 +116,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._design_tab(), "Design")
         tabs.addTab(self._category_tab("behavior", "ui"), "Verhalten")
         tabs.addTab(self._print_tab(), "Druck")
+        tabs.addTab(self._email_tab(), "E-Mail-Vorlagen")
         tabs.addTab(self._backup_tab(), "Backup")
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
@@ -471,6 +474,39 @@ class SettingsDialog(QDialog):
             label.setWordWrap(True)
             label.setToolTip(st.key)
             groups[st.category].addRow(label, widget)
+        lay.addStretch()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(inner)
+        return scroll
+
+    # ------------------------------------------------------------ email templates tab
+    def _email_tab(self) -> QWidget:
+        values = {st.key: st.value or "" for st in self.settings}
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
+        lay.setSpacing(10)
+        hint = QLabel("Platzhalter: {name}, {verein}, {klasse}, {turniername}, {datum}",
+                      objectName="pageSubtitle")
+        lay.addWidget(hint)
+        for title, subj_key, body_key in (
+            ("Anmeldebestätigung", "email_reg_subject", "email_reg_body"),
+            ("Zahlungserinnerung", "email_payment_subject", "email_payment_body"),
+            ("Startunterlagen", "email_docs_subject", "email_docs_body"),
+            ("Ergebnisversand", "email_results_subject", "email_results_body"),
+            ("Wartelisten-Nachrücker", "email_waitlist_subject", "email_waitlist_body"),
+            ("Helfer-Bestätigung", "email_helper_subject", "email_helper_body"),
+        ):
+            box = QGroupBox(title)
+            form = QFormLayout(box)
+            subj = QLineEdit(values.get(subj_key, ""))
+            body = QPlainTextEdit(values.get(body_key, ""))
+            body.setFixedHeight(110)
+            self.value_widgets[subj_key] = subj
+            self.value_widgets[body_key] = body
+            form.addRow(self._flbl("Betreff"), subj)
+            form.addRow(self._flbl("Text"), body)
+            lay.addWidget(box)
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)

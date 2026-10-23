@@ -209,7 +209,7 @@ class Tournament(Base):
 
 
 REGISTRATION_STATUSES = ("registered", "confirmed", "checked_in", "dns", "dnf", "dsq",
-                         "withdrawn")
+                         "withdrawn", "waitlisted")
 PAYMENT_STATUSES = ("unpaid", "pending", "paid")
 
 
@@ -232,7 +232,8 @@ class TournamentParticipant(Base):
     __tablename__ = "tournament_participants"
     __table_args__ = (
         CheckConstraint("registration_status IN ('registered', 'confirmed', 'checked_in', "
-                        "'dns', 'dnf', 'dsq', 'withdrawn')", name="ck_participants_registration"),
+                        "'dns', 'dnf', 'dsq', 'withdrawn', 'waitlisted')",
+                        name="ck_participants_registration"),
         CheckConstraint("payment_status IN ('unpaid', 'pending', 'paid')",
                         name="ck_participants_payment"),
     )

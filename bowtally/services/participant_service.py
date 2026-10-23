@@ -16,7 +16,7 @@ from bowtally.services.tournament_service import (CapacityInfo, _add, _check_edi
 REGISTRATION_LABELS = {
     "registered": "Gemeldet", "confirmed": "Bestätigt", "checked_in": "Eingecheckt",
     "dns": "Nicht gestartet", "dnf": "Abgebrochen", "dsq": "Disqualifiziert",
-    "withdrawn": "Zurückgezogen",
+    "withdrawn": "Zurückgezogen", "waitlisted": "Auf Warteliste",
 }
 PAYMENT_LABELS = {"unpaid": "Ausstehend", "pending": "Erwartet", "paid": "Bezahlt"}
 

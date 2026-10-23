@@ -38,6 +38,7 @@ OPTIONS = {
     KEY_RESULT_TIEBREAK_MODE: ["most_top_scores", "total_highest"],
     KEY_UI_LANGUAGE: ["de"],
     KEY_UI_THEME_MODE: ["system", "light", "dark"],
+    "waitlist_mode": ["block", "auto"],
 }
 THEME_MODE_LABELS = {"system": "System", "light": "Hell", "dark": "Dunkel"}
 

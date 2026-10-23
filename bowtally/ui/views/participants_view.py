@@ -13,7 +13,7 @@ from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
-from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable
+from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable, ID_ROLE
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.status_chip import payment_chip, registration_chip
@@ -147,6 +147,11 @@ class ParticipantsView(QWidget):
         self.group_filter = QComboBox()
         self.group_filter.setToolTip("Nach Startgruppe filtern")
         self.group_filter.currentIndexChanged.connect(lambda _i: self._apply_filter())
+        self.status_filter = QComboBox()
+        self.status_filter.addItem("Alle Teilnehmer", "")
+        self.status_filter.addItem("Warteliste", "waitlisted")
+        self.status_filter.setToolTip("Nach Status filtern")
+        self.status_filter.currentIndexChanged.connect(lambda _i: self._apply_filter())
         self.btn_add = button("Schütze zuweisen", self.pick_archers, "primary",
                               "Schützen aus den Stammdaten zuweisen (Strg+N)")
         self.btn_import = button("Importieren", self._import,
@@ -158,6 +163,7 @@ class ParticipantsView(QWidget):
         bar = QHBoxLayout()
         bar.addWidget(self.search)
         bar.addWidget(self.group_filter)
+        bar.addWidget(self.status_filter)
         bar.addSpacing(12)
         bar.addWidget(self.capacity)
         bar.addStretch()
@@ -191,16 +197,20 @@ class ParticipantsView(QWidget):
 
     # ------------------------------------------------------------ data
     def set_tournament(self, tournament):
+        from bowtally.services.settings_service import get as _get_setting
         self.tournament = t = tournament
         editable = t.status != "closed"
         cap = ts._capacity(t)
+        waitlist_auto = _get_setting("waitlist_mode", "block") == "auto"
         self.capacity.set_capacity(cap)
         for b, tip in ((self.btn_import, "Teilnehmerliste aus CSV, Excel oder OpenDocument"),
                        (self.btn_renumber, "Nummern 1..n nach Klasse und Name, Gruppen reihum")):
             b.setEnabled(editable)
             b.setToolTip(tip if editable else CLOSED_HINT)
-        self.btn_add.setEnabled(editable and not cap.is_full)
-        self.btn_add.setToolTip(CLOSED_HINT if not editable else full_hint(cap) if cap.is_full
+        add_ok = editable and (not cap.is_full or waitlist_auto)
+        self.btn_add.setEnabled(add_ok)
+        self.btn_add.setToolTip(CLOSED_HINT if not editable
+                                else full_hint(cap) if cap.is_full and not waitlist_auto
                                 else "Schützen aus den Stammdaten zuweisen (Strg+N)")
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
@@ -246,6 +256,15 @@ class ParticipantsView(QWidget):
                 item = self.table.table.item(r, COL_GROUP)
                 if item is not None and item.text() != group:
                     self.table.table.setRowHidden(r, True)
+        status_f = self.status_filter.currentData()
+        if status_f:
+            for r in range(self.table.table.rowCount()):
+                if not self.table.table.isRowHidden(r):
+                    item = self.table.table.item(r, 0)
+                    pid = item.data(ID_ROLE) if item else None
+                    p = self._parts.get(pid)
+                    if p and p.registration_status != status_f:
+                        self.table.table.setRowHidden(r, True)
 
     def _class_options(self):
         return [(bc.name, bc.id) for bc in self.tournament.bow_classes]
@@ -370,6 +389,10 @@ class ParticipantsView(QWidget):
             show_error(self, exc)
         Toast.show(self, f"Status: {ps.REGISTRATION_LABELS[status]}", Toast.SUCCESS)
         self._reload()
+        if status in ("withdrawn", "dsq"):
+            wl = sum(p.registration_status == "waitlisted" for p in self._parts.values())
+            if wl:
+                Toast.show(self, f"{wl} Personen auf Warteliste", Toast.INFO)
 
     def _set_payment(self, status: str):
         for p in self._selected():
@@ -443,12 +466,15 @@ class ParticipantsView(QWidget):
     def pick_archers(self):
         if self.tournament is None or self.tournament.status == "closed":
             return
+        from bowtally.services.settings_service import get as _get_setting
         t = self.tournament
         cap = ts._capacity(t)
-        if cap.is_full:
+        waitlist_auto = _get_setting("waitlist_mode", "block") == "auto"
+        if cap.is_full and not waitlist_auto:
             Toast.show(self, full_hint(cap), Toast.WARNING)
             return
-        picker = ArcherPicker({p.archer_id for p in t.participants}, cap.free_slots, self)
+        picker = ArcherPicker({p.archer_id for p in t.participants},
+                              None if waitlist_auto else cap.free_slots, self)
         if not picker.exec() or not picker.selected_ids():
             return
         ids = picker.selected_ids()

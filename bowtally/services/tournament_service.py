@@ -18,7 +18,7 @@ PHASE_LABELS = {key: label for key, label, *_ in TOURNAMENT_PHASES}
 PHASE_DESCRIPTIONS = {key: desc for key, _l, _o, desc in TOURNAMENT_PHASES}
 # legacy status column, derived from the phase (score entry / locks still use it)
 PHASE_STATUS = {"shooting": "active", "scoring": "active", "closed": "closed"}
-INACTIVE_REGISTRATION = ("withdrawn", "dsq")              # do not count for capacity
+INACTIVE_REGISTRATION = ("withdrawn", "dsq", "waitlisted")  # do not count for capacity
 EXPECTED_REGISTRATION = ("registered", "confirmed", "checked_in")
 REVENUE_REGISTRATION = ("confirmed", "checked_in")
 CHECKLIST_ITEMS = {
@@ -679,10 +679,11 @@ def _pick_class(t: Tournament, archer: Archer, wanted: int | None) -> int | None
 
 def _add(s, t: Tournament, archer: Archer, bow_class_id: int | None = None,
          start_number: int | None = None, start_group: str | None = None,
-         **extra) -> TournamentParticipant | None:
+         _cap_bypass: bool = False, **extra) -> TournamentParticipant | None:
     if any(p.archer_id == archer.id for p in t.participants):
         return None
-    _check_capacity(t, 1)
+    if not _cap_bypass:
+        _check_capacity(t, 1)
     groups = split_groups(t.start_groups)
     next_no = max((p.start_number or 0 for p in t.participants), default=0) + 1
     if start_group is None and groups:
@@ -697,14 +698,22 @@ def _add(s, t: Tournament, archer: Archer, bow_class_id: int | None = None,
 
 def add_participants(tournament_id: int, archer_ids: list[int]) -> int:
     """Add archers from master data. Returns number added (already present are skipped)."""
+    from bowtally.services.settings_service import get as _get_setting
+    waitlist_auto = _get_setting("waitlist_mode", "block") == "auto"
     added = 0
     with session_scope() as s:
         t = s.get(Tournament, tournament_id)
         _check_editable(t)
         new = [a for a in archer_ids if all(p.archer_id != a for p in t.participants)]
-        _check_capacity(t, len(new))
+        if not waitlist_auto:
+            _check_capacity(t, len(new))
         for aid in new:
-            added += _add(s, t, s.get(Archer, aid)) is not None
+            cap = _capacity(t)
+            if waitlist_auto and cap.is_full:
+                added += _add(s, t, s.get(Archer, aid), _cap_bypass=True,
+                              registration_status="waitlisted") is not None
+            else:
+                added += _add(s, t, s.get(Archer, aid)) is not None
     return added
 
 

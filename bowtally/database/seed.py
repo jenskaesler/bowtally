@@ -50,6 +50,47 @@ DEFAULT_SETTINGS = [
      "Vereinslogo klein am Ende der Ausschreibung wiederholen"),
     ("last_active_tournament_id", "", "internal", "string",
      "Zuletzt geöffnetes Turnier (wird beim Start wiederhergestellt)"),
+    # email templates
+    ("email_reg_subject", "Anmeldebestätigung – {turniername}", "email", "string",
+     "E-Mail-Vorlage: Betreff Anmeldebestätigung"),
+    ("email_reg_body",
+     "Hallo {name},\n\ndeine Anmeldung zum Turnier {turniername} am {datum} wurde erfolgreich "
+     "registriert.\n\nKlasse: {klasse}\nVerein: {verein}\n\nBis dahin!\nDein Team",
+     "email", "string", "E-Mail-Vorlage: Text Anmeldebestätigung"),
+    ("email_payment_subject", "Zahlungserinnerung – {turniername}", "email", "string",
+     "E-Mail-Vorlage: Betreff Zahlungserinnerung"),
+    ("email_payment_body",
+     "Hallo {name},\n\nfür deine Anmeldung zum Turnier {turniername} am {datum} liegt noch "
+     "eine offene Zahlung vor. Bitte überweise das Startgeld rechtzeitig.\n\nBis dahin!\nDein Team",
+     "email", "string", "E-Mail-Vorlage: Text Zahlungserinnerung"),
+    ("email_docs_subject", "Startunterlagen – {turniername}", "email", "string",
+     "E-Mail-Vorlage: Betreff Startunterlagen"),
+    ("email_docs_body",
+     "Hallo {name},\n\nanbei erhältst du die Startunterlagen für das Turnier {turniername} am "
+     "{datum}.\n\nKlasse: {klasse}\nVerein: {verein}\n\nBis dahin!\nDein Team",
+     "email", "string", "E-Mail-Vorlage: Text Startunterlagen"),
+    ("email_results_subject", "Ergebnisse – {turniername}", "email", "string",
+     "E-Mail-Vorlage: Betreff Ergebnisversand"),
+    ("email_results_body",
+     "Hallo {name},\n\nhier sind die Ergebnisse des Turniers {turniername} vom {datum}.\n\n"
+     "Klasse: {klasse}\nVerein: {verein}\n\nBis zum nächsten Turnier!\nDein Team",
+     "email", "string", "E-Mail-Vorlage: Text Ergebnisversand"),
+    ("email_waitlist_subject", "Nachrücken – {turniername}", "email", "string",
+     "E-Mail-Vorlage: Betreff Wartelisten-Nachrücker"),
+    ("email_waitlist_body",
+     "Hallo {name},\n\nes ist ein Platz frei geworden! Du kannst für das Turnier {turniername} "
+     "am {datum} nachrücken.\n\nKlasse: {klasse}\nVerein: {verein}\n\nBitte melde dich schnell "
+     "zurück!\nDein Team",
+     "email", "string", "E-Mail-Vorlage: Text Wartelisten-Nachrücker"),
+    ("email_helper_subject", "Helfer-Bestätigung – {turniername}", "email", "string",
+     "E-Mail-Vorlage: Betreff Helfer-Bestätigung"),
+    ("email_helper_body",
+     "Hallo {name},\n\nvielen Dank, dass du beim Turnier {turniername} am {datum} als Helfer "
+     "dabei bist! Wir freuen uns auf dich.\n\nDein Team",
+     "email", "string", "E-Mail-Vorlage: Text Helfer-Bestätigung"),
+    # behavior
+    ("waitlist_mode", "block", "behavior", "string",
+     "Warteliste: auto (automatisch) oder block (sperren)"),
 ]
 
 # Reference data, inserted by migration 0003 (key, label, sort_order, description)

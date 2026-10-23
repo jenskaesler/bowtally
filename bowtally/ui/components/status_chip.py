@@ -17,7 +17,8 @@ PHASE_KINDS = {"draft": "muted", "announcement": "neutral", "preparation": "neut
                "registration": "primary", "checkin": "primary", "shooting": "success",
                "scoring": "success", "closed": "muted"}
 REGISTRATION_KINDS = {"registered": "muted", "confirmed": "primary", "checked_in": "success",
-                      "dns": "warning", "dnf": "warning", "dsq": "danger", "withdrawn": "muted"}
+                      "dns": "warning", "dnf": "warning", "dsq": "danger", "withdrawn": "muted",
+                      "waitlisted": "warning"}
 PAYMENT_KINDS = {"unpaid": "danger", "pending": "warning", "paid": "success"}
 
 
