@@ -33,7 +33,7 @@ NAME_CHARS = 20
 ICON_ROLE = Qt.ItemDataRole.UserRole + 1
 BADGE_ROLE = Qt.ItemDataRole.UserRole + 2
 # theme toggle: mode -> (next mode, icon, label)
-MODE_CYCLE = {theme.MODE_SYSTEM: (theme.MODE_LIGHT, "monitor", "Wie Windows"),
+MODE_CYCLE = {theme.MODE_SYSTEM: (theme.MODE_LIGHT, "monitor", "System"),
               theme.MODE_LIGHT: (theme.MODE_DARK, "sun", "Hell"),
               theme.MODE_DARK: (theme.MODE_SYSTEM, "moon", "Dunkel")}
 SHORTCUTS = [
@@ -296,7 +296,7 @@ class MainWindow(QMainWindow):
         self.navigator = TournamentNavigator(self)
         self.theme_toggle = QPushButton()
         self.theme_toggle.setObjectName("themeToggle")
-        self.theme_toggle.setToolTip("Darstellung umschalten (Wie Windows / Hell / Dunkel)")
+        self.theme_toggle.setToolTip("Darstellung umschalten (System / Hell / Dunkel)")
         self.theme_toggle.clicked.connect(self._cycle_mode)
 
         self._sidebar_collapsed = False

@@ -451,6 +451,9 @@ ICONS = {
     "trash": '<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>',
     "grip": ''.join(f'<circle cx="{x}" cy="{y}" r="1.2" fill="{{c}}"/>'
                     for x in (9, 15) for y in (6, 12, 18)),
+    "more-horizontal": '<circle cx="5" cy="12" r="1.5" fill="{c}"/>'
+                       '<circle cx="12" cy="12" r="1.5" fill="{c}"/>'
+                       '<circle cx="19" cy="12" r="1.5" fill="{c}"/>',
     "inbox": '<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.5 5h13L21 13v6H3v-6L5.5 5z"/>',
     "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     "calendar": '<rect x="3.5" y="5" width="17" height="15" rx="2"/>'

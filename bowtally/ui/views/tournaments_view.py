@@ -43,9 +43,15 @@ class TournamentList(ListView):
         self._show_closed.toggled.connect(self.refresh)
         self._show_closed.toggled.connect(
             lambda v: QSettings("BowTally", "BowTally").setValue("tournaments/show_closed", v))
-        self.header.add(self._show_closed,
-                        button("Neues Turnier", self.new_item, "primary",
-                               "Neues Turnier mit dem Assistenten anlegen (Strg+N)"))
+        _new_btn = button("Neues Turnier", self.new_item, "primary",
+                          "Neues Turnier mit dem Assistenten anlegen (Strg+N)")
+        _stacked = QWidget()
+        _sl = QVBoxLayout(_stacked)
+        _sl.setContentsMargins(0, 0, 0, 0)
+        _sl.setSpacing(3)
+        _sl.addWidget(_new_btn)
+        _sl.addWidget(self._show_closed)
+        self.header.add(_stacked)
         self.table.activated.connect(self.openRequested.emit)
         self._items = {}
 
