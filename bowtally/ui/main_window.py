@@ -40,7 +40,7 @@ SHORTCUTS = [
     ("Strg+S", "Speichern (Seitenpanel, Ergebniseingabe)"),
     ("Esc", "Seitenpanel schließen / Suche leeren / Eingabe verwerfen"),
     ("F5", "Ansicht neu laden"),
-    ("F1", "Diese Übersicht"),
+    ("F1", "App-Hilfe öffnen"),
     ("Enter", "Ausgewählten Eintrag öffnen / Seitenpanel speichern / Einchecken"),
     ("Tab / Umschalt+Tab", "Ergebniseingabe: nächste / vorherige Scheibe"),
     ("Enter / ↓ / ↑", "Ergebniseingabe: nächster / vorheriger Teilnehmer"),
@@ -375,7 +375,8 @@ class MainWindow(QMainWindow):
                            (QKeySequence.StandardKey.Save, "shortcut_save"),
                            (QKeySequence(Qt.Key.Key_F5), "refresh")):
             QShortcut(keys, self, activated=lambda s=slot: self._dispatch(s))
-        QShortcut(QKeySequence(Qt.Key.Key_F1), self, activated=self.show_shortcuts)
+        QShortcut(QKeySequence(Qt.Key.Key_F1), self, activated=self.show_help)
+        self._build_menubar()
         self._refresh_chrome()
         self._context_changed(context.tournament_id, initial=True)
         self._refresh_title()
@@ -396,8 +397,33 @@ class MainWindow(QMainWindow):
         if hasattr(page, method):
             getattr(page, method)()
 
+    def show_help(self, section: str = ""):
+        from bowtally.ui.dialogs.help_dialog import HelpDialog
+        dlg = HelpDialog(self)
+        if section:
+            dlg.show_section(section)
+        dlg.exec()
+
     def show_shortcuts(self):
         ShortcutsDialog(self).exec()
+
+    def _build_menubar(self):
+        from PySide6.QtGui import QAction
+        mb = self.menuBar()
+        help_menu = mb.addMenu("Hilfe")
+        act_help = QAction("App-Hilfe", self)
+        act_help.setShortcut(QKeySequence(Qt.Key.Key_F1))
+        act_help.triggered.connect(self.show_help)
+        help_menu.addAction(act_help)
+        act_shortcuts = QAction("Tastenkürzel", self)
+        act_shortcuts.triggered.connect(self.show_shortcuts)
+        help_menu.addAction(act_shortcuts)
+        help_menu.addSeparator()
+        act_about = QAction("Über BowTally", self)
+        act_about.triggered.connect(
+            lambda: __import__("bowtally.ui.dialogs.about_dialog",
+                               fromlist=["AboutDialog"]).AboutDialog(self).exec())
+        help_menu.addAction(act_about)
 
     # ------------------------------------------------------------ theme
     def apply_theme(self, overrides: dict | None = None):
