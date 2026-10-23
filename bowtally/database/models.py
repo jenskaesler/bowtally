@@ -64,6 +64,17 @@ class ClubProfile(Base):
     sports_dir_lname: Mapped[str | None] = mapped_column(Text)
     bow_ref_fname: Mapped[str | None] = mapped_column(Text)
     bow_ref_lname: Mapped[str | None] = mapped_column(Text)
+    # phone + email per board role
+    first_board_phone: Mapped[str | None] = mapped_column(Text)
+    first_board_email: Mapped[str | None] = mapped_column(Text)
+    second_board_phone: Mapped[str | None] = mapped_column(Text)
+    second_board_email: Mapped[str | None] = mapped_column(Text)
+    treasurer_phone: Mapped[str | None] = mapped_column(Text)
+    treasurer_email: Mapped[str | None] = mapped_column(Text)
+    sports_dir_phone: Mapped[str | None] = mapped_column(Text)
+    sports_dir_email: Mapped[str | None] = mapped_column(Text)
+    bow_ref_phone: Mapped[str | None] = mapped_column(Text)
+    bow_ref_email: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now, onupdate=_now)
 
 

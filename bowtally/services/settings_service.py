@@ -51,7 +51,12 @@ CLUB_FIELDS = ["club_name", "street", "zip_code", "city", "country", "phone", "e
                "second_board_fname", "second_board_lname",
                "treasurer_fname", "treasurer_lname",
                "sports_dir_fname", "sports_dir_lname",
-               "bow_ref_fname", "bow_ref_lname"]
+               "bow_ref_fname", "bow_ref_lname",
+               "first_board_phone", "first_board_email",
+               "second_board_phone", "second_board_email",
+               "treasurer_phone", "treasurer_email",
+               "sports_dir_phone", "sports_dir_email",
+               "bow_ref_phone", "bow_ref_email"]
 
 
 def all_settings() -> list[AppSetting]:
