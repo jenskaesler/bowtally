@@ -102,7 +102,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._bank_tab(), "Bankdaten")
         tabs.addTab(self._design_tab(), "Design")
         tabs.addTab(self._category_tab("behavior", "ui"), "Verhalten")
-        tabs.addTab(self._category_tab("print", "templates"), "Druck")
+        tabs.addTab(self._print_tab(), "Druck")
         tabs.addTab(self._backup_tab(), "Backup")
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
@@ -142,20 +142,10 @@ class SettingsDialog(QDialog):
                 form.addRow(self._flbl(CLUB_LABELS[key]), edit)
             lay.addWidget(box)
 
-        box_course = QGroupBox("Parcour-Beschreibung")
-        QVBoxLayout(box_course)
-        edit_course = QPlainTextEdit(club.get("course_description") or "")
-        edit_course.setFixedHeight(90)
-        edit_course.setPlaceholderText(
-            "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
-        self.club_edits["course_description"] = edit_course
-        box_course.layout().addWidget(edit_course)
-        lay.addWidget(box_course)
-
         box_notes = QGroupBox("Notizen")
         QVBoxLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setFixedHeight(90)
+        edit_notes.setMinimumHeight(90)
         self.club_edits["notes"] = edit_notes
         box_notes.layout().addWidget(edit_notes)
         lay.addWidget(box_notes)
@@ -427,6 +417,42 @@ class SettingsDialog(QDialog):
             return
         from bowtally.ui.components.toast import Toast
         Toast.show(self, "Backup wiederhergestellt – bitte Anwendung neu starten", Toast.SUCCESS)
+
+    def _print_tab(self) -> QWidget:
+        club = ss.get_club_profile()
+        edit_course = QPlainTextEdit(club.get("course_description") or "")
+        edit_course.setFixedHeight(90)
+        edit_course.setPlaceholderText(
+            "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
+        self.club_edits["course_description"] = edit_course
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
+        groups: dict[str, QFormLayout] = {}
+        for st in self.settings:
+            if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \
+                    or st.key in HIDDEN_KEYS \
+                    or st.category not in ("print", "templates") \
+                    or st.category in HIDDEN_CATEGORIES:
+                continue
+            if st.category not in groups:
+                box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
+                groups[st.category] = QFormLayout(box)
+                lay.addWidget(box)
+                if st.category == "templates":
+                    lbl = QLabel("Parcour-Beschreibung")
+                    lbl.setWordWrap(True)
+                    groups["templates"].addRow(lbl, edit_course)
+            widget = self._widget_for(st)
+            self.value_widgets[st.key] = widget
+            label = QLabel(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
+            label.setWordWrap(True)
+            label.setToolTip(st.key)
+            groups[st.category].addRow(label, widget)
+        lay.addStretch()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(inner)
+        return scroll
 
     def _category_tab(self, *categories: str) -> QWidget:
         inner = QWidget()
