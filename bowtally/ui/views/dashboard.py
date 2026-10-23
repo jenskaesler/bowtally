@@ -480,6 +480,17 @@ class DashboardView(QWidget):
         super().showEvent(event)
         self.refresh()
 
+    def show_global(self):
+        self.stack.setCurrentWidget(self.global_view)
+        self.global_view.refresh()
+
+    def show_tournament(self):
+        if context.tournament_id:
+            self.stack.setCurrentWidget(self.tournament_view)
+            self.tournament_view.refresh()
+        else:
+            self.show_global()
+
     def refresh(self):
         if context.tournament_id:
             self.stack.setCurrentWidget(self.tournament_view)
