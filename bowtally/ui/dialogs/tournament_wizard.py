@@ -495,7 +495,7 @@ class TournamentWizard(QWizard):
             for _, label, name in role_contacts:
                 self._contact_combo.addItem(f"{label}: {name}", name)
             import_row = QHBoxLayout()
-            import_row.addWidget(QLabel("Kontaktperson aus Vorstand:"))
+            import_row.addWidget(QLabel("Kontaktperson:"))
             import_row.addWidget(self._contact_combo, 1)
             import_row.addWidget(button("Übernehmen",
                                         lambda: self.contact_name.setText(
@@ -560,11 +560,10 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 9 summary
     def _page_summary(self) -> QWizardPage:
-        self.summary = QLabel()
-        self.summary.setWordWrap(True)
-        self.summary.setTextFormat(Qt.TextFormat.RichText)
-        self.summary.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.summary.linkActivated.connect(self._jump)
+        self._sum_widget = QWidget()
+        self._sum_layout = QVBoxLayout(self._sum_widget)
+        self._sum_layout.setContentsMargins(2, 2, 4, 2)
+        self._sum_layout.setSpacing(8)
         self.generate = QCheckBox("Ausschreibung jetzt generieren")
         self.generate.setChecked(self.tournament is None)
         page = _Page(8, "Zusammenfassung", "Bitte prüfen. Über „Bearbeiten“ springst du "
@@ -574,7 +573,7 @@ class TournamentWizard(QWizard):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidget(self.summary)
+        scroll.setWidget(self._sum_widget)
         page.body.addWidget(scroll, 1)
         page.body.addWidget(self.generate)
         return page
@@ -588,17 +587,16 @@ class TournamentWizard(QWizard):
         return [cid for cid, chip in self.class_chips.items() if chip.isChecked()]
 
     def _fill_summary(self):
+        while self._sum_layout.count():
+            item = self._sum_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
         rule = self.selected_rule()
         names = [bc.name for bc in self.classes if bc.id in self._class_ids()]
         groups = ts.split_groups(self.groups.text())
         fees = self.fee_table.fees()
-        t = theme.current()
-        warning = t["warning"]
-        border_col = t["border"]
-        surface = t["surface"]
-
-        def esc(s):
-            return str(s).replace("&", "&amp;").replace("<", "&lt;")
+        warning = theme.current()["warning"]
 
         def money(v):
             return f"{v:.2f} €".replace(".", ",")
@@ -632,27 +630,41 @@ class TournamentWizard(QWizard):
             (7, "Hinweise und Texte", [("Einleitung", short(self.intro.toPlainText()) or "–"),
                                        ("Hinweise", f"{legal_count} Einträge")]),
         ]
-        lbl = f"color:{t['text2']};padding:3px 14px 3px 8px;vertical-align:top;white-space:nowrap"
-        val = "padding:3px 8px 3px 0;vertical-align:top"
-        hdr = f"padding:6px 10px;border-bottom:1px solid {border_col}"
-        html = []
+        LABEL_W = 160
         for step, title, rows in sections:
-            html.append(
-                f"<table width='100%' cellspacing='0' cellpadding='0' "
-                f"style='border:1px solid {border_col}'>"
-                f"<tr><td colspan='2' bgcolor='{surface}' style='{hdr}'>"
-                f"<b style='font-size:10pt'>{title}</b>"
-                f"&nbsp;&nbsp;<a href='{step}'>Bearbeiten</a></td></tr>"
-            )
-            html += [f"<tr><td width='150' style='{lbl}'>{esc(k)}</td>"
-                     f"<td style='{val}'>{esc(v)}</td></tr>"
-                     for k, v in rows]
+            box = QFrame(objectName="card")
+            box_lay = QVBoxLayout(box)
+            box_lay.setContentsMargins(14, 10, 14, 12)
+            box_lay.setSpacing(4)
+            hdr_row = QHBoxLayout()
+            hdr_row.setSpacing(8)
+            hdr_row.addWidget(QLabel(title, objectName="sectionTitle"))
+            edit_btn = QPushButton("Bearbeiten", objectName="link")
+            edit_btn.clicked.connect(lambda _, s=step: self._jump(str(s)))
+            hdr_row.addWidget(edit_btn)
+            hdr_row.addStretch()
+            box_lay.addLayout(hdr_row)
+            box_lay.addWidget(QFrame(objectName="separator"))
+            for key, val in rows:
+                r = QHBoxLayout()
+                r.setSpacing(0)
+                k_lbl = QLabel(str(key))
+                k_lbl.setFixedWidth(LABEL_W)
+                k_lbl.setProperty("secondary", True)
+                v_lbl = QLabel(str(val))
+                v_lbl.setWordWrap(True)
+                r.addWidget(k_lbl)
+                r.addWidget(v_lbl, 1)
+                box_lay.addLayout(r)
             if step == 5 and not fees:
-                html.append(f"<tr><td colspan='2' style='color:{warning};padding:4px 8px'>"
-                            "<b>Warnung:</b> Keine Startgebühr angelegt. Ohne Gebühr ist kein "
-                            "Wechsel in die Anmeldephase möglich.</td></tr>")
-            html.append("</table><br>")
-        self.summary.setText("".join(html))
+                warn = QLabel(f"<b>Warnung:</b> Keine Startgebühr angelegt. Ohne Gebühr ist "
+                              "kein Wechsel in die Anmeldephase möglich.")
+                warn.setWordWrap(True)
+                warn.setTextFormat(Qt.TextFormat.RichText)
+                warn.setStyleSheet(f"color:{warning}")
+                box_lay.addWidget(warn)
+            self._sum_layout.addWidget(box)
+        self._sum_layout.addStretch()
 
     def _create(self) -> bool:
         data = {"name": self.name.text().strip(), "date": self.date.date().toPython(),
