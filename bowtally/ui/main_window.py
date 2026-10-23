@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Main window: sidebar (tournament navigator + navigation) and content stack."""
-from PySide6.QtCore import QRectF, QSize, Qt
+from PySide6.QtCore import QRectF, QSettings, QSize, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
                                QHBoxLayout, QHeaderView, QLabel, QListWidget, QListWidgetItem,
@@ -285,7 +285,8 @@ class MainWindow(QMainWindow):
         self.logo.mousePressEvent = lambda _e: self.select_page(self.dashboard)
         self.app_title_label = QLabel("BowTally")
         self.app_title_label.setObjectName("appTitle")
-        head = QHBoxLayout()
+        self._head_widget = QWidget()
+        head = QHBoxLayout(self._head_widget)
         head.setContentsMargins(20, 20, 16, 12)
         head.setSpacing(10)
         head.addWidget(self.logo)
@@ -316,7 +317,7 @@ class MainWindow(QMainWindow):
         side_lay.setContentsMargins(0, 0, 0, 12)
         side_lay.setSpacing(4)
         side_lay.addLayout(burger_row)
-        side_lay.addLayout(head)
+        side_lay.addWidget(self._head_widget)
         side_lay.addWidget(self.navigator)
         side_lay.addSpacing(6)
         side_lay.addWidget(self.nav, 1)
@@ -377,8 +378,7 @@ class MainWindow(QMainWindow):
     def _toggle_sidebar(self):
         self._sidebar_collapsed = not self._sidebar_collapsed
         collapsed = self._sidebar_collapsed
-        self.logo.setVisible(not collapsed)
-        self.app_title_label.setVisible(not collapsed)
+        self._head_widget.setVisible(not collapsed)
         self.navigator.setVisible(not collapsed and context.tournament_id is not None)
         self.nav.blockSignals(True)
         self.settings_nav.blockSignals(True)
@@ -682,11 +682,33 @@ class MainWindow(QMainWindow):
         if hasattr(page, "refresh"):
             page.refresh()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not hasattr(self, '_settings_restored'):
+            self._settings_restored = True
+            self._restore_settings()
+
+    def _restore_settings(self):
+        s = QSettings("BowTally", "BowTally")
+        if geom := s.value("window/geometry"):
+            self.restoreGeometry(geom)
+        if state := s.value("window/splitter"):
+            self.splitter.restoreState(state)
+        if s.value("window/sidebar_collapsed", False, type=bool):
+            self._toggle_sidebar()
+
+    def _save_settings(self):
+        s = QSettings("BowTally", "BowTally")
+        s.setValue("window/geometry", self.saveGeometry())
+        s.setValue("window/splitter", self.splitter.saveState())
+        s.setValue("window/sidebar_collapsed", self._sidebar_collapsed)
+
     def closeEvent(self, event):
         page = self.stack.currentWidget()
         if hasattr(page, "close_drawer") and not page.close_drawer():
             event.ignore()
             return
+        self._save_settings()
         if ss.get_bool("backup_on_close"):
             try:
                 from bowtally.services import backup_service as bs

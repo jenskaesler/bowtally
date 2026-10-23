@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tournament list and tournament detail (participants, check-in, score entry, results,
 entry fees). Opening a tournament makes it the active tournament context."""
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QSettings, Signal
 from PySide6.QtWidgets import QCheckBox, QStackedWidget, QTabWidget, QVBoxLayout, QWidget
 
 from bowtally.services import tournament_service as ts
@@ -38,7 +38,11 @@ class TournamentList(ListView):
         super().__init__("Turniere", HEADERS, empty, None, "Name, Ort oder Phase …")
         empty.actionTriggered.connect(self.new_item)
         self._show_closed = QCheckBox("Abgeschlossen anzeigen")
+        _s = QSettings("BowTally", "BowTally")
+        self._show_closed.setChecked(_s.value("tournaments/show_closed", False, type=bool))
         self._show_closed.toggled.connect(self.refresh)
+        self._show_closed.toggled.connect(
+            lambda v: QSettings("BowTally", "BowTally").setValue("tournaments/show_closed", v))
         self.header.add(self._show_closed,
                         button("Neues Turnier", self.new_item, "primary",
                                "Neues Turnier mit dem Assistenten anlegen (Strg+N)"))

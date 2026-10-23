@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Archer master data: search, drawer CRUD, import / export, soft and hard delete."""
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QCheckBox, QComboBox, QCompleter, QLineEdit, QPlainTextEdit
 
 from bowtally.io.importer import ARCHER_IMPORT_FIELDS
@@ -45,7 +46,14 @@ class ArchersView(ListView):
         super().__init__("Schützen", HEADERS, empty, self.form,
                          "Name, Verein oder Mitgliedsnummer …", multi_select=True)
         empty.actionTriggered.connect(self.new_item)
+        self._show_inactive = QCheckBox("Inaktive anzeigen")
+        _s = QSettings("BowTally", "BowTally")
+        self._show_inactive.setChecked(_s.value("archers/show_inactive", False, type=bool))
+        self._show_inactive.toggled.connect(self.refresh)
+        self._show_inactive.toggled.connect(
+            lambda v: QSettings("BowTally", "BowTally").setValue("archers/show_inactive", v))
         self.header.add(
+            self._show_inactive,
             export_button(self, "schuetzen", self._export_sheets,
                           lambda: len(self.table.visible_ids()) if self.table.is_filtered()
                           else None),
@@ -62,13 +70,14 @@ class ArchersView(ListView):
             archers = md.list_archers(include_inactive=True)
             classes = md.list_bow_classes()
         self._archers = {a.id: a for a in archers}
+        visible = archers if self._show_inactive.isChecked() else [a for a in archers if a.active]
         self.table.set_rows([[a.first_name, a.last_name, a.club,
                               a.default_bow_class.abbreviation or a.default_bow_class.name
                               if a.default_bow_class else None,
                               a.member_number,
                               Cell(a.active, chip=("Aktiv", "success") if a.active
-                                   else ("Inaktiv", "neutral"))] for a in archers],
-                            [a.id for a in archers])
+                                   else ("Inaktiv", "neutral"))] for a in visible],
+                            [a.id for a in visible])
         clubs = {a.club.strip().lower() for a in archers if a.club}
         active = sum(a.active for a in archers)
         self.header.set_subtitle(f"{len(archers)} Schützen | {active} aktiv | "
