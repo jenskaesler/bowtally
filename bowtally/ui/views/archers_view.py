@@ -46,7 +46,7 @@ class ArchersView(ListView):
         super().__init__("Schützen", HEADERS, empty, self.form,
                          "Name, Verein oder Mitgliedsnummer …", multi_select=True)
         empty.actionTriggered.connect(self.new_item)
-        self._show_inactive = QCheckBox("Inaktive anzeigen")
+        self._show_inactive = QCheckBox("Inaktive Schützen anzeigen")
         _s = QSettings("BowTally", "BowTally")
         self._show_inactive.setChecked(_s.value("archers/show_inactive", False, type=bool))
         self._show_inactive.toggled.connect(self.refresh)

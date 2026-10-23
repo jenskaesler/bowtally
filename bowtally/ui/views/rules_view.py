@@ -221,11 +221,10 @@ class RulesView(ListView):
         r = self._rules.get(row_id)
         if r is None:
             return []
-        hint = "Standard-Einträge sind schreibgeschützt" if r.is_builtin else ""
-        return [("Bearbeiten", self.edit_item, not r.is_builtin, hint),
+        return [("Bearbeiten", self.edit_item, not r.is_builtin),
                 ("Kopieren", self.clone_item),
                 None,
-                ("Löschen", self.delete_item, not r.is_builtin, hint)]
+                ("Löschen", self.delete_item, not r.is_builtin)]
 
     def new_item(self):
         if not self.close_drawer():

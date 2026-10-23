@@ -37,7 +37,7 @@ class TournamentList(ListView):
                            "Neues Turnier")
         super().__init__("Turniere", HEADERS, empty, None, "Name, Ort oder Phase …")
         empty.actionTriggered.connect(self.new_item)
-        self._show_closed = QCheckBox("Abgeschlossen anzeigen")
+        self._show_closed = QCheckBox("Abgeschlossene Turniere anzeigen")
         _s = QSettings("BowTally", "BowTally")
         self._show_closed.setChecked(_s.value("tournaments/show_closed", False, type=bool))
         self._show_closed.toggled.connect(self.refresh)
@@ -97,8 +97,7 @@ class TournamentList(ListView):
             return []
         edit_locked = ts.phase_index(t.phase) >= ts.phase_index("checkin")
         return [("Turnier öffnen", lambda: self.openRequested.emit(t.id)),
-                ("Bearbeiten", self.edit_item, not edit_locked,
-                 "Gesperrt ab Einschreibungsphase" if edit_locked else CLOSED_HINT),
+                ("Bearbeiten", self.edit_item, not edit_locked),
                 ("Kopieren", self.clone_item),
                 None,
                 ("Löschen", self.delete_item)]

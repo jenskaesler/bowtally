@@ -97,11 +97,10 @@ class BowClassesView(ListView):
         bc = self._classes.get(row_id)
         if bc is None:
             return []
-        hint = "Standard-Einträge sind schreibgeschützt" if bc.is_builtin else ""
-        return [("Bearbeiten", self.edit_item, not bc.is_builtin, hint),
+        return [("Bearbeiten", self.edit_item, not bc.is_builtin),
                 ("Kopieren", self.clone_item),
                 None,
-                ("Löschen", self.delete_item, not bc.is_builtin, hint)]
+                ("Löschen", self.delete_item, not bc.is_builtin)]
 
     def new_item(self):
         if not self.close_drawer():

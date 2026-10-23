@@ -331,30 +331,36 @@ class ParticipantsView(QWidget):
 
     def _context_menu(self, _pid, pos):
         locked = self._locked()
-        checkin_phase = self.tournament.phase in ("checkin", "shooting")
+        checkin_phase = self.tournament.phase in (“checkin”, “shooting”)
+        sel = self._selected()
+        active = (“registered”, “confirmed”, “checked_in”)
         entries = [
-            ("Anmeldung bestätigen", self.confirm_selected, not locked, CLOSED_HINT),
-            ("Zahlung als eingegangen markieren", self.mark_paid_selected, not locked,
-             CLOSED_HINT),
+            (“Anmeldung bestätigen”, self.confirm_selected,
+             not locked and any(p.registration_status in (“registered”, “waitlisted”)
+                                for p in sel)),
+            (“Zahlung als eingegangen markieren”, self.mark_paid_selected,
+             not locked and any(p.payment_status != “paid” and p.entry_fee_id is not None
+                                for p in sel)),
         ]
         if checkin_phase:
-            entries.append(("Einchecken", lambda: self._set_status("checked_in"), not locked,
-                            CLOSED_HINT))
+            entries.append((“Einchecken”, lambda: self._set_status(“checked_in”),
+                            not locked and any(p.registration_status != “checked_in”
+                                               for p in sel)))
         entries += [
-            ("Als DNS markieren (nicht gestartet)", lambda: self._set_status("dns"), not locked,
-             CLOSED_HINT),
-            ("Als zurückgezogen markieren", lambda: self._set_status("withdrawn"), not locked,
-             CLOSED_HINT),
-            ("Auf „Gemeldet“ zurücksetzen", lambda: self._set_status("registered"), not locked,
-             CLOSED_HINT),
-            ("Zahlung als ausstehend markieren", lambda: self._set_payment("unpaid"),
-             not locked, CLOSED_HINT),
+            (“Als DNS markieren (nicht gestartet)”, lambda: self._set_status(“dns”),
+             not locked and any(p.registration_status in active for p in sel)),
+            (“Als zurückgezogen markieren”, lambda: self._set_status(“withdrawn”),
+             not locked and any(p.registration_status in active for p in sel)),
+            (“Auf „Gemeldet” zurücksetzen”, lambda: self._set_status(“registered”),
+             not locked and any(p.registration_status in (“confirmed”, “checked_in”)
+                                for p in sel)),
+            (“Zahlung als ausstehend markieren”, lambda: self._set_payment(“unpaid”), not locked),
             None,
-            ("Gebühr zuweisen …", self.change_fee, not locked, CLOSED_HINT),
-            ("Klasse ändern …", self.change_class, not locked, CLOSED_HINT),
-            ("Gruppe ändern …", self.change_group, not locked, CLOSED_HINT),
+            (“Gebühr zuweisen …”, self.change_fee, not locked),
+            (“Klasse ändern …”, self.change_class, not locked),
+            (“Gruppe ändern …”, self.change_group, not locked),
             None,
-            ("Entfernen", self.remove_selected, not locked, CLOSED_HINT),
+            (“Entfernen”, self.remove_selected, not locked),
         ]
         menu(self, entries).exec(pos)
 

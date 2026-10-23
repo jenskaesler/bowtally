@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """App-Hilfe Dialog: Inhaltsverzeichnis + HTML-Ansicht."""
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QTabWidget, QTextBrowser, QVBoxLayout)
+from PySide6.QtWidgets import (QDialog, QHBoxLayout, QListWidget, QSplitter,
+                                QTextBrowser, QVBoxLayout)
 
 from bowtally.ui import button, theme
 
@@ -10,50 +11,79 @@ _SECTIONS = [
 <p>BowTally ist eine Turnierverwaltungs-App für 3D-Bogensport-Vereine. Die wichtigsten Module:</p>
 <ul>
   <li><b>Turniere</b> – anlegen, bearbeiten, phasenweise durchführen</li>
-  <li><b>Schützen</b> – Teilnehmerverwaltung und Einschreibung</li>
+  <li><b>Schützen</b> – Stammdaten und Einschreibung</li>
   <li><b>Ergebnisse</b> – Punkteingabe und Ranglistenberechnung</li>
-  <li><b>Regelwerke</b> – Punktverteilung je Trefferzone definieren</li>
-  <li><b>Bogenklassen</b> – Klassen für Wertungsgruppen festlegen</li>
+  <li><b>Regelwerke &amp; Klassen</b> – Punktverteilung und Wertungsgruppen</li>
   <li><b>Einstellungen</b> – Vereinsprofil, Design, Druck und Verhalten</li>
 </ul>
 <h3>Navigation</h3>
 <p>Links in der Seitenleiste wechselst du zwischen den Modulen.
 Ist ein Turnier geöffnet, erscheinen im oberen Teil der Leiste
 turnierspezifische Schnellzugriffe.</p>
+<h3>Leitfaden</h3>
+<p>Für jedes geöffnete Turnier zeigt der <b>Leitfaden</b> in der Seitenleiste
+alle anstehenden Aufgaben an. Ein Klick auf eine Aufgabe springt direkt
+in die entsprechende Ansicht.</p>
 """),
     ("Turniere", """
 <h2>Turniere</h2>
 <h3>Turnier anlegen</h3>
-<p>Über <b>Neu</b> (Strg+N) öffnet sich der Turnier-Assistent. Er führt dich durch
-acht Schritte: Basisdaten, Regelwerk, Bogenklassen, Konfiguration, Fristen, Gebühren,
-Kontakt/Bank und Texte.</p>
+<p>Über <b>Neu</b> (Strg+N) öffnet sich der Turnier-Assistent. Er führt durch
+acht Schritte: Basisdaten, Regelwerk, Bogenklassen, Konfiguration, Fristen,
+Gebühren, Kontakt/Bank und Texte.</p>
 <h3>Turnierphasen</h3>
 <ol>
-  <li><b>Entwurf</b> – Turnier wird vorbereitet, noch nicht aktiv</li>
+  <li><b>Entwurf</b> – Vorbereitung, noch nicht aktiv</li>
+  <li><b>Ausschreibung</b> – Turnier ist öffentlich angekündigt</li>
   <li><b>Anmeldung</b> – Schützen können sich anmelden</li>
   <li><b>Einschreibung</b> – Vor-Ort-Check-in am Turniertag</li>
   <li><b>Schießen</b> – Ergebniseingabe aktiv</li>
-  <li><b>Abgeschlossen</b> – Turnier ist beendet, Rangliste eingefroren</li>
+  <li><b>Abgeschlossen</b> – Turnier beendet, Rangliste eingefroren</li>
 </ol>
-<p>Mit dem <b>Nächste Phase</b>-Button in der Seitenleiste wechselst du in die nächste Phase.
-BowTally prüft dabei Voraussetzungen (z. B. mindestens ein Teilnehmer).</p>
+<p>Mit dem <b>Nächste Phase</b>-Button in der Seitenleiste wechselst du in die
+nächste Phase. BowTally prüft dabei Voraussetzungen (z. B. mindestens ein
+Teilnehmer).</p>
+<h3>Warteliste</h3>
+<p>Ist <i>Warteliste bei Vollbelegung</i> auf <b>Automatisch</b> eingestellt,
+werden überzählige Anmeldungen automatisch auf die Warteliste gesetzt
+(Status „Auf Warteliste").</p>
 <h3>Turnier kopieren</h3>
 <p>Ein Turnier kann als Vorlage kopiert werden (ohne Teilnehmer und Ergebnisse).
 Nützlich für wiederkehrende Turniere.</p>
 """),
-    ("Schützen", """
-<h2>Schützen</h2>
-<p>Im Modul <b>Schützen</b> verwaltest du die Stammdaten aller Schützen des Vereins.
-Schützen können dann als Teilnehmer für Turniere angemeldet werden.</p>
-<h3>Importieren</h3>
-<p>Über <b>Importieren</b> lassen sich Schützenlisten als CSV- oder Excel-Datei einlesen.
+    ("Schützen & Teilnehmer", """
+<h2>Schützen &amp; Teilnehmer</h2>
+<h3>Schützen-Stammdaten</h3>
+<p>Im Modul <b>Schützen</b> verwaltest du die Stammdaten aller Vereinsmitglieder.
+Über <b>Importieren</b> lassen sich Schützenlisten als CSV oder Excel einlesen –
 BowTally erkennt gängige Spaltenbezeichnungen automatisch.</p>
-<h3>Status</h3>
-<p>Schützen können als <b>inaktiv</b> markiert werden. Inaktive Schützen werden
-standardmäßig ausgeblendet (Filter „Inaktive anzeigen").</p>
+<p>Schützen können als <b>inaktiv</b> markiert werden und werden dann aus
+Auswahllisten ausgeblendet. Die Checkbox <i>Inaktive Schützen anzeigen</i>
+blendet sie wieder ein.</p>
+<h3>Teilnehmer-Anmeldung</h3>
+<p>Im Turnier unter <b>Teilnehmer</b> weist du Schützen über <b>Schütze zuweisen</b>
+dem Turnier zu. Bei mehreren Schützen kannst du die Bogenklassen im
+folgenden Dialog individuell anpassen.</p>
+<h3>Anmeldestatus</h3>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>Gemeldet</b></td><td>Anmeldung eingegangen, noch nicht bestätigt</td></tr>
+  <tr><td><b>Bestätigt</b></td><td>Anmeldung vom Veranstalter bestätigt</td></tr>
+  <tr><td><b>Eingecheckt</b></td><td>Teilnehmer vor Ort eingecheckt</td></tr>
+  <tr><td><b>Auf Warteliste</b></td><td>Turnier war voll, automatisch auf Warteliste</td></tr>
+  <tr><td><b>DNS</b></td><td>Nicht gestartet (Did Not Start)</td></tr>
+  <tr><td><b>Zurückgezogen</b></td><td>Anmeldung zurückgezogen</td></tr>
+  <tr><td><b>DSQ</b></td><td>Disqualifiziert</td></tr>
+</table>
+<h3>Gebühren &amp; Zahlung</h3>
+<p>Startgebühren werden im Tab <b>Startgebühren</b> angelegt und können
+Teilnehmern direkt in der Tabelle zugewiesen werden. Zahlungsstatus
+(Offen / Ausstehend / Bezahlt) wird ebenfalls hier verwaltet.</p>
+<h3>Inline-Bearbeitung</h3>
+<p>Doppelklick auf Startnummer, Bogenklasse, Startgruppe, Gebühr oder
+Startzeit bearbeitet die Felder direkt in der Tabelle.</p>
 """),
-    ("Ergebnisse & Rangliste", """
-<h2>Ergebnisse &amp; Rangliste</h2>
+    ("Ergebnisse & Wertung", """
+<h2>Ergebnisse &amp; Wertung</h2>
 <h3>Ergebniseingabe</h3>
 <p>In der Schieß-Phase können Punkte je Scheibe direkt eingegeben werden.
 Navigiere mit <b>Tab / Umschalt+Tab</b> zwischen Scheiben und
@@ -68,114 +98,140 @@ konfigurierte Tie-Break-Logik.</p>
   <li><b>Gesamthöchste Wertung</b> – Höchste Einzelscheibenwertung entscheidet</li>
 </ul>
 <h3>Exportieren</h3>
-<p>Ranglisten und Einschreibe-Listen können als CSV, Excel oder OpenDocument exportiert werden.</p>
+<p>Ranglisten und Einschreibelisten können als CSV, Excel oder OpenDocument exportiert werden.</p>
 """),
-    ("Regelwerke & Bogenklassen", """
-<h2>Regelwerke &amp; Bogenklassen</h2>
-<h3>Regelwerke</h3>
-<p>Regelwerke definieren, wie viele Schüsse je Scheibe erlaubt sind und
-wie viele Punkte je Trefferzone vergeben werden.</p>
-<p>Standard-Regelwerke (mit dem Chip <i>Standard</i>) sind schreibgeschützt.
-Um ein Regelwerk anzupassen, kopiere es zuerst über <b>Kopieren</b>.</p>
-<h3>Bogenklassen</h3>
-<p>Bogenklassen gruppieren Schützen für die Wertung (z. B. Recurve, Compound, Blankbogen).
-Auch hier sind Standard-Klassen schreibgeschützt und müssen vor Änderungen kopiert werden.</p>
-"""),
-    ("Einstellungen", """
-<h2>Einstellungen</h2>
+    ("Einstellungen & Stammdaten", """
+<h2>Einstellungen &amp; Stammdaten</h2>
 <h3>Vereinsprofil</h3>
-<p>Vereinsname, Adresse, Kontaktdaten und Logo des Vereins. Diese Daten erscheinen
-auf Ausschreibungen und Urkunden.</p>
-<p>Unter <b>Standard-Kontaktperson</b> legst du fest, welche Vorstand-Rolle beim
-Erstellen neuer Turniere als Kontakt vorbelegt wird.</p>
+<p>Vereinsname, Adresse, Kontaktdaten und Logo. Diese Daten erscheinen auf
+Ausschreibungen und Urkunden. Unter <b>Standard-Kontaktperson</b> legst du
+fest, welche Vorstand-Rolle beim Erstellen neuer Turniere vorbelegt wird.</p>
 <h3>Vereinsvorstand</h3>
-<p>Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle. Die hier gespeicherten
-Daten können im Turnier-Assistenten per Klick auf <b>Übernehmen</b> als Turnierkontakt übernommen werden.</p>
+<p>Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle. Im Turnier-Assistenten
+können diese Daten per Klick auf <b>Übernehmen</b> als Turnierkontakt übernommen werden.</p>
 <h3>Bankdaten</h3>
 <p>IBAN, BIC und Verwendungszweck-Vorlage für Startgebühren-Überweisungen.
-Im Verwendungszweck können Platzhalter genutzt werden (siehe <i>Platzhalter-Referenz</i>).</p>
+Im Verwendungszweck können Platzhalter genutzt werden (z. B. <code>{name}</code>).</p>
 <h3>Design</h3>
-<p>Hell/Dunkel-Modus und individuelle Farbanpassung für Markenfarben, helles und dunkles Theme.</p>
+<p>Hell/Dunkel-Modus und individuelle Farbanpassung für helles und dunkles Theme.</p>
 <h3>Verhalten</h3>
 <p>Sprache, Schriftart, Rang-Neuberechnung und Tie-Break-Logik.</p>
 <h3>Druck</h3>
-<p>Papiergröße, Ausrichtung (Format), Logo auf Ausdrucken und Textvorlagen für Ausschreibungen.</p>
+<p>Papiergröße, Ausrichtung, Logo auf Ausdrucken und Textvorlagen für Ausschreibungen.</p>
+<h3>Regelwerke</h3>
+<p>Regelwerke definieren, wie viele Schüsse je Scheibe erlaubt sind und
+wie viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
+(Chip <i>Standard</i>) sind schreibgeschützt – über <b>Kopieren</b> erstellst
+du eine anpassbare Kopie.</p>
+<h3>Bogenklassen</h3>
+<p>Bogenklassen gruppieren Schützen für die Wertung (z. B. Recurve, Compound).
+Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
 <h3>Backup</h3>
-<p>Automatisches Backup beim Beenden, lokales Backup auf NAS/USB und Nextcloud-Backup.</p>
+<p>Aktiviere <i>Backup beim Beenden</i> unter Einstellungen → Backup für
+automatische Sicherungen. Zur Wiederherstellung: <b>Backup wiederherstellen</b>
+→ ZIP-Datei wählen. <b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich
+ersetzt – App danach neu starten.</p>
 """),
-    ("Platzhalter-Referenz", """
-<h2>Platzhalter-Referenz</h2>
+    ("Rechtsklick-Menüs", """
+<h2>Rechtsklick-Menüs</h2>
+<p>In allen Listen öffnet ein Rechtsklick auf eine Zeile ein Kontextmenü
+mit den verfügbaren Aktionen für den ausgewählten Eintrag.</p>
+<h3>Turnierliste</h3>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>Turnier öffnen</b></td><td>Als aktives Turnier öffnen</td></tr>
+  <tr><td><b>Bearbeiten</b></td><td>Im Assistenten bearbeiten (gesperrt ab Einschreibungsphase)</td></tr>
+  <tr><td><b>Kopieren</b></td><td>Als Vorlage kopieren (ohne Teilnehmer)</td></tr>
+  <tr><td><b>Löschen</b></td><td>Turnier mit allen Daten löschen</td></tr>
+</table>
+<h3>Schützenliste</h3>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>Bearbeiten</b></td><td>Stammdaten im Seitenpanel bearbeiten</td></tr>
+  <tr><td><b>Kopieren</b></td><td>Schützen-Datensatz duplizieren</td></tr>
+  <tr><td><b>Als inaktiv markieren</b></td><td>Aus Auswahllisten ausblenden</td></tr>
+  <tr><td><b>Löschen</b></td><td>Schützen dauerhaft löschen</td></tr>
+</table>
+<h3>Regelwerke &amp; Bogenklassen</h3>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>Bearbeiten</b></td><td>Im Seitenpanel bearbeiten (Standard-Einträge schreibgeschützt)</td></tr>
+  <tr><td><b>Kopieren</b></td><td>Anpassbare Kopie anlegen</td></tr>
+  <tr><td><b>Löschen</b></td><td>Eintrag löschen (Standard-Einträge schreibgeschützt)</td></tr>
+</table>
+<h3>Teilnehmerliste</h3>
+<p>Aktionen werden je nach Turnierstatus und aktuellem Anmeldestatus ein- oder
+ausgeblendet. Bei abgeschlossenen Turnieren sind alle Aktionen gesperrt.</p>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>Anmeldung bestätigen</b></td><td>Nur für „Gemeldet" oder „Auf Warteliste"</td></tr>
+  <tr><td><b>Zahlung als eingegangen markieren</b></td><td>Nur wenn Gebühr hinterlegt und noch nicht bezahlt</td></tr>
+  <tr><td><b>Einchecken</b></td><td>Nur in der Einschreibungs- oder Schieß-Phase</td></tr>
+  <tr><td><b>Als DNS markieren</b></td><td>Nur für aktive Teilnehmer (Gemeldet/Bestätigt/Eingecheckt)</td></tr>
+  <tr><td><b>Als zurückgezogen markieren</b></td><td>Nur für aktive Teilnehmer</td></tr>
+  <tr><td><b>Auf „Gemeldet" zurücksetzen</b></td><td>Nur wenn bereits bestätigt oder eingecheckt</td></tr>
+  <tr><td><b>Zahlung als ausstehend markieren</b></td><td>Zahlungsstatus auf „Ausstehend" setzen</td></tr>
+  <tr><td><b>Gebühr / Klasse / Gruppe zuweisen</b></td><td>Direkte Zuweisung für die Auswahl</td></tr>
+  <tr><td><b>Entfernen</b></td><td>Teilnehmer aus dem Turnier entfernen</td></tr>
+</table>
+"""),
+    ("Referenz", """
+<h2>Referenz</h2>
+<h3>Platzhalter</h3>
 <p>Platzhalter werden in bestimmten Textfeldern durch echte Werte ersetzt.
 Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
-<h3>Verwendungszweck (Bankverbindung)</h3>
-<table border="0" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
-  <tr style="background:#f0f4f8;">
-    <th align="left" style="padding:6px 16px 6px 0;">Platzhalter</th>
-    <th align="left">Beschreibung</th>
-  </tr>
+<p><b>Verwendungszweck (Bankverbindung):</b></p>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
   <tr><td><code>{name}</code></td><td>Vor- und Nachname des Schützen</td></tr>
-  <tr style="background:#f0f4f8;"><td><code>{bow_class}</code></td><td>Bogenklasse des Schützen</td></tr>
+  <tr><td><code>{bow_class}</code></td><td>Bogenklasse des Schützen</td></tr>
 </table>
 <p><i>Beispiel:</i> <code>3D Turnier 2027, {name}, {bow_class}</code></p>
-<h3>Ausschreibungs-Texte</h3>
-<p>In den Textvorlagen (Einstellungen → Druck → Textvorlagen) sind aktuell
-keine variablen Platzhalter vorgesehen. Die Texte werden direkt übernommen.</p>
-<h3>Hinweise zum Parcours (Turnier-Assistent)</h3>
-<p>Im Turnier-Assistenten kann die Parcours-Beschreibung aus dem Vereinsprofil
-über den Button <b>Aus Stammdaten</b> übernommen werden.</p>
-"""),
-    ("Tastenkürzel", """
-<h2>Tastenkürzel</h2>
-<table border="0" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">
-  <tr style="background:#f0f4f8;">
-    <th align="left" style="padding:6px 16px 6px 0;">Taste</th>
-    <th align="left">Funktion</th>
-  </tr>
-  <tr><td><code>Strg+N</code></td><td>Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer, Walk-in, Gebühr)</td></tr>
-  <tr style="background:#f0f4f8;"><td><code>Strg+F</code></td><td>Suchfeld der aktuellen Ansicht</td></tr>
+<p><b>E-Mail-Vorlagen</b> unterstützen außerdem: <code>{verein}</code>,
+<code>{klasse}</code>, <code>{turniername}</code>, <code>{datum}</code></p>
+<h3>Tastenkürzel</h3>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><code>Strg+N</code></td><td>Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer)</td></tr>
+  <tr><td><code>Strg+F</code></td><td>Suchfeld der aktuellen Ansicht</td></tr>
   <tr><td><code>Strg+S</code></td><td>Speichern (Seitenpanel, Ergebniseingabe)</td></tr>
-  <tr style="background:#f0f4f8;"><td><code>Esc</code></td><td>Seitenpanel schließen / Suche leeren / Eingabe verwerfen</td></tr>
+  <tr><td><code>Esc</code></td><td>Seitenpanel schließen / Suche leeren / Eingabe verwerfen</td></tr>
   <tr><td><code>F5</code></td><td>Ansicht neu laden</td></tr>
-  <tr style="background:#f0f4f8;"><td><code>F1</code></td><td>Diese Hilfe</td></tr>
+  <tr><td><code>F1</code></td><td>Diese Hilfe</td></tr>
   <tr><td><code>Enter</code></td><td>Ausgewählten Eintrag öffnen / Seitenpanel speichern / Einchecken</td></tr>
-  <tr style="background:#f0f4f8;"><td><code>Tab / Umschalt+Tab</code></td><td>Ergebniseingabe: nächste / vorherige Scheibe</td></tr>
+  <tr><td><code>Tab / Umschalt+Tab</code></td><td>Ergebniseingabe: nächste / vorherige Scheibe</td></tr>
   <tr><td><code>Enter / ↓ / ↑</code></td><td>Ergebniseingabe: nächster / vorheriger Teilnehmer</td></tr>
 </table>
-"""),
-    ("Backup & Wiederherstellung", """
-<h2>Backup &amp; Wiederherstellung</h2>
-<h3>Automatisches Backup</h3>
-<p>Aktiviere <i>Backup beim Beenden der App erstellen</i> unter Einstellungen → Backup,
-damit beim Schließen der App automatisch ein ZIP-Backup erstellt wird.</p>
-<h3>Lokales Backup</h3>
-<p>Wähle einen Pfad auf einem NAS, USB-Laufwerk oder einem lokalen Ordner.
-Über <b>Backup jetzt erstellen</b> kannst du jederzeit manuell sichern.
-Die Aufbewahrungsanzahl bestimmt, wie viele alte Backups behalten werden.</p>
-<h3>Nextcloud</h3>
-<p>Gib URL, Benutzername und Passwort deiner Nextcloud-Instanz ein und
-sichere mit <b>Zu Nextcloud sichern</b>.</p>
-<h3>Wiederherstellen</h3>
-<p>Über <b>Backup wiederherstellen</b> wählst du eine lokale ZIP-Datei aus.
-<b>Achtung:</b> Die aktuelle Datenbank wird dabei unwiderruflich ersetzt.
-Starte die App danach neu.</p>
+<h3>Backup &amp; Wiederherstellung</h3>
+<p>Aktiviere <i>Backup beim Beenden der App erstellen</i> unter Einstellungen → Backup.
+Für manuelle Sicherungen: <b>Backup jetzt erstellen</b> (lokal) oder
+<b>Zu Nextcloud sichern</b>.</p>
+<p>Zur Wiederherstellung: <b>Backup wiederherstellen</b> → ZIP-Datei wählen.
+<b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich ersetzt.
+App danach neu starten.</p>
 """),
 ]
+
+
+def _strip_inline_bg(html: str) -> str:
+    return html.replace(' style="background:#f0f4f8;"', '')
 
 
 class HelpDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("App-Hilfe")
-        self.resize(860, 620)
+        self.resize(960, 680)
 
-        self._tabs = QTabWidget()
-        self._browsers: list[QTextBrowser] = []
+        self._nav = QListWidget()
+        self._nav.setFixedWidth(210)
         for title, _ in _SECTIONS:
-            browser = QTextBrowser()
-            browser.setOpenExternalLinks(True)
-            self._browsers.append(browser)
-            self._tabs.addTab(browser, title)
+            self._nav.addItem(title)
 
+        self._browser = QTextBrowser()
+        self._browser.setOpenExternalLinks(True)
+
+        splitter = QSplitter()
+        splitter.addWidget(self._nav)
+        splitter.addWidget(self._browser)
+        splitter.setStretchFactor(1, 1)
+
+        self._nav.currentRowChanged.connect(self._show_section)
+        self._nav.setCurrentRow(0)
         self._apply_browser_css()
         theme.notifier.changed.connect(self._apply_browser_css)
 
@@ -184,23 +240,27 @@ class HelpDialog(QDialog):
         close_row.addWidget(button("Schließen", self.accept, "primary"))
 
         lay = QVBoxLayout(self)
-        lay.addWidget(self._tabs)
+        lay.addWidget(splitter, 1)
         lay.addLayout(close_row)
 
     def _apply_browser_css(self):
         t = theme.current()
         css = (f"code {{ background: {t['surface']}; border-radius: 3px; "
-               f"padding: 1px 4px; font-family: monospace; }}")
-        for i, browser in enumerate(self._browsers):
-            browser.document().setDefaultStyleSheet(css)
-            browser.setHtml(self._strip_inline_bg(_SECTIONS[i][1]))
+               f"padding: 1px 4px; font-family: monospace; }}"
+               f" h3 {{ border-bottom: 1px solid {t['border']}; "
+               f"padding-bottom: 4px; margin-top: 16px; }}")
+        self._browser.document().setDefaultStyleSheet(css)
+        row = self._nav.currentRow()
+        if row >= 0:
+            self._browser.setHtml(_strip_inline_bg(_SECTIONS[row][1]))
 
-    @staticmethod
-    def _strip_inline_bg(html: str) -> str:
-        return html.replace(' style="background:#f0f4f8;"', '')
+    def _show_section(self, row: int):
+        if 0 <= row < len(_SECTIONS):
+            self._browser.setHtml(_strip_inline_bg(_SECTIONS[row][1]))
+            self._browser.verticalScrollBar().setValue(0)
 
     def show_section(self, title: str):
         for i, (t, _) in enumerate(_SECTIONS):
             if t == title:
-                self._tabs.setCurrentIndex(i)
+                self._nav.setCurrentRow(i)
                 break

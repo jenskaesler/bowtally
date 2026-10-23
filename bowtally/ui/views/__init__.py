@@ -14,17 +14,15 @@ from bowtally.ui.components.search_bar import SearchBar
 
 
 def menu(parent, entries) -> QMenu:
-    """entries: (text, callback, enabled, tooltip) or None for a separator."""
+    """entries: (text, callback, enabled) or None for a separator."""
     m = QMenu(parent)
-    m.setToolTipsVisible(True)
     for e in entries:
         if e is None:
             m.addSeparator()
             continue
-        text, callback, enabled, tooltip = (list(e) + [True, ""])[:4]
+        text, callback, enabled = (list(e) + [True])[:3]
         act = QAction(text, m)
         act.setEnabled(enabled)
-        act.setToolTip(tooltip or text)
         act.triggered.connect(callback)
         m.addAction(act)
     return m

@@ -521,6 +521,7 @@ class MainWindow(QMainWindow):
             self.select_page(self.guide)
         elif key == "revenue":
             self.select_page(self.dashboard)
+            self.dashboard.show_tournament()
         elif key in ("edit", "edit_contact", "edit_bank", "edit_classes", "edit_fees"):
             _pages = {"edit": 0, "edit_contact": 6, "edit_bank": 6,
                       "edit_classes": 2, "edit_fees": 5}
