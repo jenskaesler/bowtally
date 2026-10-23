@@ -319,7 +319,6 @@ class MainWindow(QMainWindow):
         side_lay.addLayout(burger_row)
         side_lay.addWidget(self._head_widget)
         side_lay.addWidget(self.navigator)
-        side_lay.addSpacing(6)
         side_lay.addWidget(self.nav, 1)
         side_lay.addWidget(self.settings_nav)
         toggle_row = QHBoxLayout()
