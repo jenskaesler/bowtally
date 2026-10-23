@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """App-Hilfe Dialog: Inhaltsverzeichnis + HTML-Ansicht."""
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QListWidget, QSplitter,
-                               QTextBrowser, QVBoxLayout)
+from PySide6.QtWidgets import (QDialog, QHBoxLayout, QTabWidget, QTextBrowser, QVBoxLayout)
 
-from bowtally.ui import theme
+from bowtally.ui import button, theme
 
 _SECTIONS = [
     ("Übersicht", """
@@ -169,50 +168,39 @@ class HelpDialog(QDialog):
         self.setWindowTitle("App-Hilfe")
         self.resize(860, 620)
 
-        self._browser = QTextBrowser()
-        self._browser.setOpenExternalLinks(True)
+        self._tabs = QTabWidget()
+        self._browsers: list[QTextBrowser] = []
+        for title, _ in _SECTIONS:
+            browser = QTextBrowser()
+            browser.setOpenExternalLinks(True)
+            self._browsers.append(browser)
+            self._tabs.addTab(browser, title)
+
         self._apply_browser_css()
         theme.notifier.changed.connect(self._apply_browser_css)
 
-        nav = QListWidget()
-        for title, _ in _SECTIONS:
-            nav.addItem(title)
-        nav.setMaximumWidth(200)
-        nav.currentRowChanged.connect(self._show_section)
-
-        splitter = QSplitter()
-        splitter.addWidget(nav)
-        splitter.addWidget(self._browser)
-        splitter.setSizes([200, 660])
+        close_row = QHBoxLayout()
+        close_row.addStretch()
+        close_row.addWidget(button("Schließen", self.accept, "primary"))
 
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(splitter)
-
-        nav.setCurrentRow(0)
+        lay.addWidget(self._tabs)
+        lay.addLayout(close_row)
 
     def _apply_browser_css(self):
         t = theme.current()
-        self._browser.document().setDefaultStyleSheet(
-            f"code {{ background: {t['surface']}; border-radius: 3px; "
-            f"padding: 1px 4px; font-family: monospace; }}"
-        )
-        if hasattr(self, '_current_row'):
-            self._browser.setHtml(self._strip_inline_bg(_SECTIONS[self._current_row][1]))
+        css = (f"code {{ background: {t['surface']}; border-radius: 3px; "
+               f"padding: 1px 4px; font-family: monospace; }}")
+        for i, browser in enumerate(self._browsers):
+            browser.document().setDefaultStyleSheet(css)
+            browser.setHtml(self._strip_inline_bg(_SECTIONS[i][1]))
 
     @staticmethod
     def _strip_inline_bg(html: str) -> str:
         return html.replace(' style="background:#f0f4f8;"', '')
 
-    def _show_section(self, row: int):
-        if 0 <= row < len(_SECTIONS):
-            self._current_row = row
-            self._browser.setHtml(self._strip_inline_bg(_SECTIONS[row][1]))
-
     def show_section(self, title: str):
         for i, (t, _) in enumerate(_SECTIONS):
             if t == title:
-                # find the QListWidget and set row
-                splitter = self.layout().itemAt(0).widget()
-                splitter.widget(0).setCurrentRow(i)
+                self._tabs.setCurrentIndex(i)
                 break
