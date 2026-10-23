@@ -53,17 +53,17 @@ class ArchersView(ListView):
         self._show_inactive.toggled.connect(
             lambda v: QSettings("BowTally", "BowTally").setValue("archers/show_inactive", v))
         self.header.add(
-            export_button(self, "schuetzen", self._export_sheets,
-                          lambda: len(self.table.visible_ids()) if self.table.is_filtered()
-                          else None),
-            button("Importieren", self._import,
-                   tooltip="Schützen aus CSV, Excel oder OpenDocument importieren"),
             button("Neuer Schütze", self.new_item, "primary", "Neuen Schützen anlegen (Strg+N)"))
         _footer = QWidget()
         _fl = QHBoxLayout(_footer)
         _fl.setContentsMargins(0, 4, 0, 0)
         _fl.addWidget(self._show_inactive)
         _fl.addStretch()
+        _fl.addWidget(export_button(self, "schuetzen", self._export_sheets,
+                                    lambda: len(self.table.visible_ids())
+                                    if self.table.is_filtered() else None))
+        _fl.addWidget(button("Importieren", self._import,
+                             tooltip="Schützen aus CSV, Excel oder OpenDocument importieren"))
         self.main_layout.insertWidget(2, _footer)
         self.table.activated.connect(self.edit_item)
         self._archers = {}
