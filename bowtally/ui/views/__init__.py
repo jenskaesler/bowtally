@@ -54,6 +54,7 @@ class ListView(QWidget):
         main.addWidget(self.header)
         main.addWidget(self.table, 1)
         main.addWidget(self.action_bar)
+        self.main_layout = main
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(16)

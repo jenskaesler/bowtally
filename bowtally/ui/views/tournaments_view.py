@@ -2,7 +2,7 @@
 """Tournament list and tournament detail (participants, check-in, score entry, results,
 entry fees). Opening a tournament makes it the active tournament context."""
 from PySide6.QtCore import QSettings, Signal
-from PySide6.QtWidgets import QCheckBox, QStackedWidget, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QStackedWidget, QTabWidget, QVBoxLayout, QWidget
 
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, show_error
@@ -43,15 +43,14 @@ class TournamentList(ListView):
         self._show_closed.toggled.connect(self.refresh)
         self._show_closed.toggled.connect(
             lambda v: QSettings("BowTally", "BowTally").setValue("tournaments/show_closed", v))
-        _new_btn = button("Neues Turnier", self.new_item, "primary",
-                          "Neues Turnier mit dem Assistenten anlegen (Strg+N)")
-        _stacked = QWidget()
-        _sl = QVBoxLayout(_stacked)
-        _sl.setContentsMargins(0, 0, 0, 0)
-        _sl.setSpacing(3)
-        _sl.addWidget(_new_btn)
-        _sl.addWidget(self._show_closed)
-        self.header.add(_stacked)
+        self.header.add(button("Neues Turnier", self.new_item, "primary",
+                               "Neues Turnier mit dem Assistenten anlegen (Strg+N)"))
+        _footer = QWidget()
+        _fl = QHBoxLayout(_footer)
+        _fl.setContentsMargins(0, 4, 0, 0)
+        _fl.addWidget(self._show_closed)
+        _fl.addStretch()
+        self.main_layout.insertWidget(2, _footer)
         self.table.activated.connect(self.openRequested.emit)
         self._items = {}
 
