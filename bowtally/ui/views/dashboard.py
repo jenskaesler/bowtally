@@ -113,13 +113,15 @@ class GlobalDashboard(QWidget):
         grid.addWidget(archive_card, 0, 2)
 
         # Row 1: Schützen | Regelwerke | Bogenklassen
-        card, c = _card("Schützen")
+        card, c = _card("Schützen", on_click=lambda: self.navigate.emit("archers"))
         self.archer_count = QLabel("0", objectName="cardValue")
         self.club_count = QLabel(objectName="pageSubtitle")
         self.no_club_lbl = QLabel(objectName="pageSubtitle")
         c.addWidget(self.archer_count)
         c.addWidget(self.club_count)
         c.addWidget(self.no_club_lbl)
+        c.addWidget(_link("Schützen öffnen →", lambda: self.navigate.emit("archers"),
+                          "Schützen verwalten"))
         c.addStretch()
         grid.addWidget(card, 1, 0)
 
