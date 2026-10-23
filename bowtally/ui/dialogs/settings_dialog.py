@@ -3,7 +3,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
-                               QDialogButtonBox, QFileDialog, QFormLayout, QGroupBox,
+                               QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
                                QScrollArea, QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
@@ -96,6 +96,35 @@ class ColorField(QWidget):
 
     def set_value(self, value: str):
         self.edit.setText(value)
+
+
+class _ResizeGrip(QFrame):
+    def __init__(self, target):
+        super().__init__()
+        self._t = target
+        self._y0 = self._h0 = 0
+        self.setFixedHeight(6)
+        self.setFrameShape(QFrame.Shape.HLine)
+        self.setFrameShadow(QFrame.Shadow.Sunken)
+        self.setCursor(Qt.CursorShape.SizeVerCursor)
+
+    def mousePressEvent(self, e):
+        self._y0 = int(e.globalPosition().y())
+        self._h0 = self._t.height()
+
+    def mouseMoveEvent(self, e):
+        delta = int(e.globalPosition().y()) - self._y0
+        self._t.setFixedHeight(max(60, self._h0 + delta))
+
+
+def _with_grip(edit):
+    w = QWidget()
+    lay = QVBoxLayout(w)
+    lay.setContentsMargins(0, 0, 0, 0)
+    lay.setSpacing(0)
+    lay.addWidget(edit)
+    lay.addWidget(_ResizeGrip(edit))
+    return w
 
 
 class SettingsDialog(QDialog):
@@ -447,7 +476,7 @@ class SettingsDialog(QDialog):
     def _print_tab(self) -> QWidget:
         club = ss.get_club_profile()
         edit_course = QPlainTextEdit(club.get("course_description") or "")
-        edit_course.setFixedHeight(90)
+        edit_course.setMinimumHeight(90)
         edit_course.setPlaceholderText(
             "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
         self.club_edits["course_description"] = edit_course
@@ -467,13 +496,14 @@ class SettingsDialog(QDialog):
                 if st.category == "templates":
                     lbl = self._flbl("Parcours-Beschreibung")
                     lbl.setWordWrap(True)
-                    groups["templates"].addRow(lbl, edit_course)
+                    groups["templates"].addRow(lbl, _with_grip(edit_course))
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
+            display = _with_grip(widget) if isinstance(widget, QPlainTextEdit) else widget
             label = self._flbl(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
-            groups[st.category].addRow(label, widget)
+            groups[st.category].addRow(label, display)
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -501,11 +531,11 @@ class SettingsDialog(QDialog):
             form = QFormLayout(box)
             subj = QLineEdit(values.get(subj_key, ""))
             body = QPlainTextEdit(values.get(body_key, ""))
-            body.setFixedHeight(110)
+            body.setMinimumHeight(90)
             self.value_widgets[subj_key] = subj
             self.value_widgets[body_key] = body
             form.addRow(self._flbl("Betreff"), subj)
-            form.addRow(self._flbl("Text"), body)
+            form.addRow(self._flbl("Text"), _with_grip(body))
             lay.addWidget(box)
         lay.addStretch()
         scroll = QScrollArea()
@@ -549,7 +579,7 @@ class SettingsDialog(QDialog):
             w.setValue(int(value or 0))
         elif st.category in MULTILINE_CATEGORIES:
             w = QPlainTextEdit(value)
-            w.setFixedHeight(90)
+            w.setMinimumHeight(90)
         elif st.key in ss.OPTIONS:
             w = QComboBox()
             display = COMBO_LABELS.get(st.key, {})
