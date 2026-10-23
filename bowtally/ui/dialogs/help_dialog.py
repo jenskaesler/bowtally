@@ -207,8 +207,13 @@ App danach neu starten.</p>
 ]
 
 
-def _strip_inline_bg(html: str) -> str:
-    return html.replace(' style="background:#f0f4f8;"', '')
+def _prepare_html(html: str) -> str:
+    html = html.replace(' style="background:#f0f4f8;"', '')
+    # Insert <hr> before every <h3> except the first
+    parts = html.split('<h3>')
+    if len(parts) > 1:
+        html = parts[0] + '<h3>' + '<hr><h3>'.join(parts[1:])
+    return html
 
 
 class HelpDialog(QDialog):
@@ -229,6 +234,7 @@ class HelpDialog(QDialog):
         splitter.addWidget(self._nav)
         splitter.addWidget(self._browser)
         splitter.setStretchFactor(1, 1)
+        splitter.setSizes([210, 750])
 
         self._nav.currentRowChanged.connect(self._show_section)
         self._nav.setCurrentRow(0)
@@ -247,16 +253,18 @@ class HelpDialog(QDialog):
         t = theme.current()
         css = (f"code {{ background: {t['surface']}; border-radius: 3px; "
                f"padding: 1px 4px; font-family: monospace; }}"
-               f" h3 {{ border-bottom: 1px solid {t['border']}; "
-               f"padding-bottom: 4px; margin-top: 16px; }}")
+               f" h3 {{ border-bottom: 2px solid {t['primary']}; "
+               f"padding-bottom: 5px; margin-top: 20px; font-size: 108%; }}"
+               f" hr {{ border: none; border-top: 1px solid {t['border']}; "
+               f"margin: 4px 0 14px 0; }}")
         self._browser.document().setDefaultStyleSheet(css)
         row = self._nav.currentRow()
         if row >= 0:
-            self._browser.setHtml(_strip_inline_bg(_SECTIONS[row][1]))
+            self._browser.setHtml(_prepare_html(_SECTIONS[row][1]))
 
     def _show_section(self, row: int):
         if 0 <= row < len(_SECTIONS):
-            self._browser.setHtml(_strip_inline_bg(_SECTIONS[row][1]))
+            self._browser.setHtml(_prepare_html(_SECTIONS[row][1]))
             self._browser.verticalScrollBar().setValue(0)
 
     def show_section(self, title: str):
