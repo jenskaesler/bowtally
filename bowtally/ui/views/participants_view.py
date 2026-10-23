@@ -315,11 +315,11 @@ class ParticipantsView(QWidget):
         actions = [] if not n else [
             Action(f"{to_confirm} Anmeldungen bestätigen" if n > 1 else "Anmeldung bestätigen",
                    self.confirm_selected, enabled=not locked and to_confirm > 0,
-                   tooltip=tip or "Status „Bestätigt“ setzen"),
+                   tooltip=tip or 'Status „Bestätigt“ setzen'),
             Action(f"{to_pay} Zahlungen als eingegangen markieren" if n > 1
                    else "Zahlung eingegangen", self.mark_paid_selected,
                    enabled=not locked and to_pay > 0,
-                   tooltip=tip or "Zahlungsstatus „Bezahlt“ mit heutigem Datum"),
+                   tooltip=tip or 'Zahlungsstatus „Bezahlt“ mit heutigem Datum'),
             Action("Klasse ändern", self.change_class, enabled=not locked,
                    tooltip=tip or "Bogenklasse für die Auswahl setzen"),
             Action("Gruppe ändern", self.change_group, enabled=not locked,
@@ -331,36 +331,36 @@ class ParticipantsView(QWidget):
 
     def _context_menu(self, _pid, pos):
         locked = self._locked()
-        checkin_phase = self.tournament.phase in (“checkin”, “shooting”)
+        checkin_phase = self.tournament.phase in ("checkin", "shooting")
         sel = self._selected()
-        active = (“registered”, “confirmed”, “checked_in”)
+        active = ("registered", "confirmed", "checked_in")
         entries = [
-            (“Anmeldung bestätigen”, self.confirm_selected,
-             not locked and any(p.registration_status in (“registered”, “waitlisted”)
+            ("Anmeldung bestätigen", self.confirm_selected,
+             not locked and any(p.registration_status in ("registered", "waitlisted")
                                 for p in sel)),
-            (“Zahlung als eingegangen markieren”, self.mark_paid_selected,
-             not locked and any(p.payment_status != “paid” and p.entry_fee_id is not None
+            ("Zahlung als eingegangen markieren", self.mark_paid_selected,
+             not locked and any(p.payment_status != "paid" and p.entry_fee_id is not None
                                 for p in sel)),
         ]
         if checkin_phase:
-            entries.append((“Einchecken”, lambda: self._set_status(“checked_in”),
-                            not locked and any(p.registration_status != “checked_in”
+            entries.append(("Einchecken", lambda: self._set_status("checked_in"),
+                            not locked and any(p.registration_status != "checked_in"
                                                for p in sel)))
         entries += [
-            (“Als DNS markieren (nicht gestartet)”, lambda: self._set_status(“dns”),
+            ("Als DNS markieren (nicht gestartet)", lambda: self._set_status("dns"),
              not locked and any(p.registration_status in active for p in sel)),
-            (“Als zurückgezogen markieren”, lambda: self._set_status(“withdrawn”),
+            ("Als zurückgezogen markieren", lambda: self._set_status("withdrawn"),
              not locked and any(p.registration_status in active for p in sel)),
-            (“Auf „Gemeldet” zurücksetzen”, lambda: self._set_status(“registered”),
-             not locked and any(p.registration_status in (“confirmed”, “checked_in”)
+            ('Auf „Gemeldet“ zurücksetzen', lambda: self._set_status("registered"),
+             not locked and any(p.registration_status in ("confirmed", "checked_in")
                                 for p in sel)),
-            (“Zahlung als ausstehend markieren”, lambda: self._set_payment(“unpaid”), not locked),
+            ("Zahlung als ausstehend markieren", lambda: self._set_payment("unpaid"), not locked),
             None,
-            (“Gebühr zuweisen …”, self.change_fee, not locked),
-            (“Klasse ändern …”, self.change_class, not locked),
-            (“Gruppe ändern …”, self.change_group, not locked),
+            ("Gebühr zuweisen …", self.change_fee, not locked),
+            ("Klasse ändern …", self.change_class, not locked),
+            ("Gruppe ändern …", self.change_group, not locked),
             None,
-            (“Entfernen”, self.remove_selected, not locked),
+            ("Entfernen", self.remove_selected, not locked),
         ]
         menu(self, entries).exec(pos)
 
@@ -385,7 +385,7 @@ class ParticipantsView(QWidget):
         if status == "registered" or status in ("dns", "withdrawn"):
             if status != "registered" and not ConfirmDialog.ask(
                     self, "Status ändern?",
-                    f"{len(sel)} Teilnehmer werden als „{ps.REGISTRATION_LABELS[status]}“ "
+                    f'{len(sel)} Teilnehmer werden als „{ps.REGISTRATION_LABELS[status]}“ '
                     "markiert.", "Ändern", destructive=False):
                 return
         try:
@@ -456,7 +456,7 @@ class ParticipantsView(QWidget):
         text = (f"{sel[0].archer.first_name} {sel[0].archer.last_name} wird aus dem Turnier "
                 "entfernt." if len(sel) == 1 else f"{len(sel)} Teilnehmer werden aus dem Turnier "
                 "entfernt.")
-        text += "\n\nTipp: „Als zurückgezogen markieren“ behält die Anmeldung in der Historie."
+        text += '\n\nTipp: „Als zurückgezogen markieren“ behält die Anmeldung in der Historie.'
         if with_scores:
             text += f"\n\nAchtung: Für {len(with_scores)} davon sind bereits Ergebnisse " \
                     "erfasst. Diese werden gelöscht."
