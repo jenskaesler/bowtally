@@ -2,10 +2,10 @@
 """Settings dialog: club profile, design (colors), print and behavior."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
-from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QDialog, QDialogButtonBox,
-                               QFileDialog, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
-                               QLineEdit, QPlainTextEdit, QPushButton, QScrollArea, QSpinBox,
-                               QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
+                               QDialogButtonBox, QFileDialog, QFormLayout, QGroupBox,
+                               QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+                               QScrollArea, QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import button, show_error
@@ -166,7 +166,8 @@ class SettingsDialog(QDialog):
         box_notes = QGroupBox("Notizen")
         QVBoxLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setMinimumHeight(edit_notes.fontMetrics().lineSpacing() * 5 + 12)
+        _lh = QApplication.instance().fontMetrics().lineSpacing()
+        edit_notes.setFixedHeight(_lh * 5 + 14)
         self.club_edits["notes"] = edit_notes
         box_notes.layout().addWidget(edit_notes)
         lay.addWidget(box_notes)
