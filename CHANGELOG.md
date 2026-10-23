@@ -2,9 +2,48 @@
 
 Alle nennenswerten Änderungen an BowTally. Format nach
 [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach
-[Semantic Versioning](https://semver.org/lang/de/).
+dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
+
+## [2026.10.0] – 2026-10-24
+
+### Hinzugefügt
+
+- **Vereinsvorstand-Tab**: Eigener Tab in den Einstellungen für alle fünf Vorstandsrollen
+  (1./2. Vorsitzende/r, Kassenwart/in, Sportleiter/in, Bogenreferent/in) mit Vorname, Nachname,
+  Telefon und E-Mail. Datenbank-Migration 0007 fügt die zehn neuen Spalten hinzu.
+- **Übernehmen-Button im Turnier-Assistenten**: Auf der Kontaktseite übernimmt ein Klick auf
+  „Übernehmen" Name, Telefon und E-Mail der gewählten Vorstandsrolle direkt in das Formular.
+- **Standard-Kontaktperson**: Im Vereinsprofil-Tab wählbar, welche Vorstandsrolle beim Erstellen
+  neuer Turniere als Kontakt vorbelegt wird.
+- **App-Hilfe** (F1): Dialog mit Inhaltsverzeichnis und neun Abschnitten – Übersicht, Turniere,
+  Schützen, Ergebnisse, Regelwerke, Einstellungen, Platzhalter-Referenz, Tastenkürzel,
+  Backup. Enthält alle bisherigen Tastenkürzel-Informationen.
+- **Splash-Screen** beim Start mit Vereinslogo, App-Name, Version und Fortschrittsbalken; passt
+  sich dem hellen und dunklen Systemthema an.
+- **Hilfe-Eintrag** in der Seitenleisten-Navigation (neben Einstellungen und Über BowTally).
+
+### Geändert
+
+- **Turnier kopieren** (vorher „Klonen"): Aktion und Tooltip umbenannt.
+- **Einstellungsbeschriftungen vereinheitlicht**: Verweisung auf kurze, einheitliche Labels für
+  Sprache, Schriftart, Papiergröße, Format, Tie-Break-Logik, Verwendungszweck und die
+  Textvorlagen-Gruppe. Alle Formular-Labels auf einheitliche Breite (130 px) ausgerichtet.
+- **Wizard Nächste-Phase-Button**: Pfeilzeichen (›) aus dem Label entfernt.
+- **Regeldetails-Überschrift** im Turnier-Assistenten wieder sichtbar über der Regelwerksbeschreibung.
+- **Hilfe-Symbol in der Statusleiste** öffnet jetzt die App-Hilfe statt das Tastenkürzel-Formular.
+- **Theme-Umschalter** aus der Seitenleiste entfernt – Darstellung weiterhin in
+  Einstellungen → Design änderbar.
+- **Oberes Hilfe-Menü** entfernt; Hilfe ist über F1, Statusleiste und Seitenleiste erreichbar.
+- **`<code>`-Hintergrund und Tabellenzeilen** in der App-Hilfe passen sich jetzt dem
+  Dark Mode an.
+
+### Entfernt
+
+- **Notizen-Feld** aus dem Vereinsprofil entfernt.
+- **Tastenkürzel-Formular** (eigenständiger Dialog): Tastenkürzel sind jetzt in der App-Hilfe
+  unter „Tastenkürzel" zu finden.
 
 ## [0.7.0] – 2026-10-20
 
@@ -234,7 +273,8 @@ Alle nennenswerten Änderungen an BowTally. Format nach
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v0.7.0...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.0...HEAD
+[2026.10.0]: https://github.com/jenskaesler/bowtally/compare/v0.7.0...v2026.10.0
 [0.7.0]: https://github.com/jenskaesler/bowtally/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jenskaesler/bowtally/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jenskaesler/bowtally/compare/v0.4.0...v0.5.0

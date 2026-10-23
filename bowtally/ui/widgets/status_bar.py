@@ -19,7 +19,7 @@ class StatusBar(QStatusBar):
         self.addPermanentWidget(self.info)
         self.addPermanentWidget(QLabel(f"BowTally v{__version__}"))
         self.help = QToolButton(objectName="iconButton")
-        self.help.setToolTip("Tastenkürzel anzeigen (F1)")
+        self.help.setToolTip("App-Hilfe öffnen (F1)")
         self.help.clicked.connect(self.helpRequested)
         self.addPermanentWidget(self.help)
         theme.notifier.changed.connect(self._update_icon)
