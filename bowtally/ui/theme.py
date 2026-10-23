@@ -460,6 +460,7 @@ ICONS = {
                 '<path d="M3.5 10h17M8 3v4M16 3v4"/>',
     "file": '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
     "menu": '<path d="M3 6h18M3 12h18M3 18h18"/>',
+    "arrow-right": '<path d="M5 12h14M14 6l6 6-6 6"/>',
 }
 
 

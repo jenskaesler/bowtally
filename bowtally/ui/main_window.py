@@ -176,15 +176,18 @@ class TournamentNavigator(QFrame):
         self.phases.setVerticalSpacing(3)
         self._btn_tdash = QPushButton("Turnier-Dashboard", objectName="link")
         self._btn_tdash.setIconSize(QSize(16, 16))
-        self._btn_tdash.clicked.connect(lambda: window.select_page(window.dashboard))
+        self._btn_tdash.clicked.connect(
+            lambda: (window.stack.setCurrentWidget(window.dashboard),
+                     window.dashboard.show_tournament()))
+        self._btn_tours_nav = QPushButton("Turnier-Details", objectName="link")
+        self._btn_tours_nav.setIconSize(QSize(16, 16))
+        self._btn_tours_nav.clicked.connect(lambda: window.select_page(window.tournaments))
         self._btn_guide_nav = QPushButton("Leitfaden", objectName="link")
         self._btn_guide_nav.setIconSize(QSize(16, 16))
         self._btn_guide_nav.clicked.connect(lambda: window.select_page(window.guide))
-        self._btn_tours_nav = QPushButton("Turniere", objectName="link")
-        self._btn_tours_nav.setIconSize(QSize(16, 16))
-        self._btn_tours_nav.clicked.connect(lambda: window.select_page(window.tournaments))
-        self.next_btn = button("", window.next_phase, "primary")
-        self.next_btn.setObjectName("nextPhase")
+        self.next_btn = QPushButton("", objectName="link")
+        self.next_btn.setIconSize(QSize(16, 16))
+        self.next_btn.clicked.connect(window.next_phase)
         self.log_btn = button("Phasenwechsel-Protokoll",
                               lambda: PhaseLogDialog(context.tournament_id, window,
                                                      back=window.prev_phase).exec(),
@@ -196,12 +199,12 @@ class TournamentNavigator(QFrame):
         lay.addLayout(head)
         lay.addLayout(sub)
         lay.addWidget(self._btn_tdash)
-        lay.addWidget(self._btn_guide_nav)
         lay.addWidget(self._btn_tours_nav)
+        lay.addWidget(self._btn_guide_nav)
+        lay.addWidget(self.next_btn)
         lay.addSpacing(4)
         lay.addLayout(self.phases)
         lay.addSpacing(4)
-        lay.addWidget(self.next_btn)
         lay.addWidget(self.log_btn)
 
     def refresh(self):
@@ -209,8 +212,9 @@ class TournamentNavigator(QFrame):
         self.setVisible(t is not None)
         tcol = theme.current()
         self._btn_tdash.setIcon(theme.icon("dashboard"))
-        self._btn_guide_nav.setIcon(theme.icon("rules"))
         self._btn_tours_nav.setIcon(theme.icon("target"))
+        self._btn_guide_nav.setIcon(theme.icon("rules"))
+        self.next_btn.setIcon(theme.icon("arrow-right"))
         if t is None:
             return
         self.close_btn.setIcon(theme.icon("x"))
@@ -622,7 +626,9 @@ class MainWindow(QMainWindow):
             self.nav.blockSignals(False)
             return
         self.stack.setCurrentIndex(current.data(Qt.ItemDataRole.UserRole))
-        if self.stack.currentWidget() is self.tournaments and context.tournament_id:
+        if self.stack.currentWidget() is self.dashboard:
+            self.dashboard.show_global()
+        elif self.stack.currentWidget() is self.tournaments and context.tournament_id:
             self.tournaments.open_tournament(context.tournament_id)
         self.update_badges()
 
