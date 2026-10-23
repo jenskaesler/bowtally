@@ -106,6 +106,7 @@ class SettingsDialog(QDialog):
 
         tabs = QTabWidget()
         tabs.addTab(self._club_tab(), "Vereinsprofil")
+        tabs.addTab(self._contacts_tab(), "Vereinsvorstand")
         tabs.addTab(self._bank_tab(), "Bankdaten")
         tabs.addTab(self._design_tab(), "Design")
         tabs.addTab(self._category_tab("behavior", "ui"), "Verhalten")
@@ -149,24 +150,6 @@ class SettingsDialog(QDialog):
                 form.addRow(self._flbl(CLUB_LABELS[key]), edit)
             lay.addWidget(box)
 
-        box_contacts = QGroupBox("Vereinsvorstand")
-        f_contacts = QFormLayout(box_contacts)
-        for role_key, role_label in CONTACT_ROLES.items():
-            fname_edit = QLineEdit(club.get(f"{role_key}_fname") or "")
-            fname_edit.setPlaceholderText("Vorname")
-            lname_edit = QLineEdit(club.get(f"{role_key}_lname") or "")
-            lname_edit.setPlaceholderText("Nachname")
-            self.club_edits[f"{role_key}_fname"] = fname_edit
-            self.club_edits[f"{role_key}_lname"] = lname_edit
-            pair_widget = QWidget()
-            pair_lay = QHBoxLayout(pair_widget)
-            pair_lay.setContentsMargins(0, 0, 0, 0)
-            pair_lay.setSpacing(8)
-            pair_lay.addWidget(fname_edit)
-            pair_lay.addWidget(lname_edit)
-            f_contacts.addRow(self._flbl(role_label), pair_widget)
-        lay.addWidget(box_contacts)
-
         box_notes = QGroupBox("Notizen")
         QVBoxLayout(box_notes)
         edit_notes = QPlainTextEdit(club.get("notes") or "")
@@ -197,6 +180,31 @@ class SettingsDialog(QDialog):
         lay.addWidget(box_logo)
         lay.addStretch()
 
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(inner)
+        return scroll
+
+    def _contacts_tab(self) -> QWidget:
+        club = ss.get_club_profile()
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
+        lay.setSpacing(10)
+        for role_key, role_label in CONTACT_ROLES.items():
+            box = QGroupBox(role_label)
+            form = QFormLayout(box)
+            for field, placeholder, label in (
+                (f"{role_key}_fname", "Vorname", "Vorname"),
+                (f"{role_key}_lname", "Nachname", "Nachname"),
+                (f"{role_key}_phone", "Telefonnummer", "Telefon"),
+                (f"{role_key}_email", "E-Mail-Adresse", "E-Mail"),
+            ):
+                edit = QLineEdit(club.get(field) or "")
+                edit.setPlaceholderText(placeholder)
+                self.club_edits[field] = edit
+                form.addRow(self._flbl(label), edit)
+            lay.addWidget(box)
+        lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(inner)

@@ -487,27 +487,48 @@ class TournamentWizard(QWizard):
             ("sports_dir", "Sportleiter/in"),
             ("bow_ref", "Bogenreferent/in"),
         ]
-        role_contacts = [(key, label, f"{club.get(f'{key}_fname','') or ''} "
-                          f"{club.get(f'{key}_lname','') or ''}".strip())
+        role_contacts = [(key, label,
+                          f"{club.get(f'{key}_fname','') or ''} "
+                          f"{club.get(f'{key}_lname','') or ''}".strip(),
+                          club.get(f"{key}_phone") or "",
+                          club.get(f"{key}_email") or "")
                          for key, label in _CONTACT_ROLES]
-        role_contacts = [(k, l, n) for k, l, n in role_contacts if n]
+        role_contacts = [(k, l, n, p, e) for k, l, n, p, e in role_contacts if n]
+        _role_data = {n: (p, e) for _, _, n, p, e in role_contacts}
         form = QFormLayout()
         if role_contacts:
             self._contact_combo = QComboBox()
-            for _, label, name in role_contacts:
+            for _, label, name, _p, _e in role_contacts:
                 self._contact_combo.addItem(f"{label}: {name}", name)
             stored = self._t("contact_name", "")
             idx = self._contact_combo.findData(stored)
             if idx >= 0:
                 self._contact_combo.setCurrentIndex(idx)
             else:
-                treasurer_idx = next((i for i, (k, _, _) in enumerate(role_contacts)
+                treasurer_idx = next((i for i, (k, *_) in enumerate(role_contacts)
                                       if k == "treasurer"), 0)
                 self._contact_combo.setCurrentIndex(treasurer_idx)
             self.contact_name.setText(self._contact_combo.currentData() or "")
             self._contact_combo.currentIndexChanged.connect(
                 lambda: self.contact_name.setText(self._contact_combo.currentData() or ""))
-            form.addRow("Kontaktperson", self._contact_combo)
+
+            def _apply_contact():
+                name = self._contact_combo.currentData() or ""
+                self.contact_name.setText(name)
+                phone, email = _role_data.get(name, ("", ""))
+                if phone:
+                    self.contact_phone.setText(phone)
+                if email:
+                    self.contact_email.setText(email)
+
+            combo_row = QHBoxLayout()
+            combo_row.setContentsMargins(0, 0, 0, 0)
+            combo_row.addWidget(self._contact_combo, 1)
+            combo_row.addWidget(button("Übernehmen", _apply_contact,
+                                       tooltip="Name, Telefon und E-Mail dieser Person übernehmen"))
+            combo_widget = QWidget()
+            combo_widget.setLayout(combo_row)
+            form.addRow("Kontaktperson", combo_widget)
         else:
             form.addRow("Kontaktperson", self.contact_name)
         form.addRow("Telefon", self.contact_phone)
