@@ -273,6 +273,7 @@ class TournamentWizard(QWizard):
         left.addWidget(QLabel("Regelwerk auswählen", objectName="fieldLabel"))
         left.addWidget(self.rule_list, 1)
         right = QVBoxLayout()
+        right.addWidget(QLabel("Regeldetails", objectName="fieldLabel"))
         right.addWidget(self.rule_detail, 1)
         row = QHBoxLayout()
         row.setSpacing(14)
@@ -499,6 +500,10 @@ class TournamentWizard(QWizard):
             idx = self._contact_combo.findData(stored)
             if idx >= 0:
                 self._contact_combo.setCurrentIndex(idx)
+            else:
+                treasurer_idx = next((i for i, (k, _, _) in enumerate(role_contacts)
+                                      if k == "treasurer"), 0)
+                self._contact_combo.setCurrentIndex(treasurer_idx)
             self.contact_name.setText(self._contact_combo.currentData() or "")
             self._contact_combo.currentIndexChanged.connect(
                 lambda: self.contact_name.setText(self._contact_combo.currentData() or ""))

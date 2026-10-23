@@ -250,7 +250,7 @@ class TournamentNavigator(QFrame):
         nxt = ts.next_phase(t.phase)
         self.next_btn.setVisible(nxt is not None)
         if nxt:
-            self.next_btn.setText(f"› Nächste Phase: {ts.PHASE_LABELS[nxt]}")
+            self.next_btn.setText(f"Nächste Phase: {ts.PHASE_LABELS[nxt]}")
             self.next_btn.setToolTip("Voraussetzungen prüfen und in die nächste Phase wechseln")
 
 

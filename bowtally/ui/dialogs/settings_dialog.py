@@ -25,7 +25,7 @@ BANK_LABELS = {
     "bank_account_holder": "Kontoinhaber",
     "bank_iban": "IBAN",
     "bank_bic": "BIC",
-    "bank_reference_template": "Verwendungszweck-Vorlage",
+    "bank_reference_template": "Verwendungszweck",
 }
 CONTACT_ROLES = {
     "first_board": "1. Vorsitzender/in",
@@ -36,10 +36,17 @@ CONTACT_ROLES = {
 }
 COMBO_LABELS = {
     ss.KEY_PRINT_ORIENTATION: {"portrait": "Hochformat", "landscape": "Querformat"},
+    ss.KEY_UI_LANGUAGE: {"de": "Deutsch"},
 }
 LABEL_OVERRIDES = {
     ss.KEY_PRINT_SHOW_LOGO: "Vereinslogo einfügen",
     ss.KEY_PRINT_SHOW_SCORES_PER_TARGET: "Einzelwertung einfügen",
+    ss.KEY_UI_LANGUAGE: "Sprache",
+    ss.KEY_FONT_FAMILY: "Schriftart",
+    ss.KEY_RESULT_TIEBREAK_MODE: "Tie-Break-Logik",
+    ss.KEY_RESULT_AUTO_RANK: "Rang automatisch neu berechnen",
+    ss.KEY_PRINT_PAPER_SIZE: "Papiergröße",
+    ss.KEY_PRINT_ORIENTATION: "Format",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
 LOGO_PREVIEW = 120
@@ -142,14 +149,6 @@ class SettingsDialog(QDialog):
                 form.addRow(self._flbl(CLUB_LABELS[key]), edit)
             lay.addWidget(box)
 
-        box_notes = QGroupBox("Notizen")
-        QVBoxLayout(box_notes)
-        edit_notes = QPlainTextEdit(club.get("notes") or "")
-        edit_notes.setMinimumHeight(90)
-        self.club_edits["notes"] = edit_notes
-        box_notes.layout().addWidget(edit_notes)
-        lay.addWidget(box_notes)
-
         box_contacts = QGroupBox("Vereinsvorstand")
         f_contacts = QFormLayout(box_contacts)
         for role_key, role_label in CONTACT_ROLES.items():
@@ -167,6 +166,14 @@ class SettingsDialog(QDialog):
             pair_lay.addWidget(lname_edit)
             f_contacts.addRow(self._flbl(role_label), pair_widget)
         lay.addWidget(box_contacts)
+
+        box_notes = QGroupBox("Notizen")
+        QVBoxLayout(box_notes)
+        edit_notes = QPlainTextEdit(club.get("notes") or "")
+        edit_notes.setMinimumHeight(90)
+        self.club_edits["notes"] = edit_notes
+        box_notes.layout().addWidget(edit_notes)
+        lay.addWidget(box_notes)
 
         box_logo = QGroupBox("Logo")
         logo_lay = QHBoxLayout(box_logo)
