@@ -27,8 +27,6 @@ from bowtally.ui.views.tournaments_view import TournamentsView
 from bowtally.ui.widgets.status_bar import StatusBar
 
 NAV_WIDTH = 240
-SIDEBAR_MIN = 52          # icon-only collapsed width
-SIDEBAR_ICON_ONLY = 52    # same as min; keeps icon visible
 NAME_CHARS = 20
 ICON_ROLE = Qt.ItemDataRole.UserRole + 1
 BADGE_ROLE = Qt.ItemDataRole.UserRole + 2
@@ -299,24 +297,12 @@ class MainWindow(QMainWindow):
         self.theme_toggle.setToolTip("Darstellung umschalten (System / Hell / Dunkel)")
         self.theme_toggle.clicked.connect(self._cycle_mode)
 
-        self._sidebar_collapsed = False
-        self.burger_btn = QToolButton()
-        self.burger_btn.setObjectName("iconButton")
-        self.burger_btn.setFixedSize(32, 32)
-        self.burger_btn.setToolTip("Seitenleiste ein-/ausblenden")
-        self.burger_btn.clicked.connect(self._toggle_sidebar)
-        burger_row = QHBoxLayout()
-        burger_row.setContentsMargins(8, 8, 8, 0)
-        burger_row.addWidget(self.burger_btn)
-        burger_row.addStretch()
-
         side = QWidget()
         side.setObjectName("sidebar")
         side.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         side_lay = QVBoxLayout(side)
         side_lay.setContentsMargins(0, 0, 0, 12)
         side_lay.setSpacing(4)
-        side_lay.addLayout(burger_row)
         side_lay.addWidget(self._head_widget)
         side_lay.addWidget(self.navigator)
         side_lay.addWidget(self.nav, 1)
@@ -374,36 +360,6 @@ class MainWindow(QMainWindow):
         self._context_changed(context.tournament_id, initial=True)
         self._refresh_title()
 
-    def _toggle_sidebar(self):
-        self._sidebar_collapsed = not self._sidebar_collapsed
-        collapsed = self._sidebar_collapsed
-        self._head_widget.setVisible(not collapsed)
-        self.navigator.setVisible(not collapsed and context.tournament_id is not None)
-        self.nav.blockSignals(True)
-        self.settings_nav.blockSignals(True)
-        if collapsed:
-            for row in range(self.nav.count()):
-                self.nav.item(row).setText("")
-            for row in range(self.settings_nav.count()):
-                self.settings_nav.item(row).setText("")
-            self.theme_toggle.setText("")
-            self.splitter.setSizes([SIDEBAR_ICON_ONLY, self.width() - SIDEBAR_ICON_ONLY])
-        else:
-            labels = ["Dashboard", "Leitfaden", "Turniere",
-                      "Schützen", "Regelwerke", "Bogenklassen"]
-            for row in range(self.nav.count()):
-                self.nav.item(row).setText(labels[row])
-            self.settings_nav.item(0).setText("Einstellungen")
-            self.settings_nav.item(1).setText("Über BowTally")
-            # restore theme toggle label
-            mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
-            _next, _icon, label = MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])
-            self.theme_toggle.setText(f"  {label}")
-            self._context_changed(context.tournament_id)
-            self.splitter.setSizes([NAV_WIDTH, self.width() - NAV_WIDTH])
-        self.nav.blockSignals(False)
-        self.settings_nav.blockSignals(False)
-
     @staticmethod
     def _nav_list() -> QListWidget:
         nav = QListWidget()
@@ -436,7 +392,6 @@ class MainWindow(QMainWindow):
                 item = nav.item(row)
                 item.setIcon(theme.icon(item.data(ICON_ROLE), selected_color=t["on_primary"]))
         self.logo.setPixmap(theme.pixmap("target", t["primary"], 26))
-        self.burger_btn.setIcon(theme.icon("menu", t["text2"]))
         mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
         _next, icon_name, label = MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])
         self.theme_toggle.setIcon(theme.icon(icon_name))
@@ -693,14 +648,11 @@ class MainWindow(QMainWindow):
             self.restoreGeometry(geom)
         if state := s.value("window/splitter"):
             self.splitter.restoreState(state)
-        if s.value("window/sidebar_collapsed", False, type=bool):
-            self._toggle_sidebar()
 
     def _save_settings(self):
         s = QSettings("BowTally", "BowTally")
         s.setValue("window/geometry", self.saveGeometry())
         s.setValue("window/splitter", self.splitter.saveState())
-        s.setValue("window/sidebar_collapsed", self._sidebar_collapsed)
 
     def closeEvent(self, event):
         page = self.stack.currentWidget()

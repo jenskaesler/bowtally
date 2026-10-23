@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 """Archer master data: search, drawer CRUD, import / export, soft and hard delete."""
-from PySide6.QtCore import Qt, QSettings
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QCompleter, QLineEdit, QMenu, QPlainTextEdit,
-                               QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QCheckBox, QComboBox, QCompleter, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
 
 from bowtally.io.importer import ARCHER_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
-from bowtally.ui import busy, button, show_error, theme
+from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import DateField, Form, email_validator
 from bowtally.ui.components.toast import Toast
-from bowtally.ui.dialogs.export_helper import FORMATS, export_button, run_export
+from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.views import ListView
 
@@ -53,35 +52,19 @@ class ArchersView(ListView):
         self._show_inactive.toggled.connect(self.refresh)
         self._show_inactive.toggled.connect(
             lambda v: QSettings("BowTally", "BowTally").setValue("archers/show_inactive", v))
-        _more_btn = QToolButton()
-        _more_btn.setObjectName("iconButton")
-        _more_btn.setIcon(theme.icon("more-horizontal"))
-        _more_btn.setToolTip("Exportieren / Importieren")
-        _more_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        _more_menu = QMenu(_more_btn)
-        _export_sub = _more_menu.addMenu("Exportieren")
-        def _rebuild_export():
-            _export_sub.clear()
-            n = len(self.table.visible_ids()) if self.table.is_filtered() else None
-            groups = [(False, "Alle Datensätze")] + ([(True, f"Nur gefilterte ({n})")] if n else [])
-            for filtered, title in groups:
-                if len(groups) > 1:
-                    _export_sub.addSection(title)
-                for label, flt, ext in FORMATS:
-                    _export_sub.addAction(label).triggered.connect(
-                        lambda _=False, f=filtered, fl=flt, e=ext: run_export(
-                            self, "schuetzen" + e, fl, self._export_sheets(f)))
-        _export_sub.aboutToShow.connect(_rebuild_export)
-        _more_menu.addAction("Importieren").triggered.connect(self._import)
-        _more_btn.setMenu(_more_menu)
-        _new_btn = button("Neuer Schütze", self.new_item, "primary", "Neuen Schützen anlegen (Strg+N)")
-        _stacked = QWidget()
-        _sl = QVBoxLayout(_stacked)
-        _sl.setContentsMargins(0, 0, 0, 0)
-        _sl.setSpacing(3)
-        _sl.addWidget(_new_btn)
-        _sl.addWidget(self._show_inactive)
-        self.header.add(_more_btn, _stacked)
+        self.header.add(
+            export_button(self, "schuetzen", self._export_sheets,
+                          lambda: len(self.table.visible_ids()) if self.table.is_filtered()
+                          else None),
+            button("Importieren", self._import,
+                   tooltip="Schützen aus CSV, Excel oder OpenDocument importieren"),
+            button("Neuer Schütze", self.new_item, "primary", "Neuen Schützen anlegen (Strg+N)"))
+        _footer = QWidget()
+        _fl = QHBoxLayout(_footer)
+        _fl.setContentsMargins(0, 4, 0, 0)
+        _fl.addWidget(self._show_inactive)
+        _fl.addStretch()
+        self.main_layout.insertWidget(2, _footer)
         self.table.activated.connect(self.edit_item)
         self._archers = {}
         self._editing_id = None
