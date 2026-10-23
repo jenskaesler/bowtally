@@ -13,7 +13,7 @@ from bowtally.ui import button, show_error
 LABEL_W = 130
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
-                   "templates": "Textvorlagen (Ausschreibung)"}
+                   "templates": "Textvorlagen"}
 HIDDEN_CATEGORIES = {"internal"}
 MULTILINE_CATEGORIES = {"templates"}
 CLUB_LABELS = {
@@ -47,6 +47,9 @@ LABEL_OVERRIDES = {
     ss.KEY_RESULT_AUTO_RANK: "automatisch neu berechnen",
     ss.KEY_PRINT_PAPER_SIZE: "Papiergröße",
     ss.KEY_PRINT_ORIENTATION: "Format",
+    "announcement_payment_hint": "Überweisungshinweis",
+    "announcement_group_hint": "Gruppenhinweis",
+    "default_legal_notes": "Wichtige Hinweise",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
 LOGO_PREVIEW = 120

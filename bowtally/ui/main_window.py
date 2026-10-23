@@ -3,9 +3,9 @@
 from PySide6.QtCore import QRectF, QSettings, QSize, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
-                               QHBoxLayout, QHeaderView, QLabel, QListWidget, QListWidgetItem,
+                               QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
                                QMainWindow, QMessageBox, QPushButton, QSplitter, QStackedWidget,
-                               QStyledItemDelegate, QTableWidget, QTableWidgetItem, QToolButton,
+                               QStyledItemDelegate, QToolButton,
                                QVBoxLayout, QWidget)
 
 from bowtally.services import settings_service as ss
@@ -30,21 +30,6 @@ NAV_WIDTH = 240
 NAME_CHARS = 20
 ICON_ROLE = Qt.ItemDataRole.UserRole + 1
 BADGE_ROLE = Qt.ItemDataRole.UserRole + 2
-# theme toggle: mode -> (next mode, icon, label)
-MODE_CYCLE = {theme.MODE_SYSTEM: (theme.MODE_LIGHT, "monitor", "System"),
-              theme.MODE_LIGHT: (theme.MODE_DARK, "sun", "Hell"),
-              theme.MODE_DARK: (theme.MODE_SYSTEM, "moon", "Dunkel")}
-SHORTCUTS = [
-    ("Strg+N", "Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer, Walk-in, Gebühr)"),
-    ("Strg+F", "Suchfeld der aktuellen Ansicht"),
-    ("Strg+S", "Speichern (Seitenpanel, Ergebniseingabe)"),
-    ("Esc", "Seitenpanel schließen / Suche leeren / Eingabe verwerfen"),
-    ("F5", "Ansicht neu laden"),
-    ("F1", "App-Hilfe öffnen"),
-    ("Enter", "Ausgewählten Eintrag öffnen / Seitenpanel speichern / Einchecken"),
-    ("Tab / Umschalt+Tab", "Ergebniseingabe: nächste / vorherige Scheibe"),
-    ("Enter / ↓ / ↑", "Ergebniseingabe: nächster / vorheriger Teilnehmer"),
-]
 
 
 class _NavDelegate(QStyledItemDelegate):
@@ -61,32 +46,6 @@ class _NavDelegate(QStyledItemDelegate):
             painter.drawEllipse(QRectF(r.right() - 22, r.center().y() - 4, 8, 8))
             painter.restore()
 
-
-class ShortcutsDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Tastenkürzel")
-        self.resize(600, 420)
-        table = QTableWidget(len(SHORTCUTS), 2)
-        table.setHorizontalHeaderLabels(["Taste", "Aktion"])
-        table.verticalHeader().hide()
-        table.setShowGrid(False)
-        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        for r, (key, text) in enumerate(SHORTCUTS):
-            item = QTableWidgetItem(key)
-            f = item.font()
-            f.setBold(True)
-            item.setFont(f)
-            table.setItem(r, 0, item)
-            table.setItem(r, 1, QTableWidgetItem(text))
-        table.resizeColumnToContents(0)
-        row = QHBoxLayout()
-        row.addStretch()
-        row.addWidget(button("Schließen", self.accept, "primary", "Übersicht schließen"))
-        lay = QVBoxLayout(self)
-        lay.addWidget(table)
-        lay.addLayout(row)
 
 
 class PhaseLogDialog(QDialog):
@@ -291,10 +250,13 @@ class MainWindow(QMainWindow):
         settings_item = QListWidgetItem("Einstellungen")
         settings_item.setData(ICON_ROLE, "settings")
         self.settings_nav.addItem(settings_item)
+        help_nav_item = QListWidgetItem("Hilfe")
+        help_nav_item.setData(ICON_ROLE, "help")
+        self.settings_nav.addItem(help_nav_item)
         about_item = QListWidgetItem("Über BowTally")
         about_item.setData(ICON_ROLE, "info")
         self.settings_nav.addItem(about_item)
-        self.settings_nav.setFixedHeight(88)
+        self.settings_nav.setFixedHeight(132)
         self.settings_nav.itemClicked.connect(self._settings_clicked)
 
         self.logo = QLabel()
@@ -312,10 +274,6 @@ class MainWindow(QMainWindow):
         head.addStretch()
 
         self.navigator = TournamentNavigator(self)
-        self.theme_toggle = QPushButton()
-        self.theme_toggle.setObjectName("themeToggle")
-        self.theme_toggle.setToolTip("Darstellung umschalten (System / Hell / Dunkel)")
-        self.theme_toggle.clicked.connect(self._cycle_mode)
 
         side = QWidget()
         side.setObjectName("sidebar")
@@ -327,10 +285,6 @@ class MainWindow(QMainWindow):
         side_lay.addWidget(self.navigator)
         side_lay.addWidget(self.nav, 1)
         side_lay.addWidget(self.settings_nav)
-        toggle_row = QHBoxLayout()
-        toggle_row.setContentsMargins(10, 0, 10, 0)
-        toggle_row.addWidget(self.theme_toggle)
-        side_lay.addLayout(toggle_row)
 
         content = QWidget()
         content.setObjectName("contentArea")
@@ -357,7 +311,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.splitter)
         self.setCentralWidget(central)
         self.status = StatusBar()
-        self.status.helpRequested.connect(self.show_shortcuts)
+        self.status.helpRequested.connect(self.show_help)
         self.setStatusBar(self.status)
 
         self.dashboard.open_tournament.connect(self.open_tournament)
@@ -376,7 +330,6 @@ class MainWindow(QMainWindow):
                            (QKeySequence(Qt.Key.Key_F5), "refresh")):
             QShortcut(keys, self, activated=lambda s=slot: self._dispatch(s))
         QShortcut(QKeySequence(Qt.Key.Key_F1), self, activated=self.show_help)
-        self._build_menubar()
         self._refresh_chrome()
         self._context_changed(context.tournament_id, initial=True)
         self._refresh_title()
@@ -404,27 +357,6 @@ class MainWindow(QMainWindow):
             dlg.show_section(section)
         dlg.exec()
 
-    def show_shortcuts(self):
-        ShortcutsDialog(self).exec()
-
-    def _build_menubar(self):
-        from PySide6.QtGui import QAction
-        mb = self.menuBar()
-        help_menu = mb.addMenu("Hilfe")
-        act_help = QAction("App-Hilfe", self)
-        act_help.setShortcut(QKeySequence(Qt.Key.Key_F1))
-        act_help.triggered.connect(self.show_help)
-        help_menu.addAction(act_help)
-        act_shortcuts = QAction("Tastenkürzel", self)
-        act_shortcuts.triggered.connect(self.show_shortcuts)
-        help_menu.addAction(act_shortcuts)
-        help_menu.addSeparator()
-        act_about = QAction("Über BowTally", self)
-        act_about.triggered.connect(
-            lambda: __import__("bowtally.ui.dialogs.about_dialog",
-                               fromlist=["AboutDialog"]).AboutDialog(self).exec())
-        help_menu.addAction(act_about)
-
     # ------------------------------------------------------------ theme
     def apply_theme(self, overrides: dict | None = None):
         theme.apply(QApplication.instance(), overrides)
@@ -438,20 +370,11 @@ class MainWindow(QMainWindow):
                 item = nav.item(row)
                 item.setIcon(theme.icon(item.data(ICON_ROLE), selected_color=t["on_primary"]))
         self.logo.setPixmap(theme.pixmap("target", t["primary"], 26))
-        mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
-        _next, icon_name, label = MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])
-        self.theme_toggle.setIcon(theme.icon(icon_name))
-        self.theme_toggle.setText(f"  {label}")
         self.navigator.refresh()
 
     def _refresh_title(self):
         club_name = (ss.get_club_profile().get("club_name") or "").strip()
         self.setWindowTitle(f"BowTally – {club_name}" if club_name else "BowTally")
-
-    def _cycle_mode(self):
-        mode = ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM)
-        ss.set_value(ss.KEY_UI_THEME_MODE, MODE_CYCLE.get(mode, MODE_CYCLE[theme.MODE_SYSTEM])[0])
-        self.apply_theme()
 
     def _system_scheme_changed(self, _scheme):
         if ss.get(ss.KEY_UI_THEME_MODE, theme.MODE_SYSTEM) == theme.MODE_SYSTEM:
@@ -663,6 +586,8 @@ class MainWindow(QMainWindow):
         if item.data(ICON_ROLE) == "info":
             from bowtally.ui.dialogs.about_dialog import AboutDialog
             AboutDialog(self).exec()
+        elif item.data(ICON_ROLE) == "help":
+            self.show_help()
         else:
             self.open_settings()
 

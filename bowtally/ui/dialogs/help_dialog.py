@@ -3,6 +3,8 @@
 from PySide6.QtWidgets import (QDialog, QHBoxLayout, QListWidget, QSplitter,
                                QTextBrowser, QVBoxLayout)
 
+from bowtally.ui import theme
+
 _SECTIONS = [
     ("Übersicht", """
 <h2>BowTally – Übersicht</h2>
@@ -169,6 +171,8 @@ class HelpDialog(QDialog):
 
         self._browser = QTextBrowser()
         self._browser.setOpenExternalLinks(True)
+        self._apply_browser_css()
+        theme.notifier.changed.connect(self._apply_browser_css)
 
         nav = QListWidget()
         for title, _ in _SECTIONS:
@@ -187,9 +191,23 @@ class HelpDialog(QDialog):
 
         nav.setCurrentRow(0)
 
+    def _apply_browser_css(self):
+        t = theme.current()
+        self._browser.document().setDefaultStyleSheet(
+            f"code {{ background: {t['surface']}; border-radius: 3px; "
+            f"padding: 1px 4px; font-family: monospace; }}"
+        )
+        if hasattr(self, '_current_row'):
+            self._browser.setHtml(self._strip_inline_bg(_SECTIONS[self._current_row][1]))
+
+    @staticmethod
+    def _strip_inline_bg(html: str) -> str:
+        return html.replace(' style="background:#f0f4f8;"', '')
+
     def _show_section(self, row: int):
         if 0 <= row < len(_SECTIONS):
-            self._browser.setHtml(_SECTIONS[row][1])
+            self._current_row = row
+            self._browser.setHtml(self._strip_inline_bg(_SECTIONS[row][1]))
 
     def show_section(self, title: str):
         for i, (t, _) in enumerate(_SECTIONS):

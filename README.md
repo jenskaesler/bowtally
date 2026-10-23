@@ -10,7 +10,7 @@ Anwendung gepflegt.
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **0.7.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.10.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 
@@ -29,7 +29,7 @@ Aktuelle Version: **0.7.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
   Siegerehrung, Aushang).
 - **Turnier-Assistent** in neun Schritten: Grunddaten, Regelwerk, Bogenklassen, Parcours,
   Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
-- **Turnier klonen**: Ein bestehendes Turnier als Vorlage nutzen – der Assistent startet
+- **Turnier kopieren**: Ein bestehendes Turnier als Vorlage nutzen – der Assistent startet
   vorausgefüllt, Teilnehmer und Ergebnisse werden nicht übernommen.
 
 ### Ausschreibung und Anmeldung
@@ -72,17 +72,36 @@ Aktuelle Version: **0.7.0** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
   durch Klonen, mit Zonen-Editor.
 - **Bogenklassen**: zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
+### Einstellungen
+
+- **Vereinsvorstand**: Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle hinterlegbar.
+  Im Turnier-Assistenten übernimmt „Übernehmen" die Daten direkt als Turnierkontakt.
+- **Standard-Kontaktperson**: Legt fest, welche Vorstandsrolle bei neuen Turnieren
+  als Kontakt voreingestellt ist.
+- **Vereinsprofil**: Vereinsname, Adresse, Kontakt und Logo.
+- **Bankdaten**: IBAN, BIC und Verwendungszweck-Vorlage mit Platzhalter-Unterstützung.
+- **Design**: Helles/dunkles Theme, Primärfarbe und alle weiteren App-Farben individuell
+  anpassbar, Schriftart wählbar.
+- **Druck**: Papiergröße, Ausrichtung, Vereinslogo auf Ausdrucken, Textvorlagen
+  für Ausschreibungen.
+- **Backup**: Lokales ZIP-Backup, Nextcloud-Upload, automatisches Backup beim Beenden,
+  Wiederherstellung aus Datei.
+
 ### Bedienung
 
 - Formulare im Seitenpanel mit Prüfung direkt am Feld, Hinweise unten rechts statt
   Meldungsfenster, Aktionsleiste für ausgewählte Zeilen, Rechtsklick-Menüs.
 - Tastenkürzel: `Strg+N` Neu, `Strg+F` Suchen, `Strg+S` Speichern, `F5` Neu laden,
-  `F1` Übersicht aller Kürzel.
-- Darstellung hell, dunkel oder wie Windows. Alle Farben und die Schriftart sind änderbar.
+  `F1` App-Hilfe öffnen.
+- **App-Hilfe** (F1 oder Seitenleiste): neun Abschnitte mit Platzhalter-Referenz und
+  Tastenkürzel-Übersicht.
+- Darstellung hell, dunkel oder wie Windows; alle Farben und die Schriftart sind in den
+  Einstellungen änderbar.
 - **Resizable Seitenleiste** mit Burger-Button zum Einklappen (Icon-only-Modus).
 - **Datensicherung**: Lokales ZIP-Backup, Nextcloud (WebDAV), automatisches Backup beim
   Beenden. Wiederherstellung aus einer Backup-Datei direkt in den Einstellungen.
 - **Erststart-Assistent**: Beim ersten Start ohne Vereinsprofil erscheint ein Einrichtungsdialog.
+- **Splash-Screen** beim Start mit Fortschrittsbalken, hell- und dunkelmodusfähig.
 
 ## Schnellstart
 
@@ -183,7 +202,7 @@ kommt aus `bowtally/__version__.py`.
 | Anwendung | `build\dist\BowTally\BowTally.exe` |
 | Installer | `build\dist\BowTally-<version>-Setup.exe` |
 
-Nur den Installer neu bauen: `makensis /DVERSION=0.7.0 build\setup.nsi`
+Nur den Installer neu bauen: `makensis /DVERSION=2026.10.0 build\setup.nsi`
 
 ### Release
 

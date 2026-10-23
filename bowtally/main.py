@@ -50,12 +50,13 @@ class _Splash(QSplashScreen):
 
     @staticmethod
     def _build_pixmap() -> QPixmap:
+        dark = (QApplication.instance().styleHints().colorScheme() == Qt.ColorScheme.Dark)
         W, H = 480, 280
         pix = QPixmap(W, H)
-        pix.fill(QColor("#f8f9fb"))
+        pix.fill(QColor("#1e2430" if dark else "#f8f9fb"))
         p = QPainter(pix)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setPen(QColor("#d0d7de"))
+        p.setPen(QColor("#3d4a5c" if dark else "#d0d7de"))
         p.drawRect(0, 0, W - 1, H - 1)
         if config.ICON_PATH.is_file():
             icon_pix = QPixmap(str(config.ICON_PATH)).scaled(
@@ -65,12 +66,12 @@ class _Splash(QSplashScreen):
                 p.drawPixmap((W - icon_pix.width()) // 2, 52, icon_pix)
         f_title = QFont("Segoe UI", 22, QFont.Weight.Bold)
         p.setFont(f_title)
-        p.setPen(QColor("#1a202c"))
+        p.setPen(QColor("#e8ecf4" if dark else "#1a202c"))
         p.drawText(0, 136, W, 36, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
                    "BowTally")
         f_sub = QFont("Segoe UI", 10)
         p.setFont(f_sub)
-        p.setPen(QColor("#6b7280"))
+        p.setPen(QColor("#8899aa" if dark else "#6b7280"))
         p.drawText(0, 174, W, 24, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
                    f"Version {__version__}")
         p.end()
