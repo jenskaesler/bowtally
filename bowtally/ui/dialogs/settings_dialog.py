@@ -124,6 +124,7 @@ def _with_grip(edit):
     lay.setSpacing(0)
     lay.addWidget(edit)
     lay.addWidget(_ResizeGrip(edit))
+    w.setMinimumHeight(edit.minimumHeight() + 6)
     return w
 
 
@@ -558,10 +559,11 @@ class SettingsDialog(QDialog):
                 lay.addWidget(box)
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
+            display = _with_grip(widget) if isinstance(widget, QPlainTextEdit) else widget
             label = self._flbl(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
-            groups[st.category].addRow(label, widget)
+            groups[st.category].addRow(label, display)
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
