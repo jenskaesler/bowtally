@@ -651,6 +651,8 @@ class MainWindow(QMainWindow):
                 from bowtally.services import backup_service as bs
                 if target == "nextcloud":
                     bs.backup_nextcloud()
+                elif target == "network":
+                    bs.backup_network()
                 else:
                     bs.backup_local()
             except Exception:

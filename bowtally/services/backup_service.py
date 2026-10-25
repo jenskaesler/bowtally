@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Local and cloud backup / restore for the BowTally database."""
+"""Local, network and cloud backup / restore for the BowTally database."""
+import base64
 import os
 import shutil
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from bowtally import config
@@ -23,50 +24,147 @@ def _create_zip(dest_dir: Path) -> Path:
     return zip_path
 
 
-def _prune(dest_dir: Path, keep: int):
-    backups = sorted(dest_dir.glob("bowtally_backup_*.zip"))
-    for old in backups[:-keep]:
-        old.unlink(missing_ok=True)
+def _prune_by_days(dest_dir: Path, days: int):
+    cutoff = datetime.now() - timedelta(days=days)
+    for f in dest_dir.glob("bowtally_backup_*.zip"):
+        try:
+            if datetime.fromtimestamp(f.stat().st_mtime) < cutoff:
+                f.unlink(missing_ok=True)
+        except OSError:
+            pass
 
+
+def _retention_days() -> int:
+    return max(1, int(ss.get("backup_retention_days", "30") or 30))
+
+
+def _get_password(key: str) -> str:
+    try:
+        import keyring  # optional dependency
+        v = keyring.get_password("BowTally", key)
+        if v is not None:
+            return v
+    except Exception:
+        pass
+    encoded = ss.get(f"{key}_b64") or ""
+    try:
+        return base64.b64decode(encoded.encode()).decode("utf-8")
+    except Exception:
+        return ""
+
+
+def _set_password(key: str, value: str) -> None:
+    try:
+        import keyring
+        keyring.set_password("BowTally", key, value)
+        return
+    except Exception:
+        pass
+    ss.set_many({f"{key}_b64": base64.b64encode(value.encode("utf-8")).decode()})
+
+
+# ------------------------------------------------------------------ backup
 
 def backup_local() -> str:
     path = (ss.get("backup_local_path") or "").strip()
     if not path:
         raise ValueError("Kein Backup-Pfad konfiguriert.")
     dest = Path(path)
-    retention = int(ss.get("backup_retention", "10") or 10)
     zip_path = _create_zip(dest)
-    _prune(dest, retention)
+    _prune_by_days(dest, _retention_days())
     return str(zip_path)
 
 
-def backup_nextcloud():
+def backup_network() -> str:
+    path = (ss.get("backup_network_path") or "").strip()
+    if not path:
+        raise ValueError("Kein Netzwerkpfad konfiguriert.")
+    if ss.get_bool("backup_network_requires_auth"):
+        user = ss.get("backup_network_user") or ""
+        pwd = _get_password("backup_network_password")
+        import subprocess
+        result = subprocess.run(
+            ["net", "use", path, f"/user:{user}", pwd],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise ConnectionError(result.stderr.strip() or "net use fehlgeschlagen")
+    dest = Path(path)
+    zip_path = _create_zip(dest)
+    _prune_by_days(dest, _retention_days())
+    return str(zip_path)
+
+
+def backup_nextcloud() -> str:
     import urllib.request
-    url = (ss.get("backup_nc_url") or "").rstrip("/")
-    user = ss.get("backup_nc_user") or ""
-    pwd = ss.get("backup_nc_pass") or ""
+    import tempfile
+    url = (ss.get("backup_nextcloud_url") or "").rstrip("/")
+    user = ss.get("backup_nextcloud_user") or ""
+    pwd = _get_password("backup_nextcloud_password")
+    remote_path = (ss.get("backup_nextcloud_path") or "BowTally/Backups").strip("/")
     if not url or not user:
         raise ValueError("Nextcloud-URL und Benutzername erforderlich.")
-    import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         zip_path = _create_zip(Path(tmp))
-        remote = f"{url}/remote.php/dav/files/{user}/BowTally/{zip_path.name}"
+        folder_url = f"{url}/remote.php/dav/files/{user}/{remote_path}/"
+        remote = f"{folder_url}{zip_path.name}"
         mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         mgr.add_password(None, url, user, pwd)
-        handler = urllib.request.HTTPBasicAuthHandler(mgr)
-        opener = urllib.request.build_opener(handler)
-        # ensure remote folder exists
-        folder_url = f"{url}/remote.php/dav/files/{user}/BowTally/"
+        opener = urllib.request.build_opener(urllib.request.HTTPBasicAuthHandler(mgr))
         try:
-            req = urllib.request.Request(folder_url, method="MKCOL")
-            opener.open(req)
+            opener.open(urllib.request.Request(folder_url, method="MKCOL"))
         except Exception:
             pass
         with open(zip_path, "rb") as f:
-            data = f.read()
-        req = urllib.request.Request(remote, data=data, method="PUT")
-        opener.open(req)
+            opener.open(urllib.request.Request(remote, data=f.read(), method="PUT"))
+    return remote
 
+
+# ------------------------------------------------------------------ test
+
+def test_local(path: str) -> None:
+    if not path:
+        raise ValueError("Kein Verzeichnispfad angegeben.")
+    dest = Path(path)
+    if not dest.exists():
+        dest.mkdir(parents=True, exist_ok=True)
+    if not os.access(dest, os.W_OK):
+        raise PermissionError(f"Kein Schreibzugriff auf: {path}")
+
+
+def test_network(path: str, requires_auth: bool, user: str, password: str) -> None:
+    if not path:
+        raise ValueError("Kein Netzwerkpfad angegeben.")
+    if requires_auth and user:
+        import subprocess
+        result = subprocess.run(
+            ["net", "use", path, f"/user:{user}", password],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise ConnectionError(result.stderr.strip() or "Verbindung fehlgeschlagen")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Pfad nicht erreichbar: {path}")
+
+
+def test_nextcloud(url: str, user: str, password: str, remote_path: str) -> None:
+    import urllib.request
+    url = url.rstrip("/")
+    remote_path = (remote_path or "BowTally/Backups").strip("/")
+    if not url or not user:
+        raise ValueError("URL und Benutzername erforderlich.")
+    check_url = f"{url}/remote.php/dav/files/{user}/{remote_path}/"
+    mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+    mgr.add_password(None, url, user, password)
+    opener = urllib.request.build_opener(urllib.request.HTTPBasicAuthHandler(mgr))
+    req = urllib.request.Request(check_url, method="PROPFIND")
+    req.add_header("Depth", "0")
+    resp = opener.open(req, timeout=10)
+    if resp.status not in (200, 207):
+        raise ConnectionError(f"HTTP {resp.status}")
+
+
+# ------------------------------------------------------------------ restore
 
 def restore(zip_path: str):
     db_path = config.DB_PATH
@@ -74,7 +172,6 @@ def restore(zip_path: str):
         names = zf.namelist()
         if not names:
             raise ValueError("Leeres ZIP-Archiv.")
-        # back up current db first
         shutil.copy2(db_path, str(db_path) + ".restore_backup")
         with zf.open(names[0]) as src, open(db_path, "wb") as dst:
             dst.write(src.read())

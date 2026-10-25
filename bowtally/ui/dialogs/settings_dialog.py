@@ -361,32 +361,35 @@ class SettingsDialog(QDialog):
         w = QWidget()
         lay = QVBoxLayout(w)
 
-        auto_box = QGroupBox("Automatisches Backup")
-        auto_lay = QVBoxLayout(auto_box)
-        self._backup_on_close = QCheckBox("Backup beim Beenden der App erstellen")
+        # ---- Box 1: Backup-Einstellungen
+        settings_box = QGroupBox("Backup-Einstellungen")
+        settings_form = QFormLayout(settings_box)
+        self._backup_on_close = QCheckBox("Automatisches Backup beim Beenden der App")
         self._backup_on_close.setChecked(ss.get_bool("backup_on_close"))
-        auto_lay.addWidget(self._backup_on_close)
-        lay.addWidget(auto_box)
+        self._backup_retention_days = QSpinBox()
+        self._backup_retention_days.setRange(1, 365)
+        self._backup_retention_days.setValue(int(ss.get("backup_retention_days", "30") or 30))
+        self._backup_retention_days.setSuffix(" Tage")
+        settings_form.addRow("", self._backup_on_close)
+        settings_form.addRow(self._flbl("Aufbewahrungsdauer"), self._backup_retention_days)
+        lay.addWidget(settings_box)
 
-        target_box = QGroupBox("Backup-Ziel")
+        # ---- Box 2: Backup-Speicherort
+        target_box = QGroupBox("Backup-Speicherort")
         target_lay = QVBoxLayout(target_box)
         self._backup_target_combo = QComboBox()
-        self._backup_target_combo.addItem("Kein Backup", "none")
-        self._backup_target_combo.addItem("Lokal (NAS / USB)", "local")
+        self._backup_target_combo.addItem("Lokal", "local")
+        self._backup_target_combo.addItem("Netzwerk (NAS / Freigabe)", "network")
         self._backup_target_combo.addItem("Nextcloud", "nextcloud")
         saved = ss.get("backup_target") or (
-            "nextcloud" if ss.get("backup_nc_url") else
-            "local" if ss.get("backup_local_path") else "none")
+            "nextcloud" if ss.get("backup_nextcloud_url") else "local")
         idx = self._backup_target_combo.findData(saved)
         self._backup_target_combo.setCurrentIndex(max(0, idx))
         target_lay.addWidget(self._backup_target_combo)
 
         self._backup_stack = QStackedWidget()
 
-        # Page 0: none
-        self._backup_stack.addWidget(QWidget())
-
-        # Page 1: local
+        # Page 0: local
         local_w = QWidget()
         local_lay = QVBoxLayout(local_w)
         local_lay.setContentsMargins(0, 8, 0, 0)
@@ -400,37 +403,77 @@ class SettingsDialog(QDialog):
         path_row.addWidget(browse_btn)
         path_widget = QWidget()
         path_widget.setLayout(path_row)
-        self._backup_retention = QSpinBox()
-        self._backup_retention.setRange(1, 99)
-        self._backup_retention.setValue(int(ss.get("backup_retention", "10") or 10))
-        self._backup_retention.setSuffix(" Backups behalten")
-        local_form.addRow(self._flbl("Backup-Pfad"), path_widget)
-        local_form.addRow(self._flbl("Aufbewahrung"), self._backup_retention)
+        local_form.addRow(self._flbl("Verzeichnispfad"), path_widget)
         local_lay.addLayout(local_form)
         local_btns = QHBoxLayout()
-        local_btns.addWidget(button("Backup jetzt erstellen", lambda: self._do_local_backup(bs),
-                                    "primary", "Datenbank als ZIP in den Backup-Ordner sichern"))
+        local_btns.addWidget(button("Verbindung testen",
+                                    lambda: self._test_backup(bs, "local"),
+                                    tooltip="Schreibzugriff auf Verzeichnis prüfen"))
+        local_btns.addWidget(button("Backup jetzt erstellen",
+                                    lambda: self._do_backup_now(bs, "local"), "primary",
+                                    "Datenbank als ZIP sichern"))
         local_btns.addStretch()
         local_lay.addLayout(local_btns)
         self._backup_stack.addWidget(local_w)
+
+        # Page 1: network
+        net_w = QWidget()
+        net_lay = QVBoxLayout(net_w)
+        net_lay.setContentsMargins(0, 8, 0, 0)
+        net_form = QFormLayout()
+        self._net_path_edit = QLineEdit(ss.get("backup_network_path") or "")
+        self._net_path_edit.setPlaceholderText(r"\\server\backup")
+        net_form.addRow(self._flbl("Netzwerkpfad"), self._net_path_edit)
+        self._net_auth_check = QCheckBox("Anmeldung erforderlich")
+        self._net_auth_check.setChecked(ss.get_bool("backup_network_requires_auth"))
+        net_form.addRow("", self._net_auth_check)
+        net_lay.addLayout(net_form)
+        self._net_auth_widget = QWidget()
+        net_auth_form = QFormLayout(self._net_auth_widget)
+        net_auth_form.setContentsMargins(0, 0, 0, 0)
+        self._net_user = QLineEdit(ss.get("backup_network_user") or "")
+        self._net_pass = QLineEdit(bs._get_password("backup_network_password"))
+        self._net_pass.setEchoMode(QLineEdit.EchoMode.Password)
+        net_auth_form.addRow(self._flbl("Benutzername"), self._net_user)
+        net_auth_form.addRow(self._flbl("Passwort"), self._net_pass)
+        self._net_auth_widget.setVisible(self._net_auth_check.isChecked())
+        self._net_auth_check.toggled.connect(self._net_auth_widget.setVisible)
+        net_lay.addWidget(self._net_auth_widget)
+        net_btns = QHBoxLayout()
+        net_btns.addWidget(button("Verbindung testen",
+                                  lambda: self._test_backup(bs, "network"),
+                                  tooltip="Netzwerkpfad auf Erreichbarkeit prüfen"))
+        net_btns.addWidget(button("Backup jetzt erstellen",
+                                  lambda: self._do_backup_now(bs, "network"), "primary",
+                                  "Datenbank als ZIP auf Netzlaufwerk sichern"))
+        net_btns.addStretch()
+        net_lay.addLayout(net_btns)
+        self._backup_stack.addWidget(net_w)
 
         # Page 2: nextcloud
         nc_w = QWidget()
         nc_lay = QVBoxLayout(nc_w)
         nc_lay.setContentsMargins(0, 8, 0, 0)
         nc_form = QFormLayout()
-        self._nc_url = QLineEdit(ss.get("backup_nc_url") or "")
-        self._nc_url.setPlaceholderText("https://nextcloud.example.com")
-        self._nc_user = QLineEdit(ss.get("backup_nc_user") or "")
-        self._nc_pass = QLineEdit(ss.get("backup_nc_pass") or "")
+        self._nc_url = QLineEdit(ss.get("backup_nextcloud_url") or "")
+        self._nc_url.setPlaceholderText("https://cloud.example.com")
+        self._nc_user = QLineEdit(ss.get("backup_nextcloud_user") or "")
+        self._nc_pass = QLineEdit(bs._get_password("backup_nextcloud_password"))
         self._nc_pass.setEchoMode(QLineEdit.EchoMode.Password)
-        nc_form.addRow(self._flbl("URL"), self._nc_url)
+        self._nc_path = QLineEdit(ss.get("backup_nextcloud_path") or "BowTally/Backups")
+        self._nc_path.setPlaceholderText("/BowTally/Backups")
+        nc_form.addRow(self._flbl("Server-URL"), self._nc_url)
         nc_form.addRow(self._flbl("Benutzername"), self._nc_user)
         nc_form.addRow(self._flbl("Passwort"), self._nc_pass)
+        nc_form.addRow(self._flbl("Zielpfad"), self._nc_path)
         nc_lay.addLayout(nc_form)
         nc_btns = QHBoxLayout()
-        nc_btns.addWidget(button("Zu Nextcloud sichern", lambda: self._do_nc_backup(bs),
-                                 tooltip="Backup in Nextcloud hochladen"))
+        nc_btns.addWidget(button("Verbindung testen",
+                                 lambda: self._test_backup(bs, "nextcloud"),
+                                 tooltip="WebDAV-Verbindung zu Nextcloud prüfen"))
+        nc_btns.addWidget(button("Backup jetzt erstellen",
+                                 lambda: self._do_backup_now(bs, "nextcloud"), "primary",
+                                 "Backup in Nextcloud hochladen"))
         nc_btns.addStretch()
         nc_lay.addLayout(nc_btns)
         self._backup_stack.addWidget(nc_w)
@@ -440,6 +483,7 @@ class SettingsDialog(QDialog):
         target_lay.addWidget(self._backup_stack)
         lay.addWidget(target_box)
 
+        # ---- Box 3: Wiederherstellen
         restore_box = QGroupBox("Wiederherstellen")
         restore_lay = QVBoxLayout(restore_box)
         restore_lay.addWidget(QLabel("Wähle eine lokale Backup-Datei (.zip):",
@@ -462,33 +506,63 @@ class SettingsDialog(QDialog):
             self._backup_path_edit.setText(path)
 
     def _save_backup_settings(self):
-        ss.set_many({"backup_target": self._backup_target_combo.currentData(),
-                     "backup_local_path": self._backup_path_edit.text().strip(),
-                     "backup_retention": str(self._backup_retention.value()),
-                     "backup_nc_url": self._nc_url.text().strip(),
-                     "backup_nc_user": self._nc_user.text().strip(),
-                     "backup_nc_pass": self._nc_pass.text().strip(),
-                     "backup_on_close": "true" if self._backup_on_close.isChecked() else "false"})
+        from bowtally.services import backup_service as bs
+        bs._set_password("backup_network_password", self._net_pass.text())
+        bs._set_password("backup_nextcloud_password", self._nc_pass.text())
+        ss.set_many({
+            "backup_on_close": "true" if self._backup_on_close.isChecked() else "false",
+            "backup_retention_days": str(self._backup_retention_days.value()),
+            "backup_target": self._backup_target_combo.currentData(),
+            "backup_local_path": self._backup_path_edit.text().strip(),
+            "backup_network_path": self._net_path_edit.text().strip(),
+            "backup_network_requires_auth":
+                "true" if self._net_auth_check.isChecked() else "false",
+            "backup_network_user": self._net_user.text().strip(),
+            "backup_nextcloud_url": self._nc_url.text().strip(),
+            "backup_nextcloud_user": self._nc_user.text().strip(),
+            "backup_nextcloud_path": self._nc_path.text().strip(),
+        })
 
-    def _do_local_backup(self, bs):
+    def _test_backup(self, bs, target: str):
         self._save_backup_settings()
+        from bowtally.ui.components.toast import Toast
         try:
-            path = bs.backup_local()
+            if target == "local":
+                bs.test_local(self._backup_path_edit.text().strip())
+            elif target == "network":
+                bs.test_network(
+                    self._net_path_edit.text().strip(),
+                    self._net_auth_check.isChecked(),
+                    self._net_user.text().strip(),
+                    self._net_pass.text(),
+                )
+            else:
+                bs.test_nextcloud(
+                    self._nc_url.text().strip(),
+                    self._nc_user.text().strip(),
+                    self._nc_pass.text(),
+                    self._nc_path.text().strip(),
+                )
+        except Exception as exc:
+            Toast.show(self, str(exc), Toast.ERROR)
+            return
+        Toast.show(self, "Verbindung erfolgreich", Toast.SUCCESS)
+
+    def _do_backup_now(self, bs, target: str):
+        self._save_backup_settings()
+        from bowtally.ui.components.toast import Toast
+        try:
+            if target == "local":
+                result = bs.backup_local()
+                Toast.show(self, f"Backup erstellt: {result}", Toast.SUCCESS)
+            elif target == "network":
+                result = bs.backup_network()
+                Toast.show(self, f"Backup erstellt: {result}", Toast.SUCCESS)
+            else:
+                bs.backup_nextcloud()
+                Toast.show(self, "Backup zu Nextcloud hochgeladen", Toast.SUCCESS)
         except Exception as exc:
             show_error(self, exc, "Backup fehlgeschlagen")
-            return
-        from bowtally.ui.components.toast import Toast
-        Toast.show(self, f"Backup erstellt: {path}", Toast.SUCCESS)
-
-    def _do_nc_backup(self, bs):
-        self._save_backup_settings()
-        try:
-            bs.backup_nextcloud()
-        except Exception as exc:
-            show_error(self, exc, "Nextcloud-Backup fehlgeschlagen")
-            return
-        from bowtally.ui.components.toast import Toast
-        Toast.show(self, "Backup zu Nextcloud hochgeladen", Toast.SUCCESS)
 
     def _do_restore(self, bs):
         path, _ = QFileDialog.getOpenFileName(self, "Backup auswählen", "",
