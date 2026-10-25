@@ -182,8 +182,21 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
   <tr><td><code>{bow_class}</code></td><td>Bogenklasse des Schützen</td></tr>
 </table>
 <p><i>Beispiel:</i> <code>3D Turnier 2027, {name}, {bow_class}</code></p>
-<p><b>E-Mail-Vorlagen</b> unterstützen außerdem: <code>{verein}</code>,
-<code>{klasse}</code>, <code>{turniername}</code>, <code>{datum}</code></p>
+<p><b>E-Mail-Vorlagen</b> – verfügbare Platzhalter:</p>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><code>{name}</code></td><td>Vor- und Nachname des Teilnehmers / Helfers</td></tr>
+  <tr><td><code>{verein}</code></td><td>Vereinsname des Teilnehmers</td></tr>
+  <tr><td><code>{klasse}</code></td><td>Bogenklasse des Teilnehmers</td></tr>
+  <tr><td><code>{turniername}</code></td><td>Name des Turniers</td></tr>
+  <tr><td><code>{datum}</code></td><td>Turnierdatum (TT.MM.JJJJ)</td></tr>
+  <tr><td><code>{vereinsname}</code></td><td>Vereinsname aus dem Vereinsprofil</td></tr>
+  <tr><td><code>{kontakt_name}</code></td><td>Name der Standard-Kontaktperson</td></tr>
+  <tr><td><code>{kontakt_email}</code></td><td>E-Mail der Standard-Kontaktperson</td></tr>
+  <tr><td><code>{kontakt_telefon}</code></td><td>Telefon der Standard-Kontaktperson</td></tr>
+  <tr><td><code>{platz}</code></td><td>Endrang des Teilnehmers <i>(nur Ergebnisvorlage)</i></td></tr>
+  <tr><td><code>{punkte}</code></td><td>Gesamtpunktzahl <i>(nur Ergebnisvorlage)</i></td></tr>
+  <tr><td><code>{freigewordene_plaetze}</code></td><td>Anzahl freigewordener Plätze <i>(nur Wartelistenvorlage)</i></td></tr>
+</table>
 <h3>Tastenkürzel</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
   <tr><td><code>Strg+N</code></td><td>Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer)</td></tr>

@@ -105,14 +105,14 @@ class HelpersView(ListView):
         self._tournament_fields = [lbl, task_ff, time_from_ff, time_to_ff, confirmed_ff]
 
         # History section (global mode only, shown when editing an existing helper)
-        self._history_section = QWidget()
+        from PySide6.QtWidgets import QGroupBox
+        self._history_section = QGroupBox("Turnierbeteiligung")
         _hl = QVBoxLayout(self._history_section)
-        _hl.setContentsMargins(0, 8, 0, 0)
         _hl.setSpacing(4)
-        _hl.addWidget(QLabel("Turnierbeteiligung", objectName="fieldLabel"))
         self._history_label = QLabel()
         self._history_label.setWordWrap(True)
         self._history_label.setObjectName("pageSubtitle")
+        self._history_label.setTextFormat(Qt.TextFormat.RichText)
         _hl.addWidget(self._history_label)
         f.add_widget(self._history_section)
         self._history_section.setVisible(False)
@@ -306,19 +306,18 @@ class HelpersView(ListView):
             })
             history = hs.get_helper_history(aid)
             if history:
-                lines = []
+                rows = []
                 for r in history:
                     date_str = f"{r['date']:%d.%m.%Y}" if r['date'] else "–"
-                    parts = [r['name'], date_str]
-                    if r['task']:
-                        parts.append(r['task'])
                     time_str = "–".join(x for x in (r['time_from'], r['time_to']) if x)
-                    if time_str:
-                        parts.append(time_str)
-                    if r['confirmed']:
-                        parts.append("bestätigt")
-                    lines.append(" · ".join(parts))
-                self._history_label.setText("\n".join(lines))
+                    detail = " · ".join(filter(None, [r['task'], time_str,
+                                                      "bestätigt" if r['confirmed'] else None]))
+                    rows.append(
+                        f"<tr><td style='padding:2px 6px 2px 0'><b>{r['name']}</b></td>"
+                        f"<td style='padding:2px 6px 2px 0;color:#888'>{date_str}</td>"
+                        f"<td style='padding:2px 0'>{detail}</td></tr>"
+                    )
+                self._history_label.setText(f"<table>{''.join(rows)}</table>")
             else:
                 self._history_label.setText("Noch bei keinem Turnier eingesetzt.")
             self._history_section.setVisible(True)

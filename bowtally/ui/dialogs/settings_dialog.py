@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Settings dialog: club profile, design (colors), print and behavior."""
+from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
@@ -204,23 +205,21 @@ class SettingsDialog(QDialog):
 
         box_logo = QGroupBox("Logo")
         logo_lay = QHBoxLayout(box_logo)
-        self.logo_edit = QLineEdit(club.get("logo_path") or "")
-        self.logo_edit.textChanged.connect(self._update_logo)
+        self._logo_path = club.get("logo_path") or ""
         self.logo_preview = QLabel()
         self.logo_preview.setFixedSize(LOGO_PREVIEW, LOGO_PREVIEW)
         self.logo_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.logo_preview.setFrameShape(QLabel.Shape.StyledPanel)
         col = QVBoxLayout()
-        col.addWidget(self.logo_edit)
         row_btns = QHBoxLayout()
         row_btns.addWidget(button("Durchsuchen ...", self._browse_logo))
-        row_btns.addWidget(button("Entfernen", lambda: self.logo_edit.clear()))
+        row_btns.addWidget(button("Entfernen", self._remove_logo))
         row_btns.addStretch()
         col.addLayout(row_btns)
         col.addStretch()
         logo_lay.addLayout(col, 1)
         logo_lay.addWidget(self.logo_preview)
-        self._update_logo(self.logo_edit.text())
+        self._update_logo(self._logo_path)
         lay.addWidget(box_logo)
         lay.addStretch()
 
@@ -255,10 +254,20 @@ class SettingsDialog(QDialog):
         return scroll
 
     def _browse_logo(self):
+        import shutil
+        from bowtally import config
         path, _ = QFileDialog.getOpenFileName(self, "Logo auswählen", "",
                                               "Bilder (*.png *.jpg *.jpeg)")
-        if path:
-            self.logo_edit.setText(path)
+        if not path:
+            return
+        dest = config.APP_DATA_DIR / Path(path).name
+        shutil.copy2(path, dest)
+        self._logo_path = str(dest)
+        self._update_logo(self._logo_path)
+
+    def _remove_logo(self):
+        self._logo_path = ""
+        self._update_logo("")
 
     def _update_logo(self, path: str):
         pix = QPixmap(path) if path else QPixmap()
@@ -736,7 +745,7 @@ class SettingsDialog(QDialog):
             values.update({k: self._value_of(w) for k, w in self.value_widgets.items()})
             club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
                     for k, e in self.club_edits.items()}
-            club["logo_path"] = self.logo_edit.text().strip()
+            club["logo_path"] = self._logo_path
             ss.set_many(values)
             ss.save_club_profile(club)
             self._save_backup_settings()

@@ -194,7 +194,7 @@ class TournamentDetail(QWidget):
             "checkin": phase in CHECKIN_PHASES,
             "scoring": phase in ("shooting", "scoring", "closed"),
             "results": phase in ("scoring", "closed"),
-            "fees":    phase not in ("shooting", "scoring", "closed"),
+            "fees":    phase not in ("preparation", "shooting", "scoring", "closed"),
         }
         for key, visible in rules.items():
             self.tabs.setTabVisible(TABS.index(key), visible)

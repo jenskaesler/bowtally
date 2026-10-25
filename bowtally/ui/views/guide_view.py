@@ -231,19 +231,19 @@ class GuideView(QWidget):
                 grid.addWidget(btn, r, 2)
         grid.setColumnStretch(1, 1)
         lay.addLayout(grid)
+        lay.addStretch()
         nxt = ts.next_phase(t.phase)
         if nxt and not locked:
             conds = ts.get_phase_conditions(t.id, nxt)
-            has_blockers = any(not c.ok and c.severity == "blocker" for c in conds)
-            nxt_btn = button(f"Nächste Phase: {ts.PHASE_LABELS[nxt]}",
-                             lambda: self.action.emit("next_phase"),
-                             "primary" if not has_blockers else "",
-                             tooltip=f'Zu „{ts.PHASE_LABELS[nxt]}“ wechseln')
+            has_blockers = any(not c.ok and c.severity == “blocker” for c in conds)
+            nxt_btn = button(f”Nächste Phase: {ts.PHASE_LABELS[nxt]}”,
+                             lambda: self.action.emit(“next_phase”),
+                             “primary” if not has_blockers else “”,
+                             tooltip=f'Zu „{ts.PHASE_LABELS[nxt]}” wechseln')
             row = QHBoxLayout()
             row.addStretch()
             row.addWidget(nxt_btn)
             lay.addLayout(row)
-        lay.addStretch()
         return card
 
     def _conditions_card(self, t, nxt) -> QFrame:

@@ -3,8 +3,8 @@
 from collections import Counter
 
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtWidgets import (QDialog, QFileDialog, QHBoxLayout, QLabel, QListWidget,
-                               QListWidgetItem, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QHBoxLayout, QLabel,
+                               QListWidget, QListWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from bowtally.reports.result_list import build_result_list, temp_pdf_path
 from bowtally.services import ranking_service as rs
@@ -78,19 +78,18 @@ class _SendResultsDialog(QDialog):
                 item.setToolTip("Keine E-Mail-Adresse hinterlegt")
             self.lst.addItem(item)
         self.lst.itemChanged.connect(self._update_btn)
-        self._select_all_btn = button("Alle auswählen", self._toggle_all)
+        self._select_all_chk = QCheckBox("Alle auswählen")
+        self._select_all_chk.setTristate(True)
+        self._select_all_chk.clicked.connect(self._toggle_all)
         self.btn = button("E-Mail senden (0)", self._send, "primary")
         self.btn.setEnabled(False)
-        top_row = QHBoxLayout()
-        top_row.addWidget(self._select_all_btn)
-        top_row.addStretch()
         row = QHBoxLayout()
+        row.addWidget(self._select_all_chk)
         row.addStretch()
         row.addWidget(button("Schließen", self.reject))
         row.addWidget(self.btn)
         lay = QVBoxLayout(self)
         lay.addWidget(info)
-        lay.addLayout(top_row)
         lay.addWidget(self.lst, 1)
         lay.addLayout(row)
 
@@ -100,8 +99,9 @@ class _SendResultsDialog(QDialog):
 
     def _toggle_all(self):
         eligible = self._eligible()
-        all_checked = all(it.checkState() == Qt.CheckState.Checked for it in eligible)
-        state = Qt.CheckState.Unchecked if all_checked else Qt.CheckState.Checked
+        state = (Qt.CheckState.Unchecked
+                 if all(it.checkState() == Qt.CheckState.Checked for it in eligible)
+                 else Qt.CheckState.Checked)
         for it in eligible:
             it.setCheckState(state)
 
@@ -110,9 +110,14 @@ class _SendResultsDialog(QDialog):
         n = sum(1 for it in eligible if it.checkState() == Qt.CheckState.Checked)
         self.btn.setText(f"E-Mail senden ({n})")
         self.btn.setEnabled(n > 0)
-        self._select_all_btn.setText(
-            "Alle abwählen" if eligible and n == len(eligible) else "Alle auswählen"
-        )
+        self._select_all_chk.blockSignals(True)
+        if n == 0:
+            self._select_all_chk.setCheckState(Qt.CheckState.Unchecked)
+        elif n == len(eligible):
+            self._select_all_chk.setCheckState(Qt.CheckState.Checked)
+        else:
+            self._select_all_chk.setCheckState(Qt.CheckState.PartiallyChecked)
+        self._select_all_chk.blockSignals(False)
 
     def _send(self):
         t = self._t

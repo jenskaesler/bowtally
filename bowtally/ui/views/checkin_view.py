@@ -155,10 +155,9 @@ class CheckinView(QWidget):
     def _on_selection(self, _ids):
         p = self._selected()
         enabled = self.tournament is not None and self.tournament.phase in CHECKIN_PHASES
-        can = p is not None and enabled and p.registration_status != "checked_in"
-        self.btn_checkin.setEnabled(can)
-        self.btn_checkin.setText("Bereits eingecheckt" if p is not None
-                                 and p.registration_status == "checked_in" else "Einchecken")
+        checked_in = p is not None and p.registration_status == "checked_in"
+        self.btn_checkin.setEnabled(p is not None and enabled)
+        self.btn_checkin.setText("Auschecken" if checked_in else "Einchecken")
         self.payment_warning.setVisible(p is not None and p.payment_status != "paid")
 
     # ------------------------------------------------------------ actions
@@ -170,15 +169,23 @@ class CheckinView(QWidget):
         p = self._selected()
         if p is None or not self.btn_checkin.isEnabled():
             return
+        undo = p.registration_status == "checked_in"
         try:
-            ps.checkin(p.id)
+            if undo:
+                ps.set_registration_status(p.id, "confirmed")
+            else:
+                ps.checkin(p.id)
         except Exception as exc:
             show_error(self, exc)
             return
-        unpaid = p.payment_status != "paid"
-        Toast.show(self, f"{p.archer.first_name} {p.archer.last_name} eingecheckt"
-                   + (f" – {PAYMENT_WARNING}" if unpaid else ""),
-                   Toast.WARNING if unpaid else Toast.SUCCESS)
+        if undo:
+            Toast.show(self, f"{p.archer.first_name} {p.archer.last_name} ausgecheckt",
+                       Toast.SUCCESS)
+        else:
+            unpaid = p.payment_status != "paid"
+            Toast.show(self, f"{p.archer.first_name} {p.archer.last_name} eingecheckt"
+                       + (f" – {PAYMENT_WARNING}" if unpaid else ""),
+                       Toast.WARNING if unpaid else Toast.SUCCESS)
         self.search.clear()
         context.notify()
         self.set_tournament(ts.get_tournament(self.tournament.id))
