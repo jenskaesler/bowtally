@@ -52,7 +52,10 @@ class _SortItem(QTableWidgetItem):
         a, b = self.data(SORT_ROLE), other.data(SORT_ROLE)
         if type(a) is not type(b):   # mixed (e.g. number vs. empty) -> compare as text
             return str(a) < str(b)
-        return a < b
+        try:
+            return a < b
+        except TypeError:
+            return str(a) < str(b)
 
 
 class ReorderTable(QTableWidget):

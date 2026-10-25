@@ -35,7 +35,7 @@ class ProgressBar(QWidget):
         super().__init__(parent)
         self.setFixedHeight(BAR_HEIGHT)
         self._value, self._color = 0.0, None
-        theme.notifier.changed.connect(self.update)
+        theme.notifier.changed.connect(self.update)  # Qt auto-disconnects on destroy
 
     def set_value(self, percentage: float, color: str | None = None) -> None:
         self._value = max(0.0, min(percentage, 100.0))
@@ -68,7 +68,11 @@ class CapacityBar(QWidget):
         lay.addWidget(self.bar)
         lay.addWidget(self.label)
         self._cap = None
-        theme.notifier.changed.connect(lambda: self._cap and self.set_capacity(self._cap))
+        theme.notifier.changed.connect(self._on_theme_changed)  # Qt auto-disconnects on destroy
+
+    def _on_theme_changed(self):
+        if self._cap:
+            self.set_capacity(self._cap)
 
     def set_capacity(self, cap) -> None:
         self._cap = cap
