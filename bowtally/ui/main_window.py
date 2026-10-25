@@ -646,9 +646,13 @@ class MainWindow(QMainWindow):
             return
         self._save_settings()
         if ss.get_bool("backup_on_close"):
+            target = ss.get("backup_target") or "local"
             try:
                 from bowtally.services import backup_service as bs
-                bs.backup_local()
+                if target == "nextcloud":
+                    bs.backup_nextcloud()
+                else:
+                    bs.backup_local()
             except Exception:
                 pass
         super().closeEvent(event)

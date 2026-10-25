@@ -5,7 +5,8 @@ from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSpinBox, QTabWidget, QVBoxLayout, QWidget)
+                               QScrollArea, QSpinBox, QStackedWidget, QTabWidget, QVBoxLayout,
+                               QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import button, restore_geom, save_geom, show_error
@@ -367,8 +368,29 @@ class SettingsDialog(QDialog):
         auto_lay.addWidget(self._backup_on_close)
         lay.addWidget(auto_box)
 
-        local_box = QGroupBox("Lokales Backup (NAS / USB)")
-        local_form = QFormLayout(local_box)
+        target_box = QGroupBox("Backup-Ziel")
+        target_lay = QVBoxLayout(target_box)
+        self._backup_target_combo = QComboBox()
+        self._backup_target_combo.addItem("Kein Backup", "none")
+        self._backup_target_combo.addItem("Lokal (NAS / USB)", "local")
+        self._backup_target_combo.addItem("Nextcloud", "nextcloud")
+        saved = ss.get("backup_target") or (
+            "nextcloud" if ss.get("backup_nc_url") else
+            "local" if ss.get("backup_local_path") else "none")
+        idx = self._backup_target_combo.findData(saved)
+        self._backup_target_combo.setCurrentIndex(max(0, idx))
+        target_lay.addWidget(self._backup_target_combo)
+
+        self._backup_stack = QStackedWidget()
+
+        # Page 0: none
+        self._backup_stack.addWidget(QWidget())
+
+        # Page 1: local
+        local_w = QWidget()
+        local_lay = QVBoxLayout(local_w)
+        local_lay.setContentsMargins(0, 8, 0, 0)
+        local_form = QFormLayout()
         self._backup_path_edit = QLineEdit(ss.get("backup_local_path") or "")
         self._backup_path_edit.setPlaceholderText("Pfad zum Backup-Ordner …")
         browse_btn = button("…", lambda: self._browse_backup_path())
@@ -384,15 +406,19 @@ class SettingsDialog(QDialog):
         self._backup_retention.setSuffix(" Backups behalten")
         local_form.addRow(self._flbl("Backup-Pfad"), path_widget)
         local_form.addRow(self._flbl("Aufbewahrung"), self._backup_retention)
+        local_lay.addLayout(local_form)
         local_btns = QHBoxLayout()
         local_btns.addWidget(button("Backup jetzt erstellen", lambda: self._do_local_backup(bs),
                                     "primary", "Datenbank als ZIP in den Backup-Ordner sichern"))
         local_btns.addStretch()
-        lay.addWidget(local_box)
-        lay.addLayout(local_btns)
+        local_lay.addLayout(local_btns)
+        self._backup_stack.addWidget(local_w)
 
-        nc_box = QGroupBox("Nextcloud")
-        nc_form = QFormLayout(nc_box)
+        # Page 2: nextcloud
+        nc_w = QWidget()
+        nc_lay = QVBoxLayout(nc_w)
+        nc_lay.setContentsMargins(0, 8, 0, 0)
+        nc_form = QFormLayout()
         self._nc_url = QLineEdit(ss.get("backup_nc_url") or "")
         self._nc_url.setPlaceholderText("https://nextcloud.example.com")
         self._nc_user = QLineEdit(ss.get("backup_nc_user") or "")
@@ -401,12 +427,18 @@ class SettingsDialog(QDialog):
         nc_form.addRow(self._flbl("URL"), self._nc_url)
         nc_form.addRow(self._flbl("Benutzername"), self._nc_user)
         nc_form.addRow(self._flbl("Passwort"), self._nc_pass)
+        nc_lay.addLayout(nc_form)
         nc_btns = QHBoxLayout()
         nc_btns.addWidget(button("Zu Nextcloud sichern", lambda: self._do_nc_backup(bs),
                                  tooltip="Backup in Nextcloud hochladen"))
         nc_btns.addStretch()
-        lay.addWidget(nc_box)
-        lay.addLayout(nc_btns)
+        nc_lay.addLayout(nc_btns)
+        self._backup_stack.addWidget(nc_w)
+
+        self._backup_stack.setCurrentIndex(self._backup_target_combo.currentIndex())
+        self._backup_target_combo.currentIndexChanged.connect(self._backup_stack.setCurrentIndex)
+        target_lay.addWidget(self._backup_stack)
+        lay.addWidget(target_box)
 
         restore_box = QGroupBox("Wiederherstellen")
         restore_lay = QVBoxLayout(restore_box)
@@ -430,7 +462,8 @@ class SettingsDialog(QDialog):
             self._backup_path_edit.setText(path)
 
     def _save_backup_settings(self):
-        ss.set_many({"backup_local_path": self._backup_path_edit.text().strip(),
+        ss.set_many({"backup_target": self._backup_target_combo.currentData(),
+                     "backup_local_path": self._backup_path_edit.text().strip(),
                      "backup_retention": str(self._backup_retention.value()),
                      "backup_nc_url": self._nc_url.text().strip(),
                      "backup_nc_user": self._nc_user.text().strip(),

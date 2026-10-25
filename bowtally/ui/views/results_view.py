@@ -72,30 +72,47 @@ class _SendResultsDialog(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, p)
             if has_email:
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(Qt.CheckState.Unchecked)
             else:
                 item.setFlags(Qt.ItemFlag.NoItemFlags)
                 item.setToolTip("Keine E-Mail-Adresse hinterlegt")
             self.lst.addItem(item)
         self.lst.itemChanged.connect(self._update_btn)
+        self._select_all_btn = button("Alle auswählen", self._toggle_all)
         self.btn = button("E-Mail senden (0)", self._send, "primary")
+        self.btn.setEnabled(False)
+        top_row = QHBoxLayout()
+        top_row.addWidget(self._select_all_btn)
+        top_row.addStretch()
         row = QHBoxLayout()
         row.addStretch()
         row.addWidget(button("Schließen", self.reject))
         row.addWidget(self.btn)
         lay = QVBoxLayout(self)
         lay.addWidget(info)
+        lay.addLayout(top_row)
         lay.addWidget(self.lst, 1)
         lay.addLayout(row)
-        self._update_btn()
+
+    def _eligible(self):
+        return [self.lst.item(i) for i in range(self.lst.count())
+                if bool(self.lst.item(i).flags() & Qt.ItemFlag.ItemIsEnabled)]
+
+    def _toggle_all(self):
+        eligible = self._eligible()
+        all_checked = all(it.checkState() == Qt.CheckState.Checked for it in eligible)
+        state = Qt.CheckState.Unchecked if all_checked else Qt.CheckState.Checked
+        for it in eligible:
+            it.setCheckState(state)
 
     def _update_btn(self, *_):
-        n = sum(
-            1 for i in range(self.lst.count())
-            if self.lst.item(i).checkState() == Qt.CheckState.Checked
-        )
+        eligible = self._eligible()
+        n = sum(1 for it in eligible if it.checkState() == Qt.CheckState.Checked)
         self.btn.setText(f"E-Mail senden ({n})")
         self.btn.setEnabled(n > 0)
+        self._select_all_btn.setText(
+            "Alle abwählen" if eligible and n == len(eligible) else "Alle auswählen"
+        )
 
     def _send(self):
         t = self._t
