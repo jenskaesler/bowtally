@@ -28,6 +28,8 @@ def builtin_chip(builtin: bool) -> Cell:
 
 
 class BowClassDialog(RecordDialog):
+    _default_size = (684, 448)
+
     def __init__(self, record=None, parent=None):
         self._record = record
         ro = bool(record and record.is_builtin)

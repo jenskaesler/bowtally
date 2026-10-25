@@ -23,6 +23,8 @@ EXPORT_HEADERS = ["Nachname", "Vorname", "Geburtsdatum", "Verein", "Mitgliedsnum
 
 
 class ArcherDialog(RecordDialog):
+    _default_size = (1060, 716)
+
     def __init__(self, record=None, parent=None):
         self._record = record
         super().__init__(

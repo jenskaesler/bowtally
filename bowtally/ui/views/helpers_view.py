@@ -86,6 +86,7 @@ class _HelperPicker(QDialog):
 
 class HelperDialog(RecordDialog):
     """Create / edit a helper (global) or a tournament assignment (tournament mode)."""
+    _default_size = (698, 584)
 
     def __init__(self, record=None, tournament_id=None, parent=None):
         self._record = record

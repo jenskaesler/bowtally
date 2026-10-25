@@ -149,6 +149,8 @@ def _json_validator(text) -> str | None:
 
 
 class ScoringRuleDialog(RecordDialog):
+    _default_size = (956, 756)
+
     def __init__(self, record=None, parent=None):
         self._record = record
         ro = bool(record and record.is_builtin)

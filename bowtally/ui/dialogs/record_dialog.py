@@ -91,12 +91,16 @@ class RecordDialog(QDialog):
         if w and h:
             self.resize(w, h)
         else:
-            self.adjustSize()
-            screen_h = QApplication.primaryScreen().availableGeometry().height()
-            if self.height() > screen_h * 0.8:
-                self.resize(self.width(), int(screen_h * 0.8))
-            if self.width() < 560:
-                self.resize(560, self.height())
+            dw, dh = getattr(self, "_default_size", (560, 0))
+            if dh:
+                self.resize(dw, dh)
+            else:
+                self.adjustSize()
+                screen_h = QApplication.primaryScreen().availableGeometry().height()
+                if self.height() > screen_h * 0.8:
+                    self.resize(self.width(), int(screen_h * 0.8))
+                if self.width() < dw:
+                    self.resize(dw, self.height())
         p = self.parent()
         if p:
             pg = p.window().geometry()
