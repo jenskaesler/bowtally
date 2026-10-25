@@ -1,4 +1,4 @@
-; NSIS installer script for BowTally (NSIS 3.x, Modern UI 2)
+﻿; NSIS installer script for BowTally (NSIS 3.x, Modern UI 2)
 ; Build the app first (build\build.bat), then:  makensis build\setup.nsi
 ; Optional: makensis /DVERSION=0.2.0 build\setup.nsi
 
@@ -6,6 +6,8 @@ Unicode true
 !include "MUI2.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
+
+SetCompressor /SOLID lzma   ; <-- hier, vor allen VI-Keys und Defines
 
 ; ============================================================
 ; Version und Konstanten
@@ -90,7 +92,6 @@ OutFile "dist\${INSTALLERNAME}.exe"
 InstallDir "$PROGRAMFILES64\${APPNAME}"
 InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
-SetCompressor /SOLID lzma
 BrandingText "${APPNAME} ${VERSION} by ${PUBLISHER}"
 ShowInstDetails   show
 ShowUninstDetails show
