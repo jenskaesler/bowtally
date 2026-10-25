@@ -6,7 +6,7 @@ direct links, manually ticked checklist items and phase specific figures.
 """
 from dataclasses import dataclass
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (QCheckBox, QFrame, QGridLayout, QHBoxLayout, QLabel,
                                QPlainTextEdit, QScrollArea, QVBoxLayout, QWidget)
 
@@ -322,7 +322,7 @@ class GuideView(QWidget):
     # ------------------------------------------------------------ actions
     def _tick(self, key: str, value: bool):
         ts.set_checklist_item(self.tid, key, value)
-        context.notify()
+        QTimer.singleShot(0, context.notify)
 
     def _save_note(self, key: str, text: str):
         ts.set_checklist_item(self.tid, key, text.strip())
