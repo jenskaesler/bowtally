@@ -174,6 +174,7 @@ class HelpersView(ListView):
 
         if not has_tournament:
             # Global mode: show master data
+            self._rows = {}
             self.table.set_headers(GLOBAL_HEADERS)
             show_inactive = self._show_inactive.isChecked()
             with busy():
@@ -191,6 +192,7 @@ class HelpersView(ListView):
             self.header.set_subtitle(f"{len(helpers)} Helfer in Stammdatei")
         else:
             # Tournament mode: show assignments
+            self._rows = {}
             self.table.set_headers(TOURNAMENT_HEADERS)
             with busy():
                 rows = hs.list_tournament_helpers(tid)
