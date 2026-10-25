@@ -19,7 +19,7 @@ from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.views import ListView
 
-HEADERS = ["Name", "Aufgabe", "Von", "Bis", "Bestätigt", "Telefon", "E-Mail"]
+HEADERS = ["Name", "Aufgabe", "Von", "Bis", "Bestätigt", "Aktiv", "Telefon", "E-Mail"]
 
 
 class _HelperPicker(QDialog):
@@ -103,10 +103,12 @@ class HelpersView(ListView):
                            "Helfer anlegen")
         super().__init__("Helfer", HEADERS, empty, f, "Name oder Aufgabe …")
         empty.actionTriggered.connect(self.new_item)
-        self.header.add(button("Aus Stammdatei", self._pick_from_master,
-                               tooltip="Helfer aus globaler Stammdatei zuweisen"))
-        self.header.add(button("Neuer Helfer", self.new_item, "primary",
-                               "Neuen Helfer anlegen und zuweisen (Strg+N)"))
+        self._btn_from_master = button("Aus Stammdatei", self._pick_from_master,
+                                       tooltip="Helfer aus globaler Stammdatei zuweisen")
+        self._btn_new = button("Neuer Helfer", self.new_item, "primary",
+                               "Neuen Helfer anlegen und zuweisen (Strg+N)")
+        self.header.add(self._btn_from_master)
+        self.header.add(self._btn_new)
         footer = QWidget()
         fl = QHBoxLayout(footer)
         fl.setContentsMargins(0, 4, 0, 0)
@@ -128,7 +130,10 @@ class HelpersView(ListView):
     # ---------------------------------------------------------------- data
     def refresh(self):
         tid = context.tournament_id
-        if tid is None:
+        has_tournament = tid is not None
+        self._btn_from_master.setVisible(has_tournament)
+        self._btn_new.setVisible(has_tournament)
+        if not has_tournament:
             self.table.set_rows([], [])
             self.header.set_subtitle("Kein Turnier geöffnet")
             return
@@ -143,6 +148,7 @@ class HelpersView(ListView):
             r.time_from or "",
             r.time_to or "",
             Cell(r.confirmed, chip=("Ja", "success") if r.confirmed else ("Nein", "muted")),
+            Cell(r.helper.active, chip=("Aktiv", "success") if r.helper.active else ("Inaktiv", "muted")),
             r.helper.phone or "",
             r.helper.email or "",
         ] for r in rows], [r.id for r in rows])
