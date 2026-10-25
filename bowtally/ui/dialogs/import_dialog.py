@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog
 
 from bowtally.io import importer
 from bowtally.services import ValidationError
-from bowtally.ui import show_error
+from bowtally.ui import restore_geom, save_geom, show_error
 from bowtally.ui.components.data_table import display
 
 UNMAPPED = "(nicht zuordnen)"
@@ -23,6 +23,8 @@ class ImportDialog(QDialog):
         self.extra_check = extra_check
         self.setWindowTitle(title)
         self.resize(900, 700)
+        restore_geom(self, "import")
+        self.finished.connect(lambda: save_geom(self, "import"))
         self.headers, self.rows, self.fields = headers, rows, fields
         self.records: list[dict] = []
 

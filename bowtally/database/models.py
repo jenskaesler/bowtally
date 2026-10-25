@@ -283,6 +283,36 @@ class Score(Base):
     participant: Mapped["TournamentParticipant"] = relationship(back_populates="scores")
 
 
+class Helper(Base):
+    __tablename__ = "helpers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    first_name: Mapped[str] = mapped_column(Text, nullable=False)
+    last_name: Mapped[str] = mapped_column(Text, nullable=False)
+    phone: Mapped[str | None] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.last_name}, {self.first_name}"
+
+
+class TournamentHelper(Base):
+    __tablename__ = "tournament_helpers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id", ondelete="CASCADE"))
+    helper_id: Mapped[int] = mapped_column(ForeignKey("helpers.id", ondelete="CASCADE"))
+    task: Mapped[str | None] = mapped_column(Text)
+    time_from: Mapped[str | None] = mapped_column(Text)
+    time_to: Mapped[str | None] = mapped_column(Text)
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    helper: Mapped["Helper"] = relationship()
+
+
 class PhaseTransitionLog(Base):
     __tablename__ = "phase_transition_log"
 

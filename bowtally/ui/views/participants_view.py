@@ -8,8 +8,10 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout, QLa
 from bowtally.io.importer import PARTICIPANT_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
 from bowtally.services import participant_service as ps
+from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.ui import busy, button, show_error
+from bowtally.ui import busy, button, restore_geom, save_geom, show_error
+from bowtally.ui.utils.mailto import open_mailto
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
@@ -44,6 +46,8 @@ class ArcherPicker(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Schützen zuweisen")
         self.resize(560, 600)
+        restore_geom(self, "archer_picker")
+        self.finished.connect(lambda: save_geom(self, "archer_picker"))
         self.free_slots = free_slots
         self.search = SearchBar("Name, Verein oder Mitgliedsnummer …")
         self.list = QListWidget()
@@ -135,6 +139,74 @@ class ClassAssignDialog(QDialog):
 
     def choices(self) -> dict[int, int]:
         return {aid: cb.currentData() for aid, cb in self.combos.items()}
+
+
+class _WaitlistNotifyDialog(QDialog):
+    """List currently-waitlisted participants; send each a mailto from email_waitlist template."""
+
+    def __init__(self, waitlisted, freed_slots: int, tournament, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Warteliste benachrichtigen")
+        self.resize(480, 360)
+        self._waitlisted = waitlisted
+        self._freed = freed_slots
+        self._tournament = tournament
+        info = QLabel(
+            f"{freed_slots} Platz/Plätze frei geworden – "
+            f"{len(waitlisted)} Personen auf der Warteliste.",
+            objectName="pageSubtitle"
+        )
+        info.setWordWrap(True)
+        self.lst = QListWidget()
+        for p in waitlisted:
+            has_email = bool(p.archer.email)
+            text = (f"{p.archer.last_name}, {p.archer.first_name}"
+                    + (f"   {p.archer.email}" if has_email else "   (keine E-Mail)"))
+            item = QListWidgetItem(text)
+            item.setData(Qt.ItemDataRole.UserRole, p)
+            if has_email:
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                item.setToolTip("Keine E-Mail-Adresse hinterlegt")
+            self.lst.addItem(item)
+        self.lst.itemChanged.connect(self._update_btn)
+        self.btn = button("E-Mail senden (0)", self._send, "primary")
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(button("Schließen", self.reject))
+        row.addWidget(self.btn)
+        lay = QVBoxLayout(self)
+        lay.addWidget(info)
+        lay.addWidget(self.lst, 1)
+        lay.addLayout(row)
+        self._update_btn()
+
+    def _update_btn(self, *_):
+        n = sum(
+            1 for i in range(self.lst.count())
+            if self.lst.item(i).checkState() == Qt.CheckState.Checked
+        )
+        self.btn.setText(f"E-Mail senden ({n})")
+        self.btn.setEnabled(n > 0)
+
+    def _send(self):
+        t = self._tournament
+        for i in range(self.lst.count()):
+            item = self.lst.item(i)
+            if item.checkState() != Qt.CheckState.Checked:
+                continue
+            p = item.data(Qt.ItemDataRole.UserRole)
+            open_mailto(ss.KEY_EMAIL_TPL_WAITLIST, p.archer.email, {
+                "name": f"{p.archer.first_name} {p.archer.last_name}",
+                "verein": p.archer.club or "",
+                "klasse": p.bow_class.name if p.bow_class else "",
+                "turniername": t.name,
+                "datum": f"{t.date:%d.%m.%Y}",
+                "freigewordene_plaetze": str(self._freed),
+            }, self)
+        self.accept()
 
 
 class ParticipantsView(QWidget):
@@ -311,15 +383,16 @@ class ParticipantsView(QWidget):
         tip = CLOSED_HINT if locked else ""
         sel = self._selected()
         to_confirm = sum(p.registration_status == "registered" for p in sel)
-        to_pay = sum(p.payment_status != "paid" for p in sel)
+        to_pay = sum(p.payment_status != "paid" and p.registration_status != "withdrawn"
+                     and p.entry_fee_id is not None for p in sel)
         actions = [] if not n else [
             Action(f"{to_confirm} Anmeldungen bestätigen" if n > 1 else "Anmeldung bestätigen",
                    self.confirm_selected, enabled=not locked and to_confirm > 0,
-                   tooltip=tip or 'Status „Bestätigt“ setzen'),
+                   tooltip=tip or 'Status „Bestätigt" setzen'),
             Action(f"{to_pay} Zahlungen als eingegangen markieren" if n > 1
                    else "Zahlung eingegangen", self.mark_paid_selected,
                    enabled=not locked and to_pay > 0,
-                   tooltip=tip or 'Zahlungsstatus „Bezahlt“ mit heutigem Datum'),
+                   tooltip=tip or 'Zahlungsstatus „Bezahlt" mit heutigem Datum'),
             Action("Klasse ändern", self.change_class, enabled=not locked,
                    tooltip=tip or "Bogenklasse für die Auswahl setzen"),
             Action("Gruppe ändern", self.change_group, enabled=not locked,
@@ -334,33 +407,46 @@ class ParticipantsView(QWidget):
         checkin_phase = self.tournament.phase in ("checkin", "shooting")
         sel = self._selected()
         active = ("registered", "confirmed", "checked_in")
+        all_withdrawn = all(p.registration_status == "withdrawn" for p in sel)
         entries = [
             ("Anmeldung bestätigen", self.confirm_selected,
              not locked and any(p.registration_status in ("registered", "waitlisted")
                                 for p in sel)),
             ("Zahlung als eingegangen markieren", self.mark_paid_selected,
              not locked and any(p.payment_status != "paid" and p.entry_fee_id is not None
-                                for p in sel)),
+                                and p.registration_status != "withdrawn" for p in sel)),
         ]
         if checkin_phase:
             entries.append(("Einchecken", lambda: self._set_status("checked_in"),
-                            not locked and any(p.registration_status != "checked_in"
+                            not locked and any(p.registration_status in active
+                                               and p.registration_status != "checked_in"
                                                for p in sel)))
         entries += [
             ("Als DNS markieren (nicht gestartet)", lambda: self._set_status("dns"),
              not locked and any(p.registration_status in active for p in sel)),
             ("Als zurückgezogen markieren", lambda: self._set_status("withdrawn"),
              not locked and any(p.registration_status in active for p in sel)),
-            ('Auf „Gemeldet“ zurücksetzen', lambda: self._set_status("registered"),
+            ('Auf „Gemeldet" zurücksetzen', lambda: self._set_status("registered"),
              not locked and any(p.registration_status in ("confirmed", "checked_in")
                                 for p in sel)),
-            ("Zahlung als ausstehend markieren", lambda: self._set_payment("unpaid"), not locked),
+            ("Zahlung als ausstehend markieren", lambda: self._set_payment("unpaid"),
+             not locked and not all_withdrawn),
             None,
-            ("Gebühr zuweisen …", self.change_fee, not locked),
-            ("Klasse ändern …", self.change_class, not locked),
-            ("Gruppe ändern …", self.change_group, not locked),
+            ("Gebühr zuweisen …", self.change_fee, not locked and not all_withdrawn),
+            ("Klasse ändern …", self.change_class, not locked and not all_withdrawn),
+            ("Gruppe ändern …", self.change_group, not locked and not all_withdrawn),
             None,
             ("Entfernen", self.remove_selected, not locked),
+        ]
+        has_email = any(p.archer.email for p in sel)
+        entries += [
+            None,
+            ("E-Mail: Anmeldebestätigung senden",
+             lambda: self._send_email(ss.KEY_EMAIL_TPL_CONFIRMATION), has_email),
+            ("E-Mail: Zahlungserinnerung senden",
+             lambda: self._send_email(ss.KEY_EMAIL_TPL_PAYMENT), has_email),
+            ("E-Mail: Startunterlagen senden",
+             lambda: self._send_email(ss.KEY_EMAIL_TPL_DOCS), has_email),
         ]
         menu(self, entries).exec(pos)
 
@@ -371,10 +457,32 @@ class ParticipantsView(QWidget):
         n = ps.bulk_confirm([p.id for p in sel])
         Toast.show(self, f"{n} Anmeldungen bestätigt", Toast.SUCCESS)
         self._reload()
+        with_email = [p for p in sel if p.archer.email]
+        if with_email and ConfirmDialog.ask(
+                self, "Bestätigungsmail senden?",
+                f"Bestätigungsmail an {len(with_email)} Teilnehmer senden?",
+                "E-Mail senden", destructive=False):
+            t = self.tournament
+            for p in with_email:
+                open_mailto(ss.KEY_EMAIL_TPL_CONFIRMATION, p.archer.email, {
+                    "name": f"{p.archer.first_name} {p.archer.last_name}",
+                    "verein": p.archer.club or "",
+                    "klasse": p.bow_class.name if p.bow_class else "",
+                    "turniername": t.name,
+                    "datum": f"{t.date:%d.%m.%Y}",
+                }, self)
 
     def mark_paid_selected(self):
         sel = self._selected()
         if not sel:
+            return
+        missing_fee = [p for p in sel if not p.entry_fee_id]
+        if missing_fee and not ConfirmDialog.ask(
+                self, "Gebühr nicht zugewiesen",
+                f"Bei {len(missing_fee)} Teilnehmer"
+                f"{'n' if len(missing_fee) > 1 else ''} ist noch keine Gebühr zugewiesen. "
+                "Trotzdem als bezahlt markieren?",
+                "Trotzdem markieren", destructive=False):
             return
         n = ps.bulk_mark_paid([p.id for p in sel])
         Toast.show(self, f"{n} Zahlungen als eingegangen markiert", Toast.SUCCESS)
@@ -385,7 +493,7 @@ class ParticipantsView(QWidget):
         if status == "registered" or status in ("dns", "withdrawn"):
             if status != "registered" and not ConfirmDialog.ask(
                     self, "Status ändern?",
-                    f'{len(sel)} Teilnehmer werden als „{ps.REGISTRATION_LABELS[status]}“ '
+                    f'{len(sel)} Teilnehmer werden als „{ps.REGISTRATION_LABELS[status]}" '
                     "markiert.", "Ändern", destructive=False):
                 return
         try:
@@ -399,7 +507,7 @@ class ParticipantsView(QWidget):
         Toast.show(self, f"Status: {ps.REGISTRATION_LABELS[status]}", Toast.SUCCESS)
         self._reload()
         if promoted:
-            Toast.show(self, f"{promoted} Teilnehmer von Warteliste nachgerückt", Toast.SUCCESS)
+            self._show_promoted_toast(promoted)
 
     def _set_payment(self, status: str):
         for p in self._selected():
@@ -457,7 +565,7 @@ class ParticipantsView(QWidget):
         text = (f"{sel[0].archer.first_name} {sel[0].archer.last_name} wird aus dem Turnier "
                 "entfernt." if len(sel) == 1 else f"{len(sel)} Teilnehmer werden aus dem Turnier "
                 "entfernt.")
-        text += '\n\nTipp: „Als zurückgezogen markieren“ behält die Anmeldung in der Historie.'
+        text += '\n\nTipp: „Als zurückgezogen markieren" behält die Anmeldung in der Historie.'
         if with_scores:
             text += f"\n\nAchtung: Für {len(with_scores)} davon sind bereits Ergebnisse " \
                     "erfasst. Diese werden gelöscht."
@@ -470,7 +578,39 @@ class ParticipantsView(QWidget):
         Toast.show(self, f"{len(sel)} Teilnehmer entfernt", Toast.SUCCESS)
         self._reload()
         if promoted:
-            Toast.show(self, f"{promoted} Teilnehmer von Warteliste nachgerückt", Toast.SUCCESS)
+            self._show_promoted_toast(promoted)
+
+    def _show_promoted_toast(self, promoted: int):
+        waitlisted = [p for p in self._parts.values()
+                      if p.registration_status == "waitlisted"]
+        action = (("Benachrichtigen",
+                   lambda wl=waitlisted, fr=promoted: self._notify_waitlist(wl, fr))
+                  if waitlisted else None)
+        Toast.show(self, f"{promoted} Teilnehmer von Warteliste nachgerückt",
+                   Toast.SUCCESS, action)
+
+    def _notify_waitlist(self, waitlisted, freed_slots: int):
+        dlg = _WaitlistNotifyDialog(waitlisted, freed_slots, self.tournament, self)
+        dlg.exec()
+
+    def _send_email(self, template_key: str):
+        sel = self._selected()
+        if not sel:
+            return
+        t = self.tournament
+        if len(sel) > 1 and not ConfirmDialog.ask(
+                self, "Mehrere E-Mails öffnen?",
+                f"{len(sel)} Mail-Fenster werden geöffnet.", "Fortfahren",
+                destructive=False):
+            return
+        for p in sel:
+            open_mailto(template_key, p.archer.email, {
+                "name": f"{p.archer.first_name} {p.archer.last_name}",
+                "verein": p.archer.club or "",
+                "klasse": p.bow_class.name if p.bow_class else "",
+                "turniername": t.name,
+                "datum": f"{t.date:%d.%m.%Y}",
+            }, self)
 
     # ------------------------------------------------------------ add / import
     def pick_archers(self):

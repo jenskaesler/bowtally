@@ -2,8 +2,9 @@
 """Rankings per bow class (tabs), podium highlight, export dropdown, PDF in background."""
 from collections import Counter
 
-from PySide6.QtCore import QThread, Signal
-from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtWidgets import (QDialog, QFileDialog, QHBoxLayout, QLabel, QListWidget,
+                               QListWidgetItem, QTabWidget, QVBoxLayout, QWidget)
 
 from bowtally.reports.result_list import build_result_list, temp_pdf_path
 from bowtally.services import ranking_service as rs
@@ -15,6 +16,7 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.spinner import Spinner
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button, open_path
+from bowtally.ui.utils.mailto import open_mailto
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
 NOT_PRINTABLE = "Ergebnisliste erst ab der Phase „Schießen“ verfügbar"
@@ -38,12 +40,90 @@ def rank_text(rank: int, counts: Counter) -> str:
     return f"{rank} (ex aequo)" if counts[rank] > 1 else str(rank)
 
 
+_ACTIVE_FOR_RESULTS = {"registered", "confirmed", "checked_in", "dnf", "dsq"}
+
+
+class _SendResultsDialog(QDialog):
+    """Select participants to notify about their results via mailto."""
+
+    def __init__(self, tournament_id, pid_to_rank: dict, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Ergebnisse versenden")
+        self.resize(520, 420)
+        t = ts.get_tournament(tournament_id)
+        self._t = t
+        self._pid_to_rank = pid_to_rank
+        info = QLabel(f"Ergebnisse für {t.name} ({t.date:%d.%m.%Y}) per E-Mail versenden.",
+                      objectName="pageSubtitle")
+        info.setWordWrap(True)
+        self.lst = QListWidget()
+        parts = sorted(
+            [p for p in t.participants if p.registration_status in _ACTIVE_FOR_RESULTS],
+            key=lambda p: (p.archer.last_name, p.archer.first_name)
+        )
+        for p in parts:
+            has_email = bool(p.archer.email)
+            r = pid_to_rank.get(p.id)
+            rank_info = f"   Rang {r.rank}, {r.total} Pkt." if r else ""
+            text = (f"{p.archer.last_name}, {p.archer.first_name}"
+                    + rank_info
+                    + (f"   {p.archer.email}" if has_email else "   (keine E-Mail)"))
+            item = QListWidgetItem(text)
+            item.setData(Qt.ItemDataRole.UserRole, p)
+            if has_email:
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Checked)
+            else:
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                item.setToolTip("Keine E-Mail-Adresse hinterlegt")
+            self.lst.addItem(item)
+        self.lst.itemChanged.connect(self._update_btn)
+        self.btn = button("E-Mail senden (0)", self._send, "primary")
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(button("Schließen", self.reject))
+        row.addWidget(self.btn)
+        lay = QVBoxLayout(self)
+        lay.addWidget(info)
+        lay.addWidget(self.lst, 1)
+        lay.addLayout(row)
+        self._update_btn()
+
+    def _update_btn(self, *_):
+        n = sum(
+            1 for i in range(self.lst.count())
+            if self.lst.item(i).checkState() == Qt.CheckState.Checked
+        )
+        self.btn.setText(f"E-Mail senden ({n})")
+        self.btn.setEnabled(n > 0)
+
+    def _send(self):
+        t = self._t
+        for i in range(self.lst.count()):
+            item = self.lst.item(i)
+            if item.checkState() != Qt.CheckState.Checked:
+                continue
+            p = item.data(Qt.ItemDataRole.UserRole)
+            r = self._pid_to_rank.get(p.id)
+            open_mailto(ss.KEY_EMAIL_TPL_RESULTS, p.archer.email, {
+                "name": f"{p.archer.first_name} {p.archer.last_name}",
+                "verein": p.archer.club or "",
+                "klasse": p.bow_class.name if p.bow_class else "",
+                "turniername": t.name,
+                "datum": f"{t.date:%d.%m.%Y}",
+                "platz": str(r.rank) if r else "",
+                "punkte": str(r.total) if r else "",
+            }, self)
+        self.accept()
+
+
 class ResultsView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tournament = None
         self.sheets = []
         self._worker = None
+        self._pid_to_rank: dict = {}
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
         self.spinner = Spinner()
@@ -51,6 +131,8 @@ class ResultsView(QWidget):
                               "Druckfertige Ergebnisliste als PDF erstellen")
         self.btn_save_pdf = button("Als PDF speichern", self._save_pdf,
                                    tooltip="Ergebnisliste an einem beliebigen Ort speichern")
+        self.btn_send = button("Ergebnisse versenden", self._send_results,
+                               tooltip="Ergebnisse per E-Mail an Teilnehmer versenden")
         self.btn_export = export_button(self, "rangliste", lambda _f: self.sheets)
         self.info = QLabel(objectName="pageSubtitle")
         bar = QHBoxLayout()
@@ -60,6 +142,7 @@ class ResultsView(QWidget):
         bar.addStretch()
         bar.addWidget(self.btn_export)
         bar.addWidget(self.btn_save_pdf)
+        bar.addWidget(self.btn_send)
         bar.addWidget(self.spinner)
         bar.addWidget(self.btn_pdf)
         lay = QVBoxLayout(self)
@@ -79,6 +162,12 @@ class ResultsView(QWidget):
         for b in (self.btn_pdf, self.btn_save_pdf):
             b.setEnabled(printable and self._worker is None)
             b.setToolTip(b.toolTip() if printable else NOT_PRINTABLE)
+        sendable = t.phase in ("scoring", "closed")
+        self.btn_send.setEnabled(sendable)
+        self.btn_send.setToolTip(
+            "Ergebnisse per E-Mail an Teilnehmer versenden" if sendable
+            else "Nur in der Phase „Auswertung“ oder „Abgeschlossen“ verfügbar"
+        )
         if first_time or ss.get_bool(ss.KEY_RESULT_AUTO_RANK):
             self.recalculate()
 
@@ -97,6 +186,8 @@ class ResultsView(QWidget):
         with busy():
             overall = rs.compute_ranking(t.id, overall=True)[rs.OVERALL]
             per_class = rs.compute_ranking(t.id)
+        self._pid_to_rank = {r.participant_id: r
+                             for rows in per_class.values() for r in rows}
         for title, rows in [("Gesamt", overall)] + [
                 (names.get(cid, "Ohne Klasse"), rows) for cid, rows in per_class.items() if rows]:
             counts = Counter(r.rank for r in rows)
@@ -158,6 +249,12 @@ class ResultsView(QWidget):
         ts.mark_results_generated(self.tournament.id)
         Toast.show(self, f"Ergebnisliste erstellt: {result.name}", Toast.SUCCESS,
                    ("Öffnen", lambda: open_path(self, result)))
+
+    def _send_results(self):
+        if self.tournament is None:
+            return
+        dlg = _SendResultsDialog(self.tournament.id, self._pid_to_rank, self)
+        dlg.exec()
 
     # global shortcuts
     def shortcut_save(self):

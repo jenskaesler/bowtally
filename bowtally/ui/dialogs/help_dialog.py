@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import (QDialog, QHBoxLayout, QListWidget, QSplitter,
                                 QTextBrowser, QVBoxLayout)
 
-from bowtally.ui import button, theme
+from bowtally.ui import button, restore_geom, save_geom, theme
 
 _SECTIONS = [
     ("Übersicht", """
@@ -221,6 +221,8 @@ class HelpDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("App-Hilfe")
         self.resize(960, 680)
+        restore_geom(self, "help")
+        self.finished.connect(lambda: save_geom(self, "help"))
 
         self._nav = QListWidget()
         self._nav.setFixedWidth(210)

@@ -235,8 +235,8 @@ class MainWindow(QMainWindow):
             ("Dashboard", "dashboard", self.dashboard),
             ("Leitfaden", "rules", self.guide),
             ("Turniere", "target", self.tournaments),
-            ("Helfer", "users", self.helpers),
             ("Schützen", "users", self.archers),
+            ("Helfer", "users", self.helpers),
             ("Regelwerke", "file", self.rules),
             ("Bogenklassen", "layers", self.bow_classes),
         ]
@@ -249,7 +249,6 @@ class MainWindow(QMainWindow):
             self.nav.addItem(item)
         self.nav.currentItemChanged.connect(self._navigate)
         self._nav_item(self.guide).setHidden(True)    # only in tournament navigator
-        self._nav_item(self.helpers).setHidden(True)  # shown only when tournament is active
         self.settings_nav = self._nav_list()
         settings_item = QListWidgetItem("Einstellungen")
         settings_item.setData(ICON_ROLE, "settings")
@@ -393,7 +392,6 @@ class MainWindow(QMainWindow):
 
     def _context_changed(self, tournament_id, initial: bool = False):
         self._nav_item(self.tournaments).setHidden(tournament_id is not None)
-        self._nav_item(self.helpers).setHidden(tournament_id is None)
         self.navigator.refresh()
         self.update_badges()
         if tournament_id is None:

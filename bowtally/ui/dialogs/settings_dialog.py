@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                                QScrollArea, QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
-from bowtally.ui import button, show_error
+from bowtally.ui import button, restore_geom, save_geom, show_error
 
 LABEL_W = 130
 
@@ -122,8 +122,8 @@ def _with_grip(edit):
     lay = QVBoxLayout(w)
     lay.setContentsMargins(0, 0, 0, 0)
     lay.setSpacing(0)
-    lay.addWidget(edit)
-    lay.addWidget(_ResizeGrip(edit))
+    lay.addWidget(edit, 1)
+    lay.addWidget(_ResizeGrip(w))
     w.setMinimumHeight(edit.minimumHeight() + 6)
     return w
 
@@ -135,6 +135,8 @@ class SettingsDialog(QDialog):
         self.apply_theme = apply_theme
         self.setWindowTitle("Einstellungen")
         self.resize(860, 720)
+        restore_geom(self, "settings")
+        self.finished.connect(lambda: save_geom(self, "settings"))
         self.settings = ss.all_settings()
         self.club_edits: dict = {}
         self.value_widgets: dict = {}

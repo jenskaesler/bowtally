@@ -29,6 +29,14 @@ KEY_RESULT_TIEBREAK_MODE = "result_tiebreak_mode"
 KEY_RESULT_AUTO_RANK = "result_auto_rank"
 KEY_UI_LANGUAGE = "ui_language"
 
+# Email template key prefixes — each maps to {key}_subject and {key}_body in app_settings
+KEY_EMAIL_TPL_CONFIRMATION = "email_reg"
+KEY_EMAIL_TPL_PAYMENT = "email_payment"
+KEY_EMAIL_TPL_DOCS = "email_docs"
+KEY_EMAIL_TPL_RESULTS = "email_results"
+KEY_EMAIL_TPL_WAITLIST = "email_waitlist"
+KEY_EMAIL_TPL_HELPER = "email_helper"
+
 COLOR_PREFIX = "color_"
 
 # Fixed choices for string settings -> rendered as combo box in the settings dialog.

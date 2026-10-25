@@ -3,7 +3,7 @@
 import logging
 from contextlib import contextmanager
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
 
 from bowtally.services import ValidationError
@@ -48,6 +48,15 @@ def busy():
         yield
     finally:
         QApplication.restoreOverrideCursor()
+
+
+def save_geom(widget, key: str) -> None:
+    QSettings("BowTally", "BowTally").setValue(f"dlg/{key}/geometry", widget.saveGeometry())
+
+
+def restore_geom(widget, key: str) -> None:
+    if geom := QSettings("BowTally", "BowTally").value(f"dlg/{key}/geometry"):
+        widget.restoreGeometry(geom)
 
 
 def repolish(widget: QWidget) -> None:

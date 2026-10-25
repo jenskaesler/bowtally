@@ -16,7 +16,7 @@ from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.ui import button, repolish, show_error, theme
+from bowtally.ui import button, repolish, restore_geom, save_geom, show_error, theme
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.toast import Toast
 
@@ -180,6 +180,8 @@ class TournamentWizard(QWizard):
         self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
         self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage)
         self.resize(860, 680)
+        restore_geom(self, "wizard")
+        self.finished.connect(lambda: save_geom(self, "wizard"))
         self.setButtonText(QWizard.WizardButton.NextButton, "Weiter")
         self.setButtonText(QWizard.WizardButton.BackButton, "Zurück")
         self.setButtonText(QWizard.WizardButton.CancelButton, "Abbrechen")

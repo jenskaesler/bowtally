@@ -4,6 +4,9 @@
 Light and dark mode share the brand colors (primary / secondary / accent); neutrals
 (background, surface, border, text) come from separate light and dark settings.
 """
+import os as _os
+import tempfile as _tf
+
 from PySide6.QtCore import QByteArray, QObject, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QGuiApplication, QIcon, QPainter, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
@@ -29,6 +32,23 @@ class _Notifier(QObject):
 
 # Widgets that paint theme colors themselves connect to notifier.changed
 notifier = _Notifier()
+
+_check_svg_cache: dict[str, str] = {}
+
+
+def _write_check_svg(color: str) -> str:
+    if color in _check_svg_cache:
+        return _check_svg_cache[color]
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+        f'<path d="M3 8.5 6.5 12 13 5" fill="none" stroke="{color}" '
+        'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    )
+    fd, path = _tf.mkstemp(suffix=".svg", prefix="btchk_")
+    _os.write(fd, svg.encode())
+    _os.close(fd)
+    _check_svg_cache[color] = path.replace("\\", "/")
+    return _check_svg_cache[color]
 
 
 # ---------------------------------------------------------------- color helpers
@@ -126,6 +146,7 @@ def build_stylesheet(overrides: dict[str, str] | None = None) -> str:
 
 
 def _qss(t: dict[str, str]) -> str:
+    _chk = _write_check_svg(t['on_primary'])
     return f"""
 QWidget {{ color: {t['text']}; font-size: 10pt; }}
 QMainWindow, QDialog, QWizard, QWizardPage, QWidget#contentArea, QScrollArea,
@@ -265,9 +286,16 @@ QCheckBox::indicator {{
 }}
 QCheckBox::indicator:hover {{ border-color: {t['primary']}; }}
 QCheckBox::indicator:checked {{
-    background: {t['primary']}; border-color: {t['primary']};
+    background: {t['primary']}; border-color: {t['primary']}; image: url({_chk});
 }}
-QCheckBox::indicator:checked:hover {{ background: {t['primary_hover']}; border-color: {t['primary_hover']}; }}
+QCheckBox::indicator:checked:hover {{ background: {t['primary_hover']}; border-color: {t['primary_hover']}; image: url({_chk}); }}
+
+/* menus */
+QMenu {{ background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 8px; padding: 4px; }}
+QMenu::item {{ padding: 6px 20px; border-radius: 6px; color: {t['text']}; }}
+QMenu::item:selected {{ background: {t['primary']}; color: {t['on_primary']}; }}
+QMenu::item:disabled {{ color: {t['disabled']}; }}
+QMenu::separator {{ height: 1px; background: {t['border']}; margin: 4px 8px; }}
 
 /* side drawer */
 QFrame#drawer {{ background: {t['surface']}; border-left: 1px solid {t['border']}; }}
