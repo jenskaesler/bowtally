@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QTabWidget,
+                               QScrollArea, QSpinBox, QStackedWidget, QTabWidget,
                                QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
@@ -55,6 +55,8 @@ LABEL_OVERRIDES = {
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
 LOGO_PREVIEW = 120
+SETTINGS_LABEL_W = 200   # fixed label column width so all tabs align
+SETTINGS_COMBO_W = 220   # fixed width for combos / spinboxes / pickers
 COLOR_ORDER = ["_background", "_surface", "_border", "_text", "_text_secondary"]
 BRAND_COLORS = {ss.KEY_COLOR_PRIMARY, ss.KEY_COLOR_SECONDARY, ss.KEY_COLOR_ACCENT}
 
@@ -164,13 +166,16 @@ class SettingsDialog(QDialog):
 
     @staticmethod
     def _flbl(text: str) -> QLabel:
-        return QLabel(text)
+        lbl = QLabel(text)
+        lbl.setFixedWidth(SETTINGS_LABEL_W)
+        return lbl
 
     @staticmethod
     def _form(parent=None) -> QFormLayout:
         lay = QFormLayout(parent) if parent is not None else QFormLayout()
         lay.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         lay.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        lay.setHorizontalSpacing(12)
         return lay
 
     # ------------------------------------------------------------ tab 1
@@ -196,9 +201,7 @@ class SettingsDialog(QDialog):
         box_default_contact = QGroupBox("Standard-Kontaktperson")
         form_dc = self._form(box_default_contact)
         self._default_contact_combo = QComboBox()
-        self._default_contact_combo.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self._default_contact_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self._default_contact_combo.setMinimumWidth(160)
+        self._default_contact_combo.setFixedWidth(SETTINGS_COMBO_W)
         for role_key, role_label in CONTACT_ROLES.items():
             self._default_contact_combo.addItem(role_label, role_key)
         stored_role = ss.get("default_contact_role", "treasurer")
@@ -291,9 +294,7 @@ class SettingsDialog(QDialog):
         lay = QVBoxLayout(w)
         values = {st.key: st.value for st in self.settings}
         self.mode = QComboBox()
-        self.mode.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.mode.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self.mode.setMinimumWidth(160)
+        self.mode.setFixedWidth(SETTINGS_COMBO_W)
         for key, label in ss.THEME_MODE_LABELS.items():
             self.mode.addItem(label, key)
         self.mode.setCurrentIndex(max(0, self.mode.findData(
@@ -388,8 +389,7 @@ class SettingsDialog(QDialog):
         self._backup_retention_days.setRange(1, 365)
         self._backup_retention_days.setValue(int(ss.get("backup_retention_days", "30") or 30))
         self._backup_retention_days.setSuffix(" Tage")
-        self._backup_retention_days.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self._backup_retention_days.setMinimumWidth(160)
+        self._backup_retention_days.setFixedWidth(SETTINGS_COMBO_W)
         settings_form.addRow("", self._backup_on_close)
         settings_form.addRow(self._flbl("Aufbewahrungsdauer"), self._backup_retention_days)
         lay.addWidget(settings_box)
@@ -398,9 +398,7 @@ class SettingsDialog(QDialog):
         target_box = QGroupBox("Backup-Speicherort")
         target_lay = QVBoxLayout(target_box)
         self._backup_target_combo = QComboBox()
-        self._backup_target_combo.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self._backup_target_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self._backup_target_combo.setMinimumWidth(160)
+        self._backup_target_combo.setFixedWidth(SETTINGS_COMBO_W)
         self._backup_target_combo.addItem("Lokal", "local")
         self._backup_target_combo.addItem("Netzwerk (NAS / Freigabe)", "network")
         self._backup_target_combo.addItem("Nextcloud", "nextcloud")
@@ -711,6 +709,7 @@ class SettingsDialog(QDialog):
             w = QSpinBox()
             w.setRange(-1_000_000, 1_000_000)
             w.setValue(int(value or 0))
+            w.setFixedWidth(SETTINGS_COMBO_W)
         elif st.category in MULTILINE_CATEGORIES:
             w = QPlainTextEdit(value)
             w.setMinimumHeight(90)
@@ -721,9 +720,7 @@ class SettingsDialog(QDialog):
                 w.addItem(display.get(val, val), val)
             idx = w.findData(value) if value else -1
             w.setCurrentIndex(idx if idx >= 0 else 0)
-            w.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            w.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-            w.setMinimumWidth(160)
+            w.setFixedWidth(SETTINGS_COMBO_W)
         elif st.value_type == "path":
             w = QWidget()
             w.edit = QLineEdit(value)
