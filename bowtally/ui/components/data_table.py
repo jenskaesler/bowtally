@@ -5,10 +5,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Callable
 
-from PySide6.QtCore import QPoint, Qt, Signal
+from PySide6.QtCore import QPoint, QTime, Qt, Signal
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHeaderView, QStackedLayout,
-                               QStyledItemDelegate, QTableWidget, QTableWidgetItem, QWidget)
+                               QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTimeEdit,
+                               QWidget)
 
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.status_chip import CHIP_ROLE, ChipDelegate
@@ -102,6 +103,31 @@ class ComboDelegate(QStyledItemDelegate):
         data = editor.currentData() if editor.findText(text) >= 0 else None
         model.setData(index, data if data is not None else text, VALUE_ROLE)
         model.setData(index, text, Qt.ItemDataRole.DisplayRole)
+
+
+class TimeDelegate(QStyledItemDelegate):
+    """Inline HH:mm time picker; empty string / None stored as NULL."""
+
+    def createEditor(self, parent, option, index):
+        te = QTimeEdit(parent)
+        te.setDisplayFormat("HH:mm")
+        te.setSpecialValueText("--:--")
+        return te
+
+    def setEditorData(self, editor: QTimeEdit, index):
+        raw = index.data(Qt.ItemDataRole.DisplayRole) or ""
+        t = QTime.fromString(raw, "HH:mm")
+        editor.setTime(t if t.isValid() else editor.minimumTime())
+
+    def setModelData(self, editor: QTimeEdit, model, index):
+        t = editor.time()
+        if t == editor.minimumTime():
+            model.setData(index, None, VALUE_ROLE)
+            model.setData(index, "", Qt.ItemDataRole.DisplayRole)
+        else:
+            s = t.toString("HH:mm")
+            model.setData(index, s, VALUE_ROLE)
+            model.setData(index, s, Qt.ItemDataRole.DisplayRole)
 
 
 class DataTable(QWidget):

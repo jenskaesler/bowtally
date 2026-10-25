@@ -202,16 +202,15 @@ QPushButton[danger="true"]:hover {{
 QPushButton[danger="true"]:disabled {{ color: {t['disabled']}; background: {t['bg']}; }}
 
 /* inputs */
-QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDateEdit, QComboBox {{
+QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDateEdit, QTimeEdit, QComboBox {{
     background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 8px;
     padding: 6px 10px; min-height: 18px;
     selection-background-color: {t['primary']}; selection-color: {t['on_primary']};
 }}
-QLineEdit:hover, QPlainTextEdit:hover, QSpinBox:hover, QDateEdit:hover, QComboBox:hover {{
-    border-color: {t['disabled']};
-}}
+QLineEdit:hover, QPlainTextEdit:hover, QSpinBox:hover, QDateEdit:hover, QTimeEdit:hover,
+QComboBox:hover {{ border-color: {t['disabled']}; }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDateEdit:focus,
-QComboBox:focus {{ border: 1px solid {t['primary']}; }}
+QTimeEdit:focus, QComboBox:focus {{ border: 1px solid {t['primary']}; }}
 QLineEdit:read-only, QPlainTextEdit[readOnly="true"] {{ background: {t['bg']}; }}
 QComboBox QAbstractItemView {{
     background: {t['surface']}; border: 1px solid {t['border']}; padding: 4px;
@@ -312,7 +311,7 @@ QLabel#fieldRequired {{ color: {t['accent']}; font-weight: 700; }}
 QLabel#fieldError {{ color: {t['accent']}; font-size: 9pt; }}
 QLabel#fieldHint {{ color: {t['text2']}; font-size: 9pt; }}
 QLineEdit[invalid="true"], QComboBox[invalid="true"], QDateEdit[invalid="true"],
-QSpinBox[invalid="true"], QPlainTextEdit[invalid="true"], QTableWidget[invalid="true"] {{
+QTimeEdit[invalid="true"], QSpinBox[invalid="true"], QPlainTextEdit[invalid="true"], QTableWidget[invalid="true"] {{
     border: 1px solid {t['accent']}; }}
 
 /* toast */

@@ -55,7 +55,10 @@ def read_value(w: QWidget):
     if hasattr(w, "field_value"):
         return w.field_value()
     if isinstance(w, QTimeEdit):
-        return w.time().toString("HH:mm")
+        t = w.time()
+        if w.specialValueText() and t == w.minimumTime():
+            return None
+        return t.toString("HH:mm")
     if isinstance(w, QLineEdit):
         return w.text().strip()
     if isinstance(w, (QPlainTextEdit, QTextEdit)):

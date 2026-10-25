@@ -16,7 +16,7 @@ from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
-from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable, ID_ROLE
+from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable, ID_ROLE, TimeDelegate
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.status_chip import payment_chip, registration_chip
@@ -258,6 +258,7 @@ class ParticipantsView(QWidget):
         self.table.set_delegate(COL_GROUP, ComboDelegate(self._group_options, editable=True,
                                                          parent=self))
         self.table.set_delegate(COL_FEE, ComboDelegate(self._fee_options, parent=self))
+        self.table.set_delegate(COL_TIME, TimeDelegate(parent=self))
         self.table.cellEdited.connect(self._on_cell_edited)
         self.table.selectionChanged.connect(self._on_selection)
         self.table.contextMenuRequested.connect(self._context_menu)
