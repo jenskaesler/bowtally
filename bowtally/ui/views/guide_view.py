@@ -47,7 +47,7 @@ PHASE_TASKS = {
     "preparation": [
         Task("Bogenklassen im Turnier prüfen", "edit_classes", "Bogenklassen bearbeiten"),
         Task("Parcours planen und aufbauen", manual="parcours_ready"),
-        Task("Helfer einteilen (Notizen unten)", manual="helpers_assigned"),
+        Task("Helfer einteilen", "helpers", "Helferverwaltung", manual="helpers_assigned"),
         Task("Anmeldeliste vorbereiten", "participants", "Teilnehmerverwaltung"),
     ],
     "registration": [
@@ -232,16 +232,6 @@ class GuideView(QWidget):
         grid.setColumnStretch(1, 1)
         lay.addLayout(grid)
         lay.addStretch()
-        if t.phase == "preparation":
-            lay.addWidget(QLabel("Helfereinteilung (Notizen)", objectName="fieldLabel"))
-            notes = QPlainTextEdit(checklist.get(ts.CHECKLIST_NOTES_KEY, ""))
-            notes.setPlaceholderText("z. B. Anna: Kasse, Ben: Parcours A-D, …")
-            notes.setFixedHeight(90)
-            lay.addWidget(notes)
-            lay.addWidget(button("Notizen speichern",
-                                 lambda: self._save_note(ts.CHECKLIST_NOTES_KEY,
-                                                         notes.toPlainText()),
-                                 tooltip="Helfereinteilung speichern"))
         return card
 
     def _conditions_card(self, t, nxt) -> QFrame:

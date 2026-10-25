@@ -22,6 +22,7 @@ from bowtally.ui.views.archers_view import ArchersView
 from bowtally.ui.views.bow_classes_view import BowClassesView
 from bowtally.ui.views.dashboard import DashboardView
 from bowtally.ui.views.guide_view import GuideView
+from bowtally.ui.views.helpers_view import HelpersView
 from bowtally.ui.views.rules_view import RulesView
 from bowtally.ui.views.tournaments_view import TournamentsView
 from bowtally.ui.widgets.status_bar import StatusBar
@@ -226,6 +227,7 @@ class MainWindow(QMainWindow):
         self.rules = RulesView()
         self.bow_classes = BowClassesView()
         self.tournaments = TournamentsView()
+        self.helpers = HelpersView()
         self.stack = QStackedWidget()
         self.stack.setObjectName("contentArea")
 
@@ -233,6 +235,7 @@ class MainWindow(QMainWindow):
             ("Dashboard", "dashboard", self.dashboard),
             ("Leitfaden", "rules", self.guide),
             ("Turniere", "target", self.tournaments),
+            ("Helfer", "users", self.helpers),
             ("Schützen", "users", self.archers),
             ("Regelwerke", "file", self.rules),
             ("Bogenklassen", "layers", self.bow_classes),
@@ -245,7 +248,8 @@ class MainWindow(QMainWindow):
             item.setData(Qt.ItemDataRole.UserRole, self.stack.indexOf(target))
             self.nav.addItem(item)
         self.nav.currentItemChanged.connect(self._navigate)
-        self._nav_item(self.guide).setHidden(True)  # always in tournament section, never in main nav
+        self._nav_item(self.guide).setHidden(True)    # only in tournament navigator
+        self._nav_item(self.helpers).setHidden(True)  # shown only when tournament is active
         self.settings_nav = self._nav_list()
         settings_item = QListWidgetItem("Einstellungen")
         settings_item.setData(ICON_ROLE, "settings")
@@ -389,6 +393,7 @@ class MainWindow(QMainWindow):
 
     def _context_changed(self, tournament_id, initial: bool = False):
         self._nav_item(self.tournaments).setHidden(tournament_id is not None)
+        self._nav_item(self.helpers).setHidden(tournament_id is None)
         self.navigator.refresh()
         self.update_badges()
         if tournament_id is None:
@@ -519,6 +524,8 @@ class MainWindow(QMainWindow):
             self.open_tournament(t.id, tabs[key])
         elif key == "guide":
             self.select_page(self.guide)
+        elif key == "helpers":
+            self.select_page(self.helpers)
         elif key == "revenue":
             self.select_page(self.dashboard)
             self.dashboard.show_tournament()
