@@ -26,6 +26,8 @@ class FirstRunWizard(QDialog):
 
         box = QGroupBox("Vereinsdaten")
         form = QFormLayout(box)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         self.club_name = QLineEdit()
         self.club_name.setPlaceholderText("z. B. Bogensportclub Musterstadt e.V.")
         self.city = QLineEdit()

@@ -6,13 +6,11 @@ from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSpinBox, QStackedWidget, QTabWidget, QVBoxLayout,
-                               QWidget)
+                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QTabWidget,
+                               QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import button, restore_geom, save_geom, show_error
-
-LABEL_W = 130
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
                    "templates": "Textvorlagen"}
@@ -166,9 +164,14 @@ class SettingsDialog(QDialog):
 
     @staticmethod
     def _flbl(text: str) -> QLabel:
-        lbl = QLabel(text)
-        lbl.setMinimumWidth(LABEL_W)
-        return lbl
+        return QLabel(text)
+
+    @staticmethod
+    def _form(parent=None) -> QFormLayout:
+        lay = QFormLayout(parent) if parent is not None else QFormLayout()
+        lay.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        lay.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        return lay
 
     # ------------------------------------------------------------ tab 1
     def _club_tab(self) -> QWidget:
@@ -183,7 +186,7 @@ class SettingsDialog(QDialog):
             ("Kontakt", ("phone", "email", "website")),
         ):
             box = QGroupBox(box_title)
-            form = QFormLayout(box)
+            form = self._form(box)
             for key in keys:
                 edit = QLineEdit(club.get(key) or "")
                 self.club_edits[key] = edit
@@ -191,8 +194,11 @@ class SettingsDialog(QDialog):
             lay.addWidget(box)
 
         box_default_contact = QGroupBox("Standard-Kontaktperson")
-        form_dc = QFormLayout(box_default_contact)
+        form_dc = self._form(box_default_contact)
         self._default_contact_combo = QComboBox()
+        self._default_contact_combo.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._default_contact_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self._default_contact_combo.setMinimumWidth(160)
         for role_key, role_label in CONTACT_ROLES.items():
             self._default_contact_combo.addItem(role_label, role_key)
         stored_role = ss.get("default_contact_role", "treasurer")
@@ -235,7 +241,7 @@ class SettingsDialog(QDialog):
         lay.setSpacing(10)
         for role_key, role_label in CONTACT_ROLES.items():
             box = QGroupBox(role_label)
-            form = QFormLayout(box)
+            form = self._form(box)
             for field, placeholder, label in (
                 (f"{role_key}_fname", "Vorname", "Vorname"),
                 (f"{role_key}_lname", "Nachname", "Nachname"),
@@ -285,17 +291,20 @@ class SettingsDialog(QDialog):
         lay = QVBoxLayout(w)
         values = {st.key: st.value for st in self.settings}
         self.mode = QComboBox()
+        self.mode.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.mode.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.mode.setMinimumWidth(160)
         for key, label in ss.THEME_MODE_LABELS.items():
             self.mode.addItem(label, key)
         self.mode.setCurrentIndex(max(0, self.mode.findData(
             values.get(ss.KEY_UI_THEME_MODE) or "system")))
         self.mode.currentIndexChanged.connect(self._preview)
-        mode_row = QFormLayout()
+        mode_row = self._form()
         mode_row.addRow(self._flbl("Darstellung"), self.mode)
         lay.addLayout(mode_row)
 
         self.color_fields: dict[str, ColorField] = {}
-        boxes = {"brand": QFormLayout(), "light": QFormLayout(), "dark": QFormLayout()}
+        boxes = {"brand": self._form(), "light": self._form(), "dark": self._form()}
         colors = sorted((st for st in self.settings if st.value_type == "color"),
                         key=lambda st: next((i for i, suffix in enumerate(COLOR_ORDER)
                                              if st.key.endswith(suffix)), len(COLOR_ORDER)))
@@ -349,7 +358,7 @@ class SettingsDialog(QDialog):
         w = QWidget()
         lay = QVBoxLayout(w)
         box = QGroupBox("Bankverbindung")
-        form = QFormLayout(box)
+        form = self._form(box)
         for key, label in BANK_LABELS.items():
             edit = QLineEdit(club.get(key) or "")
             if key == "bank_iban":
@@ -372,13 +381,15 @@ class SettingsDialog(QDialog):
 
         # ---- Box 1: Backup-Einstellungen
         settings_box = QGroupBox("Backup-Einstellungen")
-        settings_form = QFormLayout(settings_box)
+        settings_form = self._form(settings_box)
         self._backup_on_close = QCheckBox("Automatisches Backup beim Beenden der App")
         self._backup_on_close.setChecked(ss.get_bool("backup_on_close"))
         self._backup_retention_days = QSpinBox()
         self._backup_retention_days.setRange(1, 365)
         self._backup_retention_days.setValue(int(ss.get("backup_retention_days", "30") or 30))
         self._backup_retention_days.setSuffix(" Tage")
+        self._backup_retention_days.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._backup_retention_days.setMinimumWidth(160)
         settings_form.addRow("", self._backup_on_close)
         settings_form.addRow(self._flbl("Aufbewahrungsdauer"), self._backup_retention_days)
         lay.addWidget(settings_box)
@@ -387,6 +398,9 @@ class SettingsDialog(QDialog):
         target_box = QGroupBox("Backup-Speicherort")
         target_lay = QVBoxLayout(target_box)
         self._backup_target_combo = QComboBox()
+        self._backup_target_combo.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._backup_target_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self._backup_target_combo.setMinimumWidth(160)
         self._backup_target_combo.addItem("Lokal", "local")
         self._backup_target_combo.addItem("Netzwerk (NAS / Freigabe)", "network")
         self._backup_target_combo.addItem("Nextcloud", "nextcloud")
@@ -402,7 +416,7 @@ class SettingsDialog(QDialog):
         local_w = QWidget()
         local_lay = QVBoxLayout(local_w)
         local_lay.setContentsMargins(0, 8, 0, 0)
-        local_form = QFormLayout()
+        local_form = self._form()
         self._backup_path_edit = QLineEdit(ss.get("backup_local_path") or "")
         self._backup_path_edit.setPlaceholderText("Pfad zum Backup-Ordner …")
         browse_btn = button("…", lambda: self._browse_backup_path())
@@ -429,7 +443,7 @@ class SettingsDialog(QDialog):
         net_w = QWidget()
         net_lay = QVBoxLayout(net_w)
         net_lay.setContentsMargins(0, 8, 0, 0)
-        net_form = QFormLayout()
+        net_form = self._form()
         self._net_path_edit = QLineEdit(ss.get("backup_network_path") or "")
         self._net_path_edit.setPlaceholderText(r"\\server\backup")
         net_form.addRow(self._flbl("Netzwerkpfad"), self._net_path_edit)
@@ -438,7 +452,7 @@ class SettingsDialog(QDialog):
         net_form.addRow("", self._net_auth_check)
         net_lay.addLayout(net_form)
         self._net_auth_widget = QWidget()
-        net_auth_form = QFormLayout(self._net_auth_widget)
+        net_auth_form = self._form(self._net_auth_widget)
         net_auth_form.setContentsMargins(0, 0, 0, 0)
         self._net_user = QLineEdit(ss.get("backup_network_user") or "")
         self._net_pass = QLineEdit(bs._get_password("backup_network_password"))
@@ -463,7 +477,7 @@ class SettingsDialog(QDialog):
         nc_w = QWidget()
         nc_lay = QVBoxLayout(nc_w)
         nc_lay.setContentsMargins(0, 8, 0, 0)
-        nc_form = QFormLayout()
+        nc_form = self._form()
         self._nc_url = QLineEdit(ss.get("backup_nextcloud_url") or "")
         self._nc_url.setPlaceholderText("https://ihre-nextcloud.de")
         self._nc_user = QLineEdit(ss.get("backup_nextcloud_user") or "")
@@ -610,7 +624,7 @@ class SettingsDialog(QDialog):
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
-                groups[st.category] = QFormLayout(box)
+                groups[st.category] = self._form(box)
                 lay.addWidget(box)
                 if st.category == "templates":
                     lbl = self._flbl("Parcours-Beschreibung")
@@ -647,7 +661,7 @@ class SettingsDialog(QDialog):
             ("Helfer-Bestätigung", "email_helper_subject", "email_helper_body"),
         ):
             box = QGroupBox(title)
-            form = QFormLayout(box)
+            form = self._form(box)
             subj = QLineEdit(values.get(subj_key, ""))
             body = QPlainTextEdit(values.get(body_key, ""))
             body.setMinimumHeight(90)
@@ -673,7 +687,7 @@ class SettingsDialog(QDialog):
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
-                groups[st.category] = QFormLayout(box)
+                groups[st.category] = self._form(box)
                 lay.addWidget(box)
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
@@ -707,6 +721,9 @@ class SettingsDialog(QDialog):
                 w.addItem(display.get(val, val), val)
             idx = w.findData(value) if value else -1
             w.setCurrentIndex(idx if idx >= 0 else 0)
+            w.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            w.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+            w.setMinimumWidth(160)
         elif st.value_type == "path":
             w = QWidget()
             w.edit = QLineEdit(value)

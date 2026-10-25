@@ -33,6 +33,8 @@ class ImportDialog(QDialog):
 
         map_box = QGroupBox("Spalten-Zuordnung")
         form = QFormLayout(map_box)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
         auto = importer.auto_mapping(headers, fields)
         self.combos: dict[str, QComboBox] = {}
         for f in fields:

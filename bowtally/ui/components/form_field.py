@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 """Form building blocks with inline validation.
 
-FormField = label (+ red asterisk) / input widget / one-line error message.
-Validation runs on focus-out and on save; an error disappears as soon as the value changes.
-Form groups fields, collects values and offers a snapshot for dirty checks.
+FormField = input widget / optional hint / one-line error message.
+Form groups fields in a QFormLayout (label left, widget right).
 """
 import re
 from datetime import date
 from typing import Callable
 
 from PySide6.QtCore import QDate, QEvent, Qt, QTime, QTimer, Signal
-from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QHBoxLayout,
+from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QFormLayout,
                                QLabel, QLineEdit, QPlainTextEdit, QSizePolicy, QSpinBox,
                                QTextEdit, QTimeEdit, QVBoxLayout, QWidget)
 
@@ -108,32 +107,35 @@ def _change_signal(w: QWidget):
     return None
 
 
+def _apply_widget_policy(widget: QWidget) -> None:
+    """Set size policies per layout rule: line edits expand; combos/pickers stay fixed."""
+    if isinstance(widget, (QLineEdit, QPlainTextEdit, QTextEdit)):
+        vp = (QSizePolicy.Policy.Expanding if isinstance(widget, (QPlainTextEdit, QTextEdit))
+              else QSizePolicy.Policy.Fixed)
+        widget.setSizePolicy(QSizePolicy.Policy.Expanding, vp)
+    elif isinstance(widget, (QComboBox, QAbstractSpinBox)):
+        widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        if isinstance(widget, QComboBox):
+            widget.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        widget.setMinimumWidth(160)
+
+
 class FormField(QWidget):
+    """Right-hand column of a QFormLayout row: widget + optional hint + error label."""
     changed = Signal()
 
-    def __init__(self, label: str, widget: QWidget, required: bool = False,
+    def __init__(self, widget: QWidget, required: bool = False,
                  validator: Callable[[object], str | None] | None = None, hint: str = "",
-                 required_message: str = "", parent=None):
+                 required_message: str = "", label_text: str = "", parent=None):
         super().__init__(parent)
-        self.label_text, self.widget = label, widget
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        self.widget = widget
         self.required, self.validator = required, validator
-        self.required_message = required_message or f"{label} ist ein Pflichtfeld"
-        head = QHBoxLayout()
-        head.setSpacing(2)
-        lbl = QLabel(label, objectName="fieldLabel")
-        lbl.setBuddy(widget)
-        head.addWidget(lbl)
-        if required:
-            head.addWidget(QLabel("*", objectName="fieldRequired"))
-        head.addStretch()
+        self.required_message = required_message or f"{label_text} ist ein Pflichtfeld"
         self.error = QLabel(objectName="fieldError")
         self.error.setVisible(False)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(4)
-        if not isinstance(widget, QCheckBox):    # a check box carries its own text
-            lay.addLayout(head)
+        lay.setSpacing(3)
         lay.addWidget(widget)
         if hint:
             lay.addWidget(QLabel(hint, objectName="fieldHint", wordWrap=True))
@@ -198,21 +200,32 @@ class Form(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.fields: dict[str, FormField] = {}
-        self._lay = QVBoxLayout(self)
+        self._lay = QFormLayout(self)
         self._lay.setContentsMargins(0, 0, 0, 0)
-        self._lay.setSpacing(14)
-        self._lay.addStretch()
+        self._lay.setSpacing(10)
+        self._lay.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._lay.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
-    def add(self, key: str, label: str, widget: QWidget, **kwargs) -> FormField:
-        field = FormField(label, widget, **kwargs)
+    def add(self, key: str, label: str, widget: QWidget, required: bool = False,
+            **kwargs) -> FormField:
+        _apply_widget_policy(widget)
+        field = FormField(widget, required=required, label_text=label, **kwargs)
+        h_pol = widget.sizePolicy().horizontalPolicy()
+        if h_pol in (QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding):
+            field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         field.changed.connect(self.changed)
         self.fields[key] = field
-        self._lay.insertWidget(self._lay.count() - 1, field)
+        if isinstance(widget, QCheckBox):
+            self._lay.addRow("", field)
+        else:
+            lbl_text = f"{label} *" if required else label
+            lbl = QLabel(lbl_text, objectName="fieldLabel")
+            lbl.setBuddy(widget)
+            self._lay.addRow(lbl, field)
         return field
 
     def add_widget(self, widget: QWidget) -> None:
-        """Non-field content (hints, section titles)."""
-        self._lay.insertWidget(self._lay.count() - 1, widget)
+        self._lay.addRow(widget)
 
     def values(self) -> dict:
         return {k: f.value() for k, f in self.fields.items()}
