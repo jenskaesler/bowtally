@@ -103,3 +103,90 @@ def remove_assignment(assignment_id: int) -> None:
 def set_confirmed(assignment_id: int, confirmed: bool) -> None:
     with session_scope() as s:
         s.get(TournamentHelper, assignment_id).confirmed = confirmed
+
+
+def get_helper(helper_id: int) -> Helper:
+    with session_scope() as s:
+        h = s.get(Helper, helper_id)
+        _ = h.first_name
+        return h
+
+
+def create_helper(data: dict) -> Helper:
+    _validate(data)
+    with session_scope() as s:
+        h = Helper()
+        for k in ("first_name", "last_name", "phone", "email", "notes"):
+            setattr(h, k, (data.get(k) or "").strip() or None)
+        s.add(h)
+        s.flush()
+        _ = h.first_name
+        return h
+
+
+def update_helper(helper_id: int, data: dict) -> Helper:
+    _validate(data)
+    with session_scope() as s:
+        h = s.get(Helper, helper_id)
+        for k in ("first_name", "last_name", "phone", "email", "notes"):
+            setattr(h, k, (data.get(k) or "").strip() or None)
+        s.flush()
+        _ = h.first_name
+        return h
+
+
+def helper_has_assignments(helper_id: int) -> bool:
+    with session_scope() as s:
+        return bool(s.scalars(
+            select(TournamentHelper.id).where(TournamentHelper.helper_id == helper_id)
+        ).first())
+
+
+def delete_helper(helper_id: int) -> None:
+    with session_scope() as s:
+        s.delete(s.get(Helper, helper_id))
+
+
+def get_helper_history(helper_id: int) -> list[dict]:
+    from bowtally.database.models import Tournament
+    with session_scope() as s:
+        rows = s.execute(
+            select(
+                Tournament.name, Tournament.date,
+                TournamentHelper.task, TournamentHelper.time_from,
+                TournamentHelper.time_to, TournamentHelper.confirmed,
+            )
+            .join(Tournament, TournamentHelper.tournament_id == Tournament.id)
+            .where(TournamentHelper.helper_id == helper_id)
+            .order_by(Tournament.date.desc())
+        ).all()
+        return [
+            {"name": r.name, "date": r.date, "task": r.task,
+             "time_from": r.time_from, "time_to": r.time_to, "confirmed": r.confirmed}
+            for r in rows
+        ]
+
+
+def import_helpers(records: list[dict], strategy: str) -> dict:
+    created = updated = skipped = 0
+    with session_scope() as s:
+        for r in records:
+            first = (r.get("first_name") or "").strip()
+            last = (r.get("last_name") or "").strip()
+            existing = s.scalars(
+                select(Helper).where(Helper.first_name == first, Helper.last_name == last)
+            ).first()
+            if existing:
+                if strategy == "skip":
+                    skipped += 1
+                    continue
+                for k in ("phone", "email", "notes"):
+                    setattr(existing, k, (r.get(k) or "").strip() or None)
+                updated += 1
+            else:
+                h = Helper(first_name=first, last_name=last, active=True)
+                for k in ("phone", "email", "notes"):
+                    setattr(h, k, (r.get(k) or "").strip() or None)
+                s.add(h)
+                created += 1
+    return {"created": created, "updated": updated, "skipped": skipped}

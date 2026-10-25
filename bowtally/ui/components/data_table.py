@@ -161,6 +161,11 @@ class DataTable(QWidget):
             self._stack.addWidget(empty)
 
     # ------------------------------------------------------------ content
+    def set_headers(self, headers: list[str]) -> None:
+        self.headers = headers
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
+
     def set_rows(self, rows: list[list], ids: list) -> None:
         t = self.table
         selected = set(self.selected_ids())

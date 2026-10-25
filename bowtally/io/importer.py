@@ -40,6 +40,14 @@ PARTICIPANT_IMPORT_FIELDS = [
     ImportField("start_group", "Startgruppe", aliases=["gruppe", "group"]),
 ]
 
+HELPER_IMPORT_FIELDS = [
+    ImportField("first_name", "Vorname", True, aliases=["firstname", "first name"]),
+    ImportField("last_name", "Nachname", True, aliases=["name", "lastname", "last name"]),
+    ImportField("phone", "Telefon", aliases=["phone", "tel"]),
+    ImportField("email", "E-Mail", aliases=["email", "mail"]),
+    ImportField("notes", "Notizen", aliases=["bemerkung", "notes"]),
+]
+
 DUPLICATE_STRATEGIES = {"skip": "Überspringen", "update": "Aktualisieren", "new": "Immer neu"}
 
 
