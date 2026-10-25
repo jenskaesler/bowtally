@@ -8,7 +8,8 @@ from sqlalchemy.orm import selectinload
 
 from bowtally.database.engine import session_scope
 from bowtally.database.models import (Archer, BowClass, EntryFee, PhaseTransitionLog, Score,
-                                      ScoringRule, Tournament, TournamentParticipant)
+                                      ScoringRule, Tournament, TournamentParticipant,
+                                      TournamentRound)
 from bowtally.database.seed import TOURNAMENT_PHASES
 from bowtally.services import ValidationError
 from bowtally.services.master_data_service import _bow_class_lookup, _clean_archer, find_archer
@@ -31,7 +32,8 @@ CHECKLIST_ITEMS = {
 CHECKLIST_NOTES_KEY = "helpers_notes"
 
 BASE_FIELDS = ["name", "date", "location", "organizer", "num_targets", "shots_per_target",
-               "scoring_rule_id", "start_groups", "description", "notes"]
+               "scoring_rule_id", "start_groups", "description", "notes",
+               "num_rounds", "scoring_mode"]
 DETAIL_FIELDS = ["registration_deadline", "max_participants", "checkin_start_time",
                  "shooting_start_time", "practice_allowed", "practice_location",
                  "bank_account_holder", "bank_iban", "bank_bic", "bank_reference_template",
@@ -45,6 +47,7 @@ PARTICIPANT_FIELDS = ["bow_class_id", "start_number", "start_group", "start_time
 def _full_load():
     return (selectinload(Tournament.scoring_rule), selectinload(Tournament.bow_classes),
             selectinload(Tournament.fees),
+            selectinload(Tournament.rounds).selectinload(TournamentRound.scoring_rule),
             selectinload(Tournament.participants).selectinload(TournamentParticipant.archer),
             selectinload(Tournament.participants).selectinload(TournamentParticipant.bow_class),
             selectinload(Tournament.participants).selectinload(TournamentParticipant.entry_fee))
@@ -110,7 +113,8 @@ def _clean_tournament(data: dict) -> dict:
 
 
 def save_tournament(data: dict, bow_class_ids: list[int], tournament_id: int | None = None,
-                    fees: list[dict] | None = None) -> Tournament:
+                    fees: list[dict] | None = None,
+                    rounds: list[dict] | None = None) -> Tournament:
     """Create or update. fees=None on create copies the fee templates; a list replaces
     the tournament's fees (rows with 'id' are updated, missing unused ones deleted)."""
     data = _clean_tournament(data)
@@ -148,6 +152,7 @@ def save_tournament(data: dict, bow_class_ids: list[int], tournament_id: int | N
         t.bow_classes = list(s.scalars(select(BowClass).where(BowClass.id.in_(bow_class_ids))))
         if fees is not None:
             _sync_fees(s, t, fees)
+        _sync_rounds(s, t, rounds)
         t.content_changed_at = datetime.now()
         s.flush()
         tid = t.id
@@ -170,6 +175,24 @@ def delete_tournament(tournament_id: int) -> None:
         t = s.get(Tournament, tournament_id)
         if t is not None:
             s.delete(t)
+
+
+def get_rounds(tournament_id: int) -> list[TournamentRound]:
+    with session_scope() as s:
+        return list(s.scalars(
+            select(TournamentRound)
+            .where(TournamentRound.tournament_id == tournament_id)
+            .options(selectinload(TournamentRound.scoring_rule))
+            .order_by(TournamentRound.sort_order, TournamentRound.round_number)))
+
+
+def save_rounds(tournament_id: int, rounds: list[dict]) -> None:
+    with session_scope() as s:
+        t = s.get(Tournament, tournament_id)
+        if t is None:
+            raise ValidationError("Turnier nicht gefunden.")
+        _sync_rounds(s, t, rounds)
+        t.content_changed_at = datetime.now()
 
 
 def mark_announcement_generated(tournament_id: int) -> None:
@@ -246,6 +269,51 @@ def _sync_fees(s, t: Tournament, fees: list[dict]) -> None:
     for fid, fee in existing.items():
         if fid not in keep:
             _delete_fee(s, fee)
+
+
+def _sync_rounds(s, t: Tournament, rounds: list[dict] | None) -> None:
+    """Create/update tournament_rounds; auto-generates if rounds is None."""
+    num = t.num_rounds or 1
+    if rounds is None:
+        # auto-generate only when no rounds exist yet
+        existing = list(s.scalars(select(TournamentRound)
+                                  .where(TournamentRound.tournament_id == t.id)
+                                  .order_by(TournamentRound.round_number)))
+        if not existing:
+            for i in range(1, num + 1):
+                s.add(TournamentRound(tournament_id=t.id, round_number=i,
+                                      label=f"{i}. Runde", sort_order=i))
+        elif len(existing) != num:
+            # num_rounds changed: add/remove trailing rounds
+            existing_nums = {r.round_number for r in existing}
+            for i in range(1, num + 1):
+                if i not in existing_nums:
+                    s.add(TournamentRound(tournament_id=t.id, round_number=i,
+                                          label=f"{i}. Runde", sort_order=i))
+            for r in existing:
+                if r.round_number > num:
+                    s.delete(r)
+        return
+    # explicit rounds list from wizard
+    existing = {r.round_number: r for r in s.scalars(
+        select(TournamentRound).where(TournamentRound.tournament_id == t.id))}
+    keep = set()
+    for i, raw in enumerate(rounds, start=1):
+        rnd = existing.get(raw.get("round_number") or i)
+        if rnd is None:
+            rnd = TournamentRound(tournament_id=t.id,
+                                  round_number=raw.get("round_number") or i)
+            s.add(rnd)
+        rnd.label = (raw.get("label") or f"{i}. Runde").strip() or f"{i}. Runde"
+        rnd.num_targets = raw.get("num_targets") or None
+        rnd.scoring_rule_id = raw.get("scoring_rule_id") or None
+        rnd.distance_type = raw.get("distance_type") or None
+        rnd.shots_per_target = raw.get("shots_per_target") or None
+        rnd.sort_order = i
+        keep.add(rnd.round_number)
+    for rn, rnd in existing.items():
+        if rn not in keep:
+            s.delete(rnd)
 
 
 def _delete_fee(s, fee: EntryFee) -> None:
@@ -703,6 +771,12 @@ def get_status_checks(tournament_id: int) -> dict[str, StatusCheck]:
         "results_generated": StatusCheck("Ergebnisliste generiert",
                                          t.results_generated_at is not None,
                                          "Ergebnisliste noch nicht erstellt"),
+        "rounds_configured": StatusCheck(
+            "Rundenstruktur konfiguriert",
+            (t.num_rounds or 1) <= 1 or bool(
+                t.rounds and all(r.label.strip() for r in t.rounds)
+                and len(t.rounds) >= (t.num_rounds or 1)),
+            "Rundenbezeichnungen fehlen" if t.num_rounds and t.num_rounds > 1 else ""),
     }
 
 

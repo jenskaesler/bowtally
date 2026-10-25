@@ -368,6 +368,7 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 4 config
     def _page_config(self) -> QWizardPage:
+        from PySide6.QtWidgets import QGroupBox
         self.targets = QSpinBox()
         self.targets.setRange(1, 200)
         self.targets.setValue(self._t("num_targets", DEFAULT_TARGETS))
@@ -382,6 +383,38 @@ class TournamentWizard(QWizard):
         self.course_notes.setPlaceholderText("z. B. Festes Schuhwerk empfohlen, Parcours ca. "
                                              "4 km")
         self.course_notes.setFixedHeight(70)
+
+        self.num_rounds = QSpinBox()
+        self.num_rounds.setRange(1, 4)
+        self.num_rounds.setValue(self._t("num_rounds", 1))
+
+        self.scoring_mode = QComboBox()
+        for val, lbl, hint in [
+            ("per_target", "Scheibenwertung", "Punkte je Scheibe – klassische 3D-Wertung"),
+            ("per_round", "Rundenwertung", "Gesamtpunkte je Runde direkt eintragen"),
+            ("total_only", "Nur Gesamtpunkte", "Ein Gesamtergebnis je Teilnehmer"),
+        ]:
+            self.scoring_mode.addItem(lbl, val)
+        cur = self._t("scoring_mode", "per_target")
+        idx = self.scoring_mode.findData(cur)
+        if idx >= 0:
+            self.scoring_mode.setCurrentIndex(idx)
+
+        # round label table (visible when num_rounds > 1)
+        self._round_table = QTableWidget(0, 1)
+        self._round_table.setHorizontalHeaderLabels(["Bezeichnung"])
+        self._round_table.verticalHeader().setDefaultSectionSize(36)
+        self._round_table.setShowGrid(False)
+        self._round_table.horizontalHeader().setStretchLastSection(True)
+        self._round_table.setFixedHeight(120)
+        self._round_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self._round_group = QGroupBox("Rundenkonfiguration")
+        rg_lay = QVBoxLayout(self._round_group)
+        rg_lay.setContentsMargins(8, 8, 8, 8)
+        rg_lay.addWidget(self._round_table)
+        self._update_round_table()
+        self.num_rounds.valueChanged.connect(self._update_round_table)
+
         page = _Page(3, "Konfiguration", "Wie viele Scheiben hat der Parcours und wie viele "
                      "Schüsse je Scheibe? Startgruppen sind optional und werden bei der "
                      "Startnummernvergabe reihum verteilt.")
@@ -395,11 +428,43 @@ class TournamentWizard(QWizard):
             if course_desc else None)
         form.addRow("Anzahl Scheiben", self.targets)
         form.addRow("Schüsse je Scheibe", self.shots)
+        form.addRow("Anzahl Runden", self.num_rounds)
+        form.addRow("Wertungsmodus", self.scoring_mode)
         form.addRow("Startgruppen", self.groups)
         form.addRow("Hinweise zum Parcours", notes_row)
         page.body.addLayout(form)
+        page.body.addWidget(self._round_group)
         page.body.addStretch()
         return page
+
+    def _update_round_table(self):
+        n = self.num_rounds.value()
+        self._round_group.setVisible(n > 1)
+        existing = []
+        for r in range(self._round_table.rowCount()):
+            it = self._round_table.item(r, 0)
+            existing.append(it.text() if it else "")
+        self._round_table.setRowCount(n)
+        for i in range(n):
+            it = self._round_table.item(i, 0)
+            if it is None:
+                lbl = existing[i] if i < len(existing) else f"{i + 1}. Runde"
+                self._round_table.setItem(i, 0, QTableWidgetItem(lbl))
+
+    def _rounds_data(self) -> list[dict]:
+        n = self.num_rounds.value()
+        rows = []
+        # read existing round ids if editing
+        existing_ids = {}
+        if self.tournament:
+            for r in (self.tournament.rounds or []):
+                existing_ids[r.round_number] = r.id
+        for i in range(1, n + 1):
+            it = self._round_table.item(i - 1, 0)
+            lbl = it.text().strip() if it else f"{i}. Runde"
+            rows.append({"round_number": i, "label": lbl or f"{i}. Runde",
+                         "id": existing_ids.get(i)})
+        return rows
 
     # ------------------------------------------------------------ 5 deadlines
     def _page_deadlines(self) -> QWizardPage:
@@ -643,6 +708,8 @@ class TournamentWizard(QWizard):
             (2, "Bogenklassen", [(f"{len(names)} Klassen", ", ".join(names))]),
             (3, "Konfiguration", [("Parcours", f"{self.targets.value()} Scheiben × "
                                                f"{self.shots.value()} Schuss"),
+                                  ("Runden", str(self.num_rounds.value())),
+                                  ("Wertung", self.scoring_mode.currentText()),
                                   ("Startgruppen", ", ".join(groups) or "keine")]),
             (4, "Fristen und Zeiten", [
                 ("Anmeldefrist", self.deadline.date().toString("dd.MM.yyyy")),
@@ -701,6 +768,8 @@ class TournamentWizard(QWizard):
                 "description": self.description.toPlainText(),
                 "scoring_rule_id": self.selected_rule().id,
                 "num_targets": self.targets.value(), "shots_per_target": self.shots.value(),
+                "num_rounds": self.num_rounds.value(),
+                "scoring_mode": self.scoring_mode.currentData() or "per_target",
                 "start_groups": ", ".join(ts.split_groups(self.groups.text())) or None,
                 "notes": self.course_notes.toPlainText(),
                 "registration_deadline": self.deadline.date().toPython(),
@@ -721,7 +790,8 @@ class TournamentWizard(QWizard):
         try:
             t = ts.save_tournament(data, self._class_ids(),
                                    self.tournament.id if self.tournament else None,
-                                   fees=self.fee_table.fees())
+                                   fees=self.fee_table.fees(),
+                                   rounds=self._rounds_data())
         except Exception as exc:
             show_error(self, exc, "Turnier konnte nicht gespeichert werden")
             return False

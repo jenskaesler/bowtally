@@ -125,12 +125,22 @@ def parse_entry(text: str, ring_values: list[dict]) -> tuple[int, str | None] | 
     return points, zones[0] if len(zones) == 1 else None
 
 
-def get_scores(tournament_id: int) -> dict[tuple[int, int, int], Score]:
-    """(participant_id, target, shot) -> Score"""
+def get_scores(tournament_id: int, round_number: int = 1) -> dict[tuple[int, int, int], Score]:
+    """(participant_id, target, shot) -> Score for the given round."""
+    with session_scope() as s:
+        q = (select(Score).join(TournamentParticipant)
+             .where(TournamentParticipant.tournament_id == tournament_id,
+                    Score.round_number == round_number))
+        return {(sc.participant_id, sc.target_number, sc.shot_number): sc for sc in s.scalars(q)}
+
+
+def get_all_scores(tournament_id: int) -> dict[tuple[int, int, int, int], Score]:
+    """(participant_id, round_number, target, shot) -> Score for all rounds."""
     with session_scope() as s:
         q = (select(Score).join(TournamentParticipant)
              .where(TournamentParticipant.tournament_id == tournament_id))
-        return {(sc.participant_id, sc.target_number, sc.shot_number): sc for sc in s.scalars(q)}
+        return {(sc.participant_id, sc.round_number, sc.target_number, sc.shot_number): sc
+                for sc in s.scalars(q)}
 
 
 def recent_scores(limit: int = 12) -> list[dict]:
@@ -155,7 +165,8 @@ def recent_scores(limit: int = 12) -> list[dict]:
 
 
 def set_score(participant_id: int, target: int, shot: int,
-              entry: tuple[int, str | None] | None) -> None:
+              entry: tuple[int, str | None] | None,
+              round_number: int = 1) -> None:
     """Upsert or (entry=None) delete one score."""
     with session_scope() as s:
         part = s.get(TournamentParticipant, participant_id)
@@ -164,9 +175,12 @@ def set_score(participant_id: int, target: int, shot: int,
         t = part.tournament
         if t.status == "closed":
             raise ValidationError("Das Turnier ist abgeschlossen, Eingaben sind gesperrt.")
-        if not 1 <= target <= t.num_targets or not 1 <= shot <= t.shots_per_target:
+        # target=0 is the per_round/total_only convention; skip range check for it
+        if target != 0 and (not 1 <= target <= t.num_targets or
+                            not 1 <= shot <= t.shots_per_target):
             raise ValidationError("Scheibe oder Schuss außerhalb des Turnierbereichs.")
         sc = s.scalar(select(Score).where(Score.participant_id == participant_id,
+                                          Score.round_number == round_number,
                                           Score.target_number == target,
                                           Score.shot_number == shot))
         if entry is None:
@@ -175,7 +189,8 @@ def set_score(participant_id: int, target: int, shot: int,
             return
         points, zone = entry
         if sc is None:
-            sc = Score(participant_id=participant_id, target_number=target, shot_number=shot)
+            sc = Score(participant_id=participant_id, round_number=round_number,
+                       target_number=target, shot_number=shot)
             s.add(sc)
         sc.points = points
         sc.zone_hit = zone

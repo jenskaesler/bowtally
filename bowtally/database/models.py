@@ -152,6 +152,8 @@ class Tournament(Base):
     __tablename__ = "tournaments"
     __table_args__ = (
         CheckConstraint("status IN ('draft', 'active', 'closed')", name="ck_tournaments_status"),
+        CheckConstraint("scoring_mode IN ('per_target', 'per_round', 'total_only')",
+                        name="ck_tournaments_scoring_mode"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -197,6 +199,9 @@ class Tournament(Base):
     content_changed_at: Mapped[datetime | None] = mapped_column(DateTime)
     results_generated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
+    num_rounds: Mapped[int] = mapped_column(Integer, default=1)
+    scoring_mode: Mapped[str] = mapped_column(Text, default="per_target")
+
     scoring_rule: Mapped["ScoringRule | None"] = relationship()
     phase_info: Mapped["TournamentPhase"] = relationship()
     fees: Mapped[list["EntryFee"]] = relationship(
@@ -206,6 +211,9 @@ class Tournament(Base):
         secondary=tournament_bow_classes, order_by="BowClass.sort_order")
     participants: Mapped[list["TournamentParticipant"]] = relationship(
         back_populates="tournament", cascade="all, delete-orphan")
+    rounds: Mapped[list["TournamentRound"]] = relationship(
+        back_populates="tournament", cascade="all, delete-orphan",
+        order_by="TournamentRound.sort_order, TournamentRound.round_number")
 
 
 REGISTRATION_STATUSES = ("registered", "confirmed", "checked_in", "dns", "dnf", "dsq",
@@ -265,14 +273,39 @@ class TournamentParticipant(Base):
         back_populates="participant", cascade="all, delete-orphan")
 
 
+class TournamentRound(Base):
+    __tablename__ = "tournament_rounds"
+    __table_args__ = (
+        CheckConstraint("distance_type IN ('known', 'unknown') OR distance_type IS NULL",
+                        name="ck_rounds_distance_type"),
+        UniqueConstraint("tournament_id", "round_number", name="uq_rounds_tournament_round"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    num_targets: Mapped[int | None] = mapped_column(Integer)
+    scoring_rule_id: Mapped[int | None] = mapped_column(ForeignKey("scoring_rules.id"))
+    distance_type: Mapped[str | None] = mapped_column(Text)
+    shots_per_target: Mapped[int | None] = mapped_column(Integer)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    tournament: Mapped["Tournament"] = relationship(back_populates="rounds")
+    scoring_rule: Mapped["ScoringRule | None"] = relationship()
+
+
 class Score(Base):
     __tablename__ = "scores"
-    __table_args__ = (UniqueConstraint("participant_id", "target_number", "shot_number",
-                                       name="uq_scores_participant_target_shot"),)
+    __table_args__ = (UniqueConstraint("participant_id", "round_number", "target_number",
+                                       "shot_number",
+                                       name="uq_scores_participant_round_target_shot"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     participant_id: Mapped[int] = mapped_column(
         ForeignKey("tournament_participants.id", ondelete="CASCADE"))
+    round_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     target_number: Mapped[int] = mapped_column(Integer, nullable=False)
     shot_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     zone_hit: Mapped[str | None] = mapped_column(Text)

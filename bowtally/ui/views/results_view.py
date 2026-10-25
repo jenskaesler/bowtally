@@ -175,8 +175,19 @@ class ResultsView(QWidget):
         theme.notifier.changed.connect(lambda: self.tournament and self.recalculate())
 
     def headers(self) -> list[str]:
+        t = self.tournament
+        mode = getattr(t, "scoring_mode", "per_target") or "per_target"
+        num_rounds = getattr(t, "num_rounds", 1) or 1
+        if mode == "total_only":
+            return ["Rang", "Nr.", "Name", "Verein", "Klasse", "Gesamt"]
+        if mode == "per_round":
+            rounds = getattr(t, "rounds", []) or []
+            labels = ([r.label for r in sorted(rounds, key=lambda r: r.round_number)]
+                      if rounds else [f"{i}. Runde" for i in range(1, num_rounds + 1)])
+            return ["Rang", "Nr.", "Name", "Verein", "Klasse"] + labels + ["Gesamt"]
+        # per_target: one column per target (across all rounds for multi-round)
         return (["Rang", "Nr.", "Name", "Verein", "Klasse"]
-                + [str(i) for i in range(1, self.tournament.num_targets + 1)] + ["Gesamt"])
+                + [str(i) for i in range(1, t.num_targets * num_rounds + 1)] + ["Gesamt"])
 
     def set_tournament(self, t):
         first_time = self.tournament is None or self.tournament.id != t.id
@@ -211,29 +222,37 @@ class ResultsView(QWidget):
             per_class = rs.compute_ranking(t.id)
         self._pid_to_rank = {r.participant_id: r
                              for rows in per_class.values() for r in rows}
+        mode = getattr(t, "scoring_mode", "per_target") or "per_target"
+        hdrs = self.headers()
         for title, rows in [("Gesamt", overall)] + [
                 (names.get(cid, "Ohne Klasse"), rows) for cid, rows in per_class.items() if rows]:
             counts = Counter(r.rank for r in rows)
             table_rows, export_rows = [], []
             for r in rows:
                 bg = colors[PODIUM[r.rank]] if r.rank in PODIUM and r.total > 0 else None
+                if mode == "total_only":
+                    detail = []
+                elif mode == "per_round":
+                    detail = r.round_totals
+                else:
+                    detail = r.target_totals
                 values = [Cell(r.rank, text=rank_text(r.rank, counts), sort=r.rank),
                           r.start_number, r.name, r.club, r.bow_class] + \
                     [Cell(v, text="" if v is None else str(v), sort=-1 if v is None else v)
-                     for v in r.target_totals] + [Cell(r.total, bold=True)]
+                     for v in detail] + [Cell(r.total, bold=True)]
                 if bg:
                     values = [(v if isinstance(v, Cell) else Cell(v)) for v in values]
                     for v in values:
                         v.background = bg
                 table_rows.append(values)
                 export_rows.append([rank_text(r.rank, counts), r.start_number, r.name, r.club,
-                                    r.bow_class] + r.target_totals + [r.total])
+                                    r.bow_class] + list(detail) + [r.total])
             empty = EmptyState("target", "Noch keine Teilnehmer",
                                "Sobald Teilnehmer zugewiesen sind, erscheint hier die Rangliste.")
-            table = DataTable(self.headers(), empty)
+            table = DataTable(hdrs, empty)
             table.set_rows(table_rows, [r.participant_id for r in rows])
             self.tabs.addTab(table, f"{title} ({len(rows)})")
-            self.sheets.append((title, self.headers(), export_rows))
+            self.sheets.append((title, hdrs, export_rows))
         self.tabs.setCurrentIndex(max(0, min(current, self.tabs.count() - 1)))
         scored = sum(r.total > 0 for r in overall)
         self.info.setText(f"{scored} von {len(overall)} Teilnehmern mit Ergebnissen")

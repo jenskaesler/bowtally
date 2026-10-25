@@ -49,6 +49,8 @@ PHASE_TASKS = {
         Task("Parcours planen und aufbauen", manual="parcours_ready"),
         Task("Helfer einteilen", "helpers", "Helferverwaltung", manual="helpers_assigned"),
         Task("Anmeldeliste vorbereiten", "participants", "Teilnehmerverwaltung"),
+        Task("Rundenstruktur konfiguriert", "edit", "Turnierkonfiguration bearbeiten",
+             auto="rounds_configured"),
     ],
     "registration": [
         Task("Anmeldungen erfassen", "participants", "Teilnehmerverwaltung",

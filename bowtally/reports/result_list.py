@@ -118,11 +118,17 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
 
     # ---- one page per class
     width = pagesize[0] - tpl.MARGIN_LEFT - tpl.MARGIN_RIGHT
+    scoring_mode = getattr(t, "scoring_mode", "per_target") or "per_target"
+    num_rounds = getattr(t, "num_rounds", 1) or 1
+    rounds = getattr(t, "rounds", []) or []
+    round_labels = ([r.label for r in sorted(rounds, key=lambda r: r.round_number)]
+                    if rounds else [f"{i}. Runde" for i in range(1, num_rounds + 1)])
     for cid in classes_with_people:
         story += [PageBreak(),
                   Paragraph(_esc(class_names.get(cid, "Ohne Klasse")), st["heading"]),
                   _class_table(ranking[cid], t.num_targets, show_targets, width, st, font,
-                               bold, primary, secondary, border)]
+                               bold, primary, secondary, border,
+                               scoring_mode=scoring_mode, round_labels=round_labels)]
     if not classes_with_people:
         story += [PageBreak(), Paragraph("Keine Teilnehmer erfasst.", st["muted"])]
 
@@ -132,11 +138,55 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
 
 
 def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary, secondary,
-                 border) -> Table:
+                 border, scoring_mode: str = "per_target",
+                 round_labels: list | None = None) -> Table:
     fixed = {"rank": 11 * mm, "no": 12 * mm, "total": 15 * mm}
     rest = width - sum(fixed.values())
+
+    if scoring_mode == "total_only":
+        name_w = rest * 0.55
+        club_w = rest - name_w
+        header = ["Rang", "St.-Nr.", "Name", "Verein", "Gesamt"]
+        widths = [fixed["rank"], fixed["no"], name_w, club_w, fixed["total"]]
+        data = [header]
+        style = _base_style(font, bold, secondary, border)
+        for i, r in enumerate(rows, start=1):
+            podium = r.rank <= tpl.PODIUM_PLACES and r.total > 0
+            cell = st["cell_podium"] if podium else st["cell"]
+            line = [f"{r.rank}.", r.start_number or "",
+                    Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell), r.total]
+            data.append(line)
+            _add_podium_style(style, i, r.rank, r.total, primary, bold)
+        table = Table(data, colWidths=widths, repeatRows=1)
+        table.setStyle(TableStyle(style))
+        return table
+
+    if scoring_mode == "per_round":
+        labels = round_labels or []
+        n_rounds = len(labels)
+        rnd_w = min((rest * 0.4) / max(n_rounds, 1), 20 * mm)
+        name_w = (rest - rnd_w * n_rounds) * 0.55
+        club_w = rest - rnd_w * n_rounds - name_w
+        header = ["Rang", "St.-Nr.", "Name", "Verein"] + labels + ["Gesamt"]
+        widths = [fixed["rank"], fixed["no"], name_w, club_w] + [rnd_w] * n_rounds + [fixed["total"]]
+        data = [header]
+        style = _base_style(font, bold, secondary, border)
+        for i, r in enumerate(rows, start=1):
+            podium = r.rank <= tpl.PODIUM_PLACES and r.total > 0
+            cell = st["cell_podium"] if podium else st["cell"]
+            rnd_scores = ["" if v is None else str(v) for v in (r.round_totals or [])]
+            line = ([f"{r.rank}.", r.start_number or "",
+                     Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell)]
+                    + rnd_scores + [r.total])
+            data.append(line)
+            _add_podium_style(style, i, r.rank, r.total, primary, bold)
+        table = Table(data, colWidths=widths, repeatRows=1)
+        table.setStyle(TableStyle(style))
+        return table
+
+    # per_target (default)
     target_w = 0
-    compact = False   # too many targets for one column each -> one wrapped column
+    compact = False
     if show_targets:
         target_w = (rest * 0.55) / num_targets
         if target_w < MIN_TARGET_COL:
@@ -157,23 +207,7 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
     widths.append(fixed["total"])
 
     data = [header]
-    style = [
-        ("FONTNAME", (0, 0), (-1, -1), font),
-        ("FONTSIZE", (0, 0), (-1, -1), tpl.FONT_SIZE_TABLE),
-        ("FONTNAME", (0, 0), (-1, 0), bold),
-        ("BACKGROUND", (0, 0), (-1, 0), secondary),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("ALIGN", (0, 0), (1, -1), "RIGHT"),
-        ("ALIGN", (4, 0), (-1, -1), "CENTER"),
-        ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
-        ("FONTNAME", (-1, 1), (-1, -1), bold),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.4, border),
-        ("TOPPADDING", (0, 0), (-1, -1), tpl.TABLE_ROW_PADDING),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), tpl.TABLE_ROW_PADDING),
-        ("LEFTPADDING", (0, 0), (-1, -1), 2),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
-    ]
+    style = _base_style(font, bold, secondary, border)
     if compact:
         style.append(("ALIGN", (4, 0), (4, -1), "LEFT"))
     for i, r in enumerate(rows, start=1):
@@ -188,15 +222,40 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
             line += scores
         line.append(r.total)
         data.append(line)
-        if podium:
-            shade = {1: 1.0, 2: 0.8, 3: 0.62}.get(r.rank, 0.62)
-            bg = colors.Color(primary.red, primary.green, primary.blue, alpha=shade)
-            style += [("BACKGROUND", (0, i), (-1, i), bg),
-                      ("TEXTCOLOR", (0, i), (-1, i), colors.white),
-                      ("FONTNAME", (0, i), (-1, i), bold)]
+        _add_podium_style(style, i, r.rank, r.total, primary, bold)
     table = Table(data, colWidths=widths, repeatRows=1)
     table.setStyle(TableStyle(style))
     return table
+
+
+def _base_style(font, bold, secondary, border=None) -> list:
+    line_color = border or secondary
+    return [
+        ("FONTNAME", (0, 0), (-1, -1), font),
+        ("FONTSIZE", (0, 0), (-1, -1), tpl.FONT_SIZE_TABLE),
+        ("FONTNAME", (0, 0), (-1, 0), bold),
+        ("BACKGROUND", (0, 0), (-1, 0), secondary),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("ALIGN", (0, 0), (1, -1), "RIGHT"),
+        ("ALIGN", (4, 0), (-1, -1), "CENTER"),
+        ("ALIGN", (-1, 0), (-1, -1), "RIGHT"),
+        ("FONTNAME", (-1, 1), (-1, -1), bold),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.4, line_color),
+        ("TOPPADDING", (0, 0), (-1, -1), tpl.TABLE_ROW_PADDING),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), tpl.TABLE_ROW_PADDING),
+        ("LEFTPADDING", (0, 0), (-1, -1), 2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+    ]
+
+
+def _add_podium_style(style, i, rank, total, primary, bold):
+    if rank <= tpl.PODIUM_PLACES and total > 0:
+        shade = {1: 1.0, 2: 0.8, 3: 0.62}.get(rank, 0.62)
+        bg = colors.Color(primary.red, primary.green, primary.blue, alpha=shade)
+        style += [("BACKGROUND", (0, i), (-1, i), bg),
+                  ("TEXTCOLOR", (0, i), (-1, i), colors.white),
+                  ("FONTNAME", (0, i), (-1, i), bold)]
 
 
 def temp_pdf_path(tournament_id: int) -> Path:
