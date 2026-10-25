@@ -111,7 +111,7 @@ def _nc_mkcol_recursive(opener, base: str, path: str) -> None:
         try:
             opener.open(urllib.request.Request(seg_url, method="MKCOL"))
         except urllib.error.HTTPError as e:
-            if e.code != 405:  # 405 = already exists, anything else is a real error
+            if e.code not in (405, 409):  # 405/409 = collection already exists
                 raise
 
 

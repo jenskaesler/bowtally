@@ -369,14 +369,6 @@ class TournamentWizard(QWizard):
     # ------------------------------------------------------------ 4 config
     def _page_config(self) -> QWizardPage:
         from PySide6.QtWidgets import QGroupBox
-        self.targets = QSpinBox()
-        self.targets.setRange(1, 200)
-        self.targets.setValue(self._t("num_targets", DEFAULT_TARGETS))
-        self.shots = QSpinBox()
-        rule = self.selected_rule()
-        self.shots.setRange(1, rule.max_shots_per_target if rule else 3)
-        self.shots.setValue(self._t("shots_per_target",
-                                    rule.max_shots_per_target if rule else 1))
         self.groups = QLineEdit(self._t("start_groups", ""))
         self.groups.setPlaceholderText("z. B. A, B, C, D")
         self.course_notes = QPlainTextEdit(self._t("notes", ""))
@@ -384,31 +376,26 @@ class TournamentWizard(QWizard):
                                              "4 km")
         self.course_notes.setFixedHeight(70)
 
-        self.num_rounds = QSpinBox()
-        self.num_rounds.setRange(1, 4)
-        self.num_rounds.setValue(self._t("num_rounds", 1))
-
         self.scoring_mode = QComboBox()
-        for val, lbl, hint in [
-            ("per_target", "Scheibenwertung", "Punkte je Scheibe – klassische 3D-Wertung"),
-            ("per_round", "Rundenwertung", "Gesamtpunkte je Runde direkt eintragen"),
-            ("total_only", "Nur Gesamtpunkte", "Ein Gesamtergebnis je Teilnehmer"),
+        for val, lbl in [
+            ("per_target", "Scheibenwertung"),
+            ("per_round", "Rundenwertung"),
+            ("total_only", "Nur Gesamtpunkte"),
         ]:
-            self.scoring_mode.addItem(lbl, val)
+            self.scoring_mode.addItem(lbl, val)  # noqa: just loop body
         cur = self._t("scoring_mode", "per_target")
         idx = self.scoring_mode.findData(cur)
         if idx >= 0:
             self.scoring_mode.setCurrentIndex(idx)
 
-        # round label table (visible when num_rounds > 1)
-        self._round_table = QTableWidget(0, 5)
+        self._round_table = QTableWidget(0, 6)
         self._round_table.setHorizontalHeaderLabels(
-            ["Bezeichnung", "Regelwerk", "Ziele", "Pfeile", "Entfernung"])
+            ["Bezeichnung", "Regelwerk", "Ziele", "Pfeile", "Entfernung", ""])
         self._round_table.verticalHeader().setDefaultSectionSize(36)
         self._round_table.setShowGrid(False)
         h = self._round_table.horizontalHeader()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for col, w in [(1, 150), (2, 64), (3, 64), (4, 110)]:
+        for col, w in [(1, 140), (2, 60), (3, 60), (4, 110), (5, 36)]:
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
             self._round_table.setColumnWidth(col, w)
         self._round_table.setFixedHeight(168)
@@ -417,16 +404,19 @@ class TournamentWizard(QWizard):
         rg_lay = QVBoxLayout(self._round_group)
         rg_lay.setContentsMargins(8, 8, 8, 8)
         rg_lay.addWidget(self._round_table)
-        tip = QLabel('Tipp: Klassische 3D-Zweirunde → Runde 1: „3D Standard 3-Pfeil“, '
-                     'Runde 2: „3D Hunter (IBO)“', objectName="pageSubtitle")
+        add_btn = button("+ Runde", self._add_round, tooltip="Weitere Runde anlegen")
+        tip = QLabel("Tipp: DBSV-Turnier → Runde 1 = Waldrunde, "
+                     "Runde 2 = Jagdrunde", objectName="pageSubtitle")
         tip.setWordWrap(True)
-        rg_lay.addWidget(tip)
-        self._update_round_table()
-        self.num_rounds.valueChanged.connect(self._update_round_table)
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(add_btn)
+        btn_row.addSpacing(16)
+        btn_row.addWidget(tip, 1)
+        rg_lay.addLayout(btn_row)
+        self._init_round_table()
 
-        page = _Page(3, "Konfiguration", "Wie viele Scheiben hat der Parcours und wie viele "
-                     "Schüsse je Scheibe? Startgruppen sind optional und werden bei der "
-                     "Startnummernvergabe reihum verteilt.")
+        page = _Page(3, "Konfiguration", "Rundenkonfiguration, Wertungsmodus und Startgruppen. "
+                     "Jede Runde kann ein eigenes Regelwerk und eigene Scheibenanzahl haben.")
         form = QFormLayout()
         club = ss.get_club_profile()
         course_desc = club.get("course_description") or ""
@@ -435,9 +425,6 @@ class TournamentWizard(QWizard):
             button("Aus Stammdaten", lambda: _fill_text_if_empty(self.course_notes, course_desc),
                    tooltip="Parcour-Beschreibung aus Vereinsprofil übernehmen")
             if course_desc else None)
-        form.addRow("Anzahl Scheiben", self.targets)
-        form.addRow("Schüsse je Scheibe", self.shots)
-        form.addRow("Anzahl Runden", self.num_rounds)
         form.addRow("Wertungsmodus", self.scoring_mode)
         form.addRow("Startgruppen", self.groups)
         form.addRow("Hinweise zum Parcours", notes_row)
@@ -446,93 +433,93 @@ class TournamentWizard(QWizard):
         page.body.addStretch()
         return page
 
-    def _update_round_table(self):
-        n = self.num_rounds.value()
-        self._round_group.setVisible(n > 1)
-        # snapshot current widget values before resize
-        saved = {}
-        for r in range(self._round_table.rowCount()):
-            it = self._round_table.item(r, 0)
-            rule_w = self._round_table.cellWidget(r, 1)
-            tgt_w = self._round_table.cellWidget(r, 2)
-            spt_w = self._round_table.cellWidget(r, 3)
-            dt_w = self._round_table.cellWidget(r, 4)
-            saved[r] = {
-                "label": it.text() if it else "",
-                "scoring_rule_id": rule_w.currentData() if rule_w else None,
-                "num_targets": tgt_w.value() if tgt_w else 0,
-                "shots_per_target": spt_w.value() if spt_w else 0,
-                "distance_type": dt_w.currentData() if dt_w else None,
-            }
+    def _init_round_table(self):
+        """Populate round table on page creation from existing rounds or defaults."""
+        existing = {r.round_number: r for r in (self.tournament.rounds or [])} \
+            if self.tournament else {}
+        n = max(1, len(existing))
         self._round_table.setRowCount(n)
         for i in range(n):
-            s = saved.get(i, {})
-            tr = None
-            if self.tournament:
-                tr = next((r for r in (self.tournament.rounds or [])
-                           if r.round_number == i + 1), None)
-            # col 0: label (QTableWidgetItem)
-            if self._round_table.item(i, 0) is None:
-                lbl = s.get("label") or (tr.label if tr and tr.label else f"{i + 1}. Runde")
-                self._round_table.setItem(i, 0, QTableWidgetItem(lbl))
-            # col 1: scoring rule
-            if self._round_table.cellWidget(i, 1) is None:
-                cb = QComboBox()
-                cb.addItem("Turnier-Standard", None)
-                for rule in self.rules:
-                    cb.addItem(rule.name, rule.id)
-                pre = s.get("scoring_rule_id") or (tr.scoring_rule_id if tr else None)
-                if pre is not None:
-                    idx = cb.findData(pre)
-                    if idx >= 0:
-                        cb.setCurrentIndex(idx)
-                self._round_table.setCellWidget(i, 1, cb)
-            # col 2: num_targets
-            if self._round_table.cellWidget(i, 2) is None:
-                sp = QSpinBox()
-                sp.setRange(0, 200)
-                sp.setSpecialValueText("—")
-                sp.setValue(s.get("num_targets") or (tr.num_targets if tr else None) or 0)
-                self._round_table.setCellWidget(i, 2, sp)
-            # col 3: shots_per_target
-            if self._round_table.cellWidget(i, 3) is None:
-                sp = QSpinBox()
-                sp.setRange(0, 10)
-                sp.setSpecialValueText("—")
-                sp.setValue(s.get("shots_per_target") or (tr.shots_per_target if tr else None) or 0)
-                self._round_table.setCellWidget(i, 3, sp)
-            # col 4: distance_type
-            if self._round_table.cellWidget(i, 4) is None:
-                cb = QComboBox()
-                cb.addItem("Standard", None)
-                cb.addItem("Bekannte Entfernung", "known")
-                cb.addItem("Unbekannte Entfernung", "unknown")
-                pre = s.get("distance_type") or (tr.distance_type if tr else None)
-                if pre:
-                    idx = cb.findData(pre)
-                    if idx >= 0:
-                        cb.setCurrentIndex(idx)
-                self._round_table.setCellWidget(i, 4, cb)
+            self._init_round_row(i, tr=existing.get(i + 1))
+
+    def _init_round_row(self, i: int, tr=None):
+        """Create all cell widgets for row i; skips columns that already have a widget."""
+        if self._round_table.item(i, 0) is None:
+            lbl = (tr.label if tr and tr.label else f"{i + 1}. Runde")
+            self._round_table.setItem(i, 0, QTableWidgetItem(lbl))
+        if self._round_table.cellWidget(i, 1) is None:
+            cb = QComboBox()
+            cb.addItem("Turnier-Standard", None)
+            for rule in self.rules:
+                cb.addItem(rule.name, rule.id)
+            pre = tr.scoring_rule_id if tr else None
+            if pre is not None:
+                idx = cb.findData(pre)
+                if idx >= 0:
+                    cb.setCurrentIndex(idx)
+            self._round_table.setCellWidget(i, 1, cb)
+        if self._round_table.cellWidget(i, 2) is None:
+            sp = QSpinBox()
+            sp.setRange(0, 200)
+            sp.setSpecialValueText("—")
+            sp.setValue(tr.num_targets or 0 if tr else 0)
+            self._round_table.setCellWidget(i, 2, sp)
+        if self._round_table.cellWidget(i, 3) is None:
+            sp = QSpinBox()
+            sp.setRange(0, 10)
+            sp.setSpecialValueText("—")
+            sp.setValue(tr.shots_per_target or 0 if tr else 0)
+            self._round_table.setCellWidget(i, 3, sp)
+        if self._round_table.cellWidget(i, 4) is None:
+            cb = QComboBox()
+            cb.addItem("Standard", None)
+            cb.addItem("Bekannte Entfernung", "known")
+            cb.addItem("Unbekannte Entfernung", "unknown")
+            pre = tr.distance_type if tr else None
+            if pre:
+                idx = cb.findData(pre)
+                if idx >= 0:
+                    cb.setCurrentIndex(idx)
+            self._round_table.setCellWidget(i, 4, cb)
+        if self._round_table.cellWidget(i, 5) is None:
+            btn = QToolButton(objectName="iconButton")
+            btn.setIcon(QIcon(theme.pixmap("trash", theme.current()["accent"], 14)))
+            btn.setToolTip("Runde entfernen")
+            btn.clicked.connect(self._delete_round)
+            self._round_table.setCellWidget(i, 5, btn)
+
+    def _add_round(self):
+        n = self._round_table.rowCount()
+        self._round_table.setRowCount(n + 1)
+        self._init_round_row(n)
+
+    def _delete_round(self):
+        if self._round_table.rowCount() <= 1:
+            return
+        btn = self.sender()
+        for r in range(self._round_table.rowCount()):
+            if self._round_table.cellWidget(r, 5) is btn:
+                self._round_table.removeRow(r)
+                return
 
     def _rounds_data(self) -> list[dict]:
-        n = self.num_rounds.value()
-        rows = []
         existing_ids = {}
         if self.tournament:
             for r in (self.tournament.rounds or []):
                 existing_ids[r.round_number] = r.id
-        for i in range(1, n + 1):
-            r = i - 1
-            it = self._round_table.item(r, 0)
-            lbl = it.text().strip() if it else f"{i}. Runde"
-            rule_w = self._round_table.cellWidget(r, 1)
-            tgt_w = self._round_table.cellWidget(r, 2)
-            spt_w = self._round_table.cellWidget(r, 3)
-            dt_w = self._round_table.cellWidget(r, 4)
+        rows = []
+        for i in range(self._round_table.rowCount()):
+            rn = i + 1
+            it = self._round_table.item(i, 0)
+            lbl = it.text().strip() if it else f"{rn}. Runde"
+            rule_w = self._round_table.cellWidget(i, 1)
+            tgt_w = self._round_table.cellWidget(i, 2)
+            spt_w = self._round_table.cellWidget(i, 3)
+            dt_w = self._round_table.cellWidget(i, 4)
             rows.append({
-                "round_number": i,
-                "label": lbl or f"{i}. Runde",
-                "id": existing_ids.get(i),
+                "round_number": rn,
+                "label": lbl or f"{rn}. Runde",
+                "id": existing_ids.get(rn),
                 "scoring_rule_id": rule_w.currentData() if rule_w else None,
                 "num_targets": (tgt_w.value() or None) if tgt_w else None,
                 "shots_per_target": (spt_w.value() or None) if spt_w else None,
@@ -573,10 +560,15 @@ class TournamentWizard(QWizard):
         form.addRow("Schießbeginn", self.shooting_time)
         form.addRow("", self.practice)
         form.addRow("Einschießbereich", self.practice_location)
-        form.addRow("Auslastung", self.capacity)
         self.practice.toggled.connect(lambda on: form.setRowVisible(self.practice_location, on))
         form.setRowVisible(self.practice_location, self.practice.isChecked())
+        from PySide6.QtWidgets import QGroupBox
+        cap_box = QGroupBox("Auslastung")
+        cap_lay = QVBoxLayout(cap_box)
+        cap_lay.setContentsMargins(8, 8, 8, 8)
+        cap_lay.addWidget(self.capacity)
         page.body.addLayout(form)
+        page.body.addWidget(cap_box)
         page.body.addStretch()
         self._update_capacity()
         return page
@@ -780,9 +772,7 @@ class TournamentWizard(QWizard):
                                ("Veranstalter", self.organizer.text() or "–")]),
             (1, "Regelwerk", [("Regelwerk", rule.name if rule else "–")]),
             (2, "Bogenklassen", [(f"{len(names)} Klassen", ", ".join(names))]),
-            (3, "Konfiguration", [("Parcours", f"{self.targets.value()} Scheiben × "
-                                               f"{self.shots.value()} Schuss"),
-                                  ("Runden", str(self.num_rounds.value())),
+            (3, "Konfiguration", [("Runden", str(self._round_table.rowCount())),
                                   ("Wertung", self.scoring_mode.currentText()),
                                   ("Startgruppen", ", ".join(groups) or "keine")]),
             (4, "Fristen und Zeiten", [
@@ -841,8 +831,11 @@ class TournamentWizard(QWizard):
                 "location": self.location.text(), "organizer": self.organizer.text(),
                 "description": self.description.toPlainText(),
                 "scoring_rule_id": self.selected_rule().id,
-                "num_targets": self.targets.value(), "shots_per_target": self.shots.value(),
-                "num_rounds": self.num_rounds.value(),
+                "num_targets": (self._round_table.cellWidget(0, 2).value() or DEFAULT_TARGETS)
+                               if self._round_table.cellWidget(0, 2) else DEFAULT_TARGETS,
+                "shots_per_target": (self._round_table.cellWidget(0, 3).value() or 1)
+                                    if self._round_table.cellWidget(0, 3) else 1,
+                "num_rounds": self._round_table.rowCount(),
                 "scoring_mode": self.scoring_mode.currentData() or "per_target",
                 "start_groups": ", ".join(ts.split_groups(self.groups.text())) or None,
                 "notes": self.course_notes.toPlainText(),
