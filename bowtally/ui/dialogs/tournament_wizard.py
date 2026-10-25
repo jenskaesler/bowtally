@@ -139,6 +139,13 @@ class FeeTable(QWidget):
         return out
 
 
+def _form() -> QFormLayout:
+    f = QFormLayout()
+    f.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    f.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+    return f
+
+
 def _field_row(field: QWidget, btn: "QWidget | None") -> QWidget:
     if btn is None:
         return field
@@ -230,7 +237,7 @@ class TournamentWizard(QWizard):
                      "Pflicht ist nur der Name.", lambda: bool(self.name.text().strip()))
         self.name.textChanged.connect(page.completeChanged)
         club = ss.get_club_profile()
-        form = QFormLayout()
+        form = _form()
         form.addRow("Turniername *", self.name)
         form.addRow("Datum *", self.date)
         loc_row = _field_row(self.location,
@@ -298,16 +305,6 @@ class TournamentWizard(QWizard):
     # ------------------------------------------------------------ 1 config
     def _page_config(self) -> QWizardPage:
         from PySide6.QtWidgets import QGroupBox
-        self.default_rule = QComboBox()
-        self.default_rule.addItem("Bitte wählen …", None)
-        for r in self.rules:
-            self.default_rule.addItem(r.name + ("  ·  standard" if r.is_builtin else ""), r.id)
-        pre = self._t("scoring_rule_id")
-        if pre is not None:
-            idx = self.default_rule.findData(pre)
-            if idx >= 0:
-                self.default_rule.setCurrentIndex(idx)
-
         self.groups = QLineEdit(self._t("start_groups", ""))
         self.groups.setPlaceholderText("z. B. A, B, C, D")
         self.course_notes = QPlainTextEdit(self._t("notes", ""))
@@ -355,11 +352,9 @@ class TournamentWizard(QWizard):
         self._init_round_table()
 
         page = _Page(1, "Konfiguration",
-                     "Regelwerk, Rundenkonfiguration, Wertungsmodus und Startgruppen. "
-                     "Jede Runde kann ein eigenes Regelwerk und eigene Scheibenanzahl haben.",
-                     lambda: self.default_rule.currentData() is not None)
-        self.default_rule.currentIndexChanged.connect(page.completeChanged)
-        form = QFormLayout()
+                     "Rundenkonfiguration, Wertungsmodus und Startgruppen. "
+                     "Jede Runde hat ein eigenes Regelwerk und eigene Scheibenanzahl.")
+        form = _form()
         club = ss.get_club_profile()
         course_desc = club.get("course_description") or ""
         notes_row = _field_row(
@@ -367,7 +362,6 @@ class TournamentWizard(QWizard):
             button("Aus Stammdaten", lambda: _fill_text_if_empty(self.course_notes, course_desc),
                    tooltip="Parcour-Beschreibung aus Vereinsprofil übernehmen")
             if course_desc else None)
-        form.addRow("Regelwerk (Standard)", self.default_rule)
         form.addRow("Wertungsmodus", self.scoring_mode)
         form.addRow("Startgruppen", self.groups)
         form.addRow("Hinweise zum Parcours", notes_row)
@@ -495,7 +489,7 @@ class TournamentWizard(QWizard):
         self.max_participants.valueChanged.connect(self._update_capacity)
         page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden, wie viele Plätze "
                      "gibt es und wann geht es am Turniertag los?")
-        form = QFormLayout()
+        form = _form()
         form.addRow("Anmeldefrist", self.deadline)
         form.addRow("Maximale Teilnehmerzahl", self.max_participants)
         form.addRow("", QLabel("0 = keine Begrenzung", objectName="pageSubtitle"))
@@ -571,7 +565,7 @@ class TournamentWizard(QWizard):
                          for key, label in _CONTACT_ROLES]
         role_contacts = [(k, l, n, p, e) for k, l, n, p, e in role_contacts if n]
         _role_data = {n: (p, e) for _, _, n, p, e in role_contacts}
-        form = QFormLayout()
+        form = _form()
         if role_contacts:
             self._contact_combo = QComboBox()
             for _, label, name, _p, _e in role_contacts:
@@ -646,7 +640,7 @@ class TournamentWizard(QWizard):
             w.setFixedHeight(130)
         page = _Page(6, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
                      "eine Zeile je Hinweis.")
-        form = QFormLayout()
+        form = _form()
         form.addRow("Einleitungstext", self.intro)
         form.addRow("Wichtige Hinweise", self.legal)
         form.addRow("Abschlusstext", self.closing)
@@ -695,8 +689,6 @@ class TournamentWizard(QWizard):
             if item.widget():
                 item.widget().deleteLater()
 
-        rule_id = self.default_rule.currentData()
-        rule = next((r for r in self.rules if r.id == rule_id), None)
         names = [bc.name for bc in self.classes if bc.id in self._class_ids()]
         groups = ts.split_groups(self.groups.text())
         fees = self.fee_table.fees()
@@ -714,8 +706,7 @@ class TournamentWizard(QWizard):
                                ("Datum", self.date.date().toString("dd.MM.yyyy")),
                                ("Ort", self.location.text() or "–"),
                                ("Veranstalter", self.organizer.text() or "–")]),
-            (1, "Konfiguration", [("Regelwerk", rule.name if rule else "–"),
-                                  ("Runden", str(self._round_table.rowCount())),
+            (1, "Konfiguration", [("Runden", str(self._round_table.rowCount())),
                                   ("Wertung", self.scoring_mode.currentText()),
                                   ("Startgruppen", ", ".join(groups) or "keine")]),
             (2, "Bogenklassen", [(f"{len(names)} Klassen", ", ".join(names))]),
@@ -774,7 +765,9 @@ class TournamentWizard(QWizard):
         data = {"name": self.name.text().strip(), "date": self.date.date().toPython(),
                 "location": self.location.text(), "organizer": self.organizer.text(),
                 "description": self.description.toPlainText(),
-                "scoring_rule_id": self.default_rule.currentData(),
+                "scoring_rule_id": (self._round_table.cellWidget(0, 1).currentData()
+                                    if self._round_table.rowCount() > 0
+                                    and self._round_table.cellWidget(0, 1) else None),
                 "num_targets": (self._round_table.cellWidget(0, 2).value() or DEFAULT_TARGETS)
                                if self._round_table.cellWidget(0, 2) else DEFAULT_TARGETS,
                 "shots_per_target": (self._round_table.cellWidget(0, 3).value() or 1)

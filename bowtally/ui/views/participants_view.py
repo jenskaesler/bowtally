@@ -407,17 +407,12 @@ class ParticipantsView(QWidget):
         to_pay = sum(p.payment_status != "paid" and p.registration_status != "withdrawn"
                      and p.entry_fee_id is not None for p in sel)
         actions = [] if not n else [
-            Action(f"{to_confirm} Anmeldungen bestätigen" if n > 1 else "Anmeldung bestätigen",
+            Action("Anmeldung bestätigen",
                    self.confirm_selected, enabled=not locked and to_confirm > 0,
                    tooltip=tip or 'Status „Bestätigt" setzen'),
-            Action(f"{to_pay} Zahlungen als eingegangen markieren" if n > 1
-                   else "Zahlung eingegangen", self.mark_paid_selected,
+            Action("Zahlung eingegangen", self.mark_paid_selected,
                    enabled=not locked and to_pay > 0,
                    tooltip=tip or 'Zahlungsstatus „Bezahlt" mit heutigem Datum'),
-            Action("Klasse ändern", self.change_class, enabled=not alocked,
-                   tooltip=atip or "Bogenklasse für die Auswahl setzen"),
-            Action("Gruppe ändern", self.change_group, enabled=not alocked,
-                   tooltip=atip or "Startgruppe für die Auswahl setzen"),
             Action("Entfernen", self.remove_selected, "danger", enabled=not alocked,
                    tooltip=atip or "Aus dem Turnier entfernen (mit Rückfrage)")]
         self.action_bar.set_actions(

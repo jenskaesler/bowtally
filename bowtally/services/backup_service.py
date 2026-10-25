@@ -115,7 +115,7 @@ def _nc_mkcol_recursive(base: str, path: str, auth: str) -> None:
         try:
             urllib.request.urlopen(_nc_request(seg_url, "MKCOL", auth))
         except urllib.error.HTTPError as e:
-            if e.code not in (405, 409, 404):  # already exists or parent not found
+            if e.code not in (405, 409):  # already exists
                 raise
 
 
