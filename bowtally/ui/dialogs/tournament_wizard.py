@@ -18,6 +18,7 @@ from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, repolish, restore_geom, save_geom, show_error, theme
 from bowtally.ui.components.capacity_bar import CapacityBar
+from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.toast import Toast
 
 DEFAULT_TARGETS = 28
@@ -75,6 +76,12 @@ class _Page(QWizardPage):
 
     def isComplete(self) -> bool:
         return self._is_complete() if self._is_complete else super().isComplete()
+
+    def set_action_btn(self, btn: QWidget) -> None:
+        row = QHBoxLayout()
+        row.addWidget(btn)
+        row.addStretch()
+        self.layout().addLayout(row)
 
 
 class FeeTable(QWidget):
@@ -155,35 +162,6 @@ def _lbl(text: str) -> QLabel:
     return lbl
 
 
-def _field_row(field: QWidget, btn: "QWidget | None") -> QWidget:
-    if btn is None:
-        return field
-    w = QWidget()
-    row = QHBoxLayout(w)
-    row.setContentsMargins(0, 0, 0, 0)
-    row.addWidget(field, 1)
-    row.addWidget(btn)
-    return w
-
-
-def _fill_if_empty(edit: QLineEdit, value: str):
-    if value and not edit.text().strip():
-        edit.setText(value)
-
-
-def _fill_text_if_empty(edit: QPlainTextEdit, value: str):
-    if value and not edit.toPlainText().strip():
-        edit.setPlainText(value)
-
-
-def _club_address(club: dict) -> str:
-    parts = [club.get("street") or ""]
-    city_part = " ".join(filter(None, [club.get("zip_code"), club.get("city")]))
-    if city_part:
-        parts.append(city_part)
-    return ", ".join(p for p in parts if p)
-
-
 class TournamentWizard(QWizard):
     def __init__(self, tournament=None, start_page: int = 0, clone: bool = False, parent=None):
         super().__init__(parent)
@@ -250,21 +228,16 @@ class TournamentWizard(QWizard):
         form = _form()
         form.addRow(_lbl("Turniername *"), self.name)
         form.addRow(_lbl("Datum *"), self.date)
-        loc_row = _field_row(self.location,
-                             button("Aus Stammdaten", lambda: _fill_if_empty(
-                                 self.location, _club_address(club)),
-                                    tooltip="Vereinsadresse übernehmen")
-                             if club.get("city") else None)
-        form.addRow(_lbl("Ort"), loc_row)
-        org_row = _field_row(self.organizer,
-                             button("Aus Stammdaten", lambda: _fill_if_empty(
-                                 self.organizer, club.get("club_name", "")),
-                                    tooltip="Vereinsname als Veranstalter übernehmen")
-                             if club.get("club_name") else None)
-        form.addRow(_lbl("Veranstalter"), org_row)
+        form.addRow(_lbl("Ort"), self.location)
+        form.addRow(_lbl("Veranstalter"), self.organizer)
         form.addRow(_lbl("Beschreibung (intern)"), self.description)
         page.body.addLayout(form)
         page.body.addStretch()
+        if club.get("club_name") or club.get("city"):
+            page.set_action_btn(button(
+                "Vereinsdaten übernehmen",
+                lambda: self._fill_basics(club),
+                tooltip="Veranstalter und Ort aus dem Vereinsprofil übernehmen"))
         return page
 
     # ------------------------------------------------------------ 2 classes (chips)
@@ -367,18 +340,19 @@ class TournamentWizard(QWizard):
                      "Jede Runde hat ein eigenes Regelwerk und eigene Scheibenanzahl.")
         form = _form()
         club = ss.get_club_profile()
-        course_desc = club.get("course_description") or ""
-        notes_row = _field_row(
-            self.course_notes,
-            button("Aus Stammdaten", lambda: _fill_text_if_empty(self.course_notes, course_desc),
-                   tooltip="Parcour-Beschreibung aus Vereinsprofil übernehmen")
-            if course_desc else None)
+        course_desc = (club.get("course_description")
+                       or ss.get("default_parcours_description", "") or "")
         form.addRow(_lbl("Wertungsmodus"), self.scoring_mode)
         form.addRow(_lbl("Startgruppen"), self.groups)
-        form.addRow(_lbl("Hinweise zum Parcours"), notes_row)
+        form.addRow(_lbl("Hinweise zum Parcours"), self.course_notes)
         page.body.addLayout(form)
         page.body.addWidget(self._round_group)
         page.body.addStretch()
+        if course_desc:
+            page.set_action_btn(button(
+                "Parcours-Beschreibung übernehmen",
+                lambda: self._fill_config(course_desc),
+                tooltip="Parcours-Hinweise aus dem Vereinsprofil übernehmen"))
         return page
 
     def _init_round_table(self):
@@ -560,10 +534,6 @@ class TournamentWizard(QWizard):
                      "Startgeld überwiesen? Platzhalter im Verwendungszweck: {name}, "
                      "{bow_class}.")
         club = ss.get_club_profile()
-        if any(club.get(k) for k in ("club_name", "phone", "email", "bank_iban")):
-            btn = button("Aus Vereinsprofil übernehmen", lambda: self._from_club(club),
-                         tooltip="Kontakt- und Bankdaten aus dem Vereinsprofil übernehmen")
-            page.body.addWidget(btn, 0, Qt.AlignmentFlag.AlignLeft)
         _CONTACT_ROLES = [
             ("first_board", "1. Vorsitzender/in"),
             ("second_board", "2. Vorsitzender/in"),
@@ -598,24 +568,7 @@ class TournamentWizard(QWizard):
             self.contact_name.setText(self._contact_combo.currentData() or "")
             self._contact_combo.currentIndexChanged.connect(
                 lambda: self.contact_name.setText(self._contact_combo.currentData() or ""))
-
-            def _apply_contact():
-                name = self._contact_combo.currentData() or ""
-                self.contact_name.setText(name)
-                phone, email = _role_data.get(name, ("", ""))
-                if phone:
-                    self.contact_phone.setText(phone)
-                if email:
-                    self.contact_email.setText(email)
-
-            combo_row = QHBoxLayout()
-            combo_row.setContentsMargins(0, 0, 0, 0)
-            combo_row.addWidget(self._contact_combo, 1)
-            combo_row.addWidget(button("Übernehmen", _apply_contact,
-                                       tooltip="Name, Telefon und E-Mail dieser Person übernehmen"))
-            combo_widget = QWidget()
-            combo_widget.setLayout(combo_row)
-            form.addRow(_lbl("Kontaktperson"), combo_widget)
+            form.addRow(_lbl("Kontaktperson"), self._contact_combo)
         else:
             form.addRow(_lbl("Kontaktperson"), self.contact_name)
         form.addRow(_lbl("Telefon"), self.contact_phone)
@@ -627,19 +580,70 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Verwendungszweck"), self.bank_reference)
         page.body.addLayout(form)
         page.body.addStretch()
+        if any(club.get(k) for k in ("club_name", "phone", "email", "bank_iban")):
+            page.set_action_btn(button(
+                "Vereinsdaten übernehmen",
+                lambda: self._fill_contact(club, _role_data),
+                tooltip="Kontakt- und Bankdaten aus dem Vereinsprofil übernehmen"))
         return page
 
-    def _from_club(self, club: dict):
-        for edit, value in (
-            (self.contact_phone, club.get("phone")),
-            (self.contact_email, club.get("email")),
-            (self.bank_holder, club.get("bank_account_holder") or club.get("club_name")),
-            (self.bank_iban, club.get("bank_iban")),
-            (self.bank_bic, club.get("bank_bic")),
-            (self.bank_reference, club.get("bank_reference_template")),
-        ):
-            if value:
-                edit.setText(value)
+    def _fill_basics(self, club: dict):
+        club_name = club.get("club_name", "")
+        city = club.get("city", "")
+        overwrite = []
+        if self.organizer.text().strip() and club_name:
+            overwrite.append("Veranstalter")
+        if self.location.text().strip() and city:
+            overwrite.append("Ort")
+        if overwrite and not ConfirmDialog.ask(
+                self, "Felder überschreiben?",
+                "Folgende Felder sind bereits ausgefüllt und werden überschrieben:\n– " +
+                "\n– ".join(overwrite), "Überschreiben", destructive=False):
+            return
+        if club_name:
+            self.organizer.setText(club_name)
+        if city:
+            self.location.setText(city)
+        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
+
+    def _fill_config(self, desc: str):
+        if self.course_notes.toPlainText().strip() and not ConfirmDialog.ask(
+                self, "Felder überschreiben?",
+                "Folgende Felder sind bereits ausgefüllt und werden überschrieben:\n– Hinweise zum Parcours",
+                "Überschreiben", destructive=False):
+            return
+        self.course_notes.setPlainText(desc)
+        Toast.show(self, "Parcours-Beschreibung übernommen.", Toast.INFO)
+
+    def _fill_contact(self, club: dict, role_data: dict):
+        contact_name_val = ""
+        contact_phone_val = ""
+        contact_email_val = ""
+        if hasattr(self, "_contact_combo"):
+            name = self._contact_combo.currentData() or ""
+            contact_name_val = name
+            contact_phone_val, contact_email_val = role_data.get(name, ("", ""))
+        fills = {
+            "Kontaktperson": (self.contact_name, contact_name_val),
+            "Telefon": (self.contact_phone, contact_phone_val),
+            "E-Mail": (self.contact_email, contact_email_val),
+            "Kontoinhaber": (self.bank_holder,
+                             club.get("bank_account_holder") or club.get("club_name", "")),
+            "IBAN": (self.bank_iban, club.get("bank_iban", "")),
+            "BIC": (self.bank_bic, club.get("bank_bic", "")),
+            "Verwendungszweck": (self.bank_reference, club.get("bank_reference_template", "")),
+        }
+        overwrite = [label for label, (edit, val) in fills.items()
+                     if edit.text().strip() and val]
+        if overwrite and not ConfirmDialog.ask(
+                self, "Felder überschreiben?",
+                "Folgende Felder sind bereits ausgefüllt und werden überschrieben:\n– " +
+                "\n– ".join(overwrite), "Überschreiben", destructive=False):
+            return
+        for _label, (edit, val) in fills.items():
+            if val:
+                edit.setText(val)
+        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
 
     # ------------------------------------------------------------ 8 texts
     def _page_texts(self) -> QWizardPage:
