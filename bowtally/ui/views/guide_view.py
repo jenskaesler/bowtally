@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Guide (Leitfaden): what to do in the current phase of the active tournament.
 
 Per phase: description, traffic lights for the next transition, status checks, tasks with
@@ -235,11 +235,11 @@ class GuideView(QWidget):
         nxt = ts.next_phase(t.phase)
         if nxt and not locked:
             conds = ts.get_phase_conditions(t.id, nxt)
-            has_blockers = any(not c.ok and c.severity == “blocker” for c in conds)
-            nxt_btn = button(f”Nächste Phase: {ts.PHASE_LABELS[nxt]}”,
-                             lambda: self.action.emit(“next_phase”),
-                             “primary” if not has_blockers else “”,
-                             tooltip=f'Zu „{ts.PHASE_LABELS[nxt]}” wechseln')
+            has_blockers = any(not c.ok and c.severity == "blocker" for c in conds)
+            nxt_btn = button(f"Nächste Phase: {ts.PHASE_LABELS[nxt]}",
+                             lambda: self.action.emit("next_phase"),
+                             "primary" if not has_blockers else "",
+                             tooltip=f"Zu {ts.PHASE_LABELS[nxt]} wechseln")
             row = QHBoxLayout()
             row.addStretch()
             row.addWidget(nxt_btn)
@@ -247,7 +247,7 @@ class GuideView(QWidget):
         return card
 
     def _conditions_card(self, t, nxt) -> QFrame:
-        card, lay = _card(f"Voraussetzungen für „{ts.PHASE_LABELS[nxt]}“")
+        card, lay = _card(f'Voraussetzungen für „{ts.PHASE_LABELS[nxt]}“')
         for c in ts.get_phase_conditions(t.id, nxt):
             row = QHBoxLayout()
             row.addWidget(_ampel("ok" if c.ok else c.severity))
