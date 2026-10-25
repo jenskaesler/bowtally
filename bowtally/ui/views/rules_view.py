@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Scoring rules: drawer CRUD with zone editor, clone, delete. Builtin rules are read-only."""
+"""Scoring rules: modal CRUD with zone editor, clone, delete. Builtin rules are read-only."""
 import json
 
 from PySide6.QtCore import QSettings, Qt, Signal
@@ -15,10 +15,10 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT, Cell, ReorderTable
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
+from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 from bowtally.ui.views.bow_classes_view import READ_ONLY_HINT, builtin_chip
 
@@ -148,34 +148,68 @@ def _json_validator(text) -> str | None:
     return None if isinstance(value, dict) else "Sonderregeln müssen ein JSON-Objekt sein"
 
 
-class RulesView(ListView):
-    def __init__(self, parent=None):
-        self.form = Form()
-        f = self.form
-        f.add("name", "Bezeichnung", QLineEdit(), required=True)
+class ScoringRuleDialog(RecordDialog):
+    def __init__(self, record=None, parent=None):
+        self._record = record
+        ro = bool(record and record.is_builtin)
+        super().__init__(
+            "Neues Regelwerk" if record is None else "Regelwerk bearbeiten",
+            read_only=ro, read_only_hint=READ_ONLY_HINT if ro else "", parent=parent)
+        if record is None:
+            self.form.set_values({
+                "max_shots_per_target": 1,
+                "ring_values": [{"zone": "Miss", "points": 0}],
+                "rules_json": '{\n  "tiebreak": "most_top_scores"\n}',
+            })
+        else:
+            values = {k: getattr(record, k) for k in self.form.fields}
+            values["rules_json"] = json.dumps(record.rules_json or {}, ensure_ascii=False, indent=2)
+            self.form.set_values(values)
+        self._baseline = self.form.snapshot()
+        self.saved_id: int | None = None
+        self.saved_name: str = ""
+
+    def _setup_form(self):
         desc = QPlainTextEdit()
-        desc.setFixedHeight(64)
-        f.add("description", "Beschreibung", desc)
+        desc.setMinimumHeight(56)
         shots = QSpinBox()
         shots.setRange(1, MAX_SHOTS)
-        f.add("max_shots_per_target", "Max. Schüsse pro Scheibe", shots)
-        f.add("allow_retry_shot", "Nachschuss", QCheckBox("Nachschuss erlaubt"))
-        f.add("ring_values", "Zonen und Punkte", ZoneEditor(), required=True,
-              validator=_zones_validator,
-              required_message="Mindestens eine Zone ist erforderlich")
+        ze = ZoneEditor()
         rules = QPlainTextEdit()
-        rules.setFixedHeight(80)
-        f.add("rules_json", "Sonderregeln (JSON, optional)", rules, validator=_json_validator)
+        rules.setMinimumHeight(72)
+        self.form.add("name", "Bezeichnung", QLineEdit(), required=True)
+        self.form.add("description", "Beschreibung", desc)
+        self.form.add("max_shots_per_target", "Max. Schüsse je Scheibe", shots)
+        self.form.add("allow_retry_shot", "Nachschuss", QCheckBox("Nachschuss erlaubt"))
+        self.form.add("ring_values", "Zonen", ze, required=True,
+                      validator=_zones_validator,
+                      required_message="Mindestens eine Zone ist erforderlich")
+        self.form.add("rules_json", "Sonderregeln (JSON)", rules, validator=_json_validator)
 
+    def _do_save(self) -> bool:
+        data = self.form.values()
+        data["rules_json"] = json.loads(data.get("rules_json") or "{}")
+        try:
+            rule = sc.save_rule(data, self._record.id if self._record else None)
+        except Exception as exc:
+            show_error(self, exc, "Regelwerk konnte nicht gespeichert werden")
+            return False
+        self.saved_id = rule.id
+        self.saved_name = rule.name
+        return True
+
+
+class RulesView(ListView):
+    def __init__(self, parent=None):
         empty = EmptyState("rules", "Keine Regelwerke",
                            "Lege ein Regelwerk mit Zonen und Punktwerten an.", "Neues Regelwerk")
-        super().__init__("Regelwerke", HEADERS, empty, self.form, "Bezeichnung oder Zone …")
+        super().__init__("Regelwerke", HEADERS, empty,
+                         search_placeholder="Bezeichnung oder Zone …")
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neues Regelwerk", self.new_item, "primary",
                                "Neues Regelwerk anlegen (Strg+N)"))
         self.table.activated.connect(self.edit_item)
         self._rules = {}
-        self._editing_id = None
         self._show_mine = QCheckBox("Meine Regelwerke anzeigen")
         _s = QSettings("BowTally", "BowTally")
         self._show_mine.setChecked(_s.value("rules/show_mine", False, type=bool))
@@ -217,7 +251,7 @@ class RulesView(ListView):
         self.action_bar.set_actions(r.name, [
             Action("Bearbeiten", self.edit_item, enabled=not locked,
                    tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
-                   else "Im Seitenpanel bearbeiten"),
+                   else "Regelwerk bearbeiten"),
             Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
                    tooltip="Löschen (Standard-Einträge sind schreibgeschützt)" if locked
@@ -233,42 +267,25 @@ class RulesView(ListView):
                 ("Löschen", self.delete_item, not r.is_builtin)]
 
     def new_item(self):
-        if not self.close_drawer():
-            return
-        self._editing_id = None
-        self.form.set_values({"max_shots_per_target": 1,
-                              "ring_values": [{"zone": "Miss", "points": 0}],
-                              "rules_json": '{\n  "tiebreak": "most_top_scores"\n}'})
-        self.drawer.open("Neues Regelwerk")
+        dlg = ScoringRuleDialog(parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"Regelwerk '{dlg.saved_name}' gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def edit_item(self, *_):
         r = self._selected()
-        if r is None or not self.close_drawer():
+        if r is None:
             return
-        self._editing_id = r.id
-        values = {k: getattr(r, k) for k in self.form.fields}
-        values["rules_json"] = json.dumps(r.rules_json or {}, ensure_ascii=False, indent=2)
-        self.form.set_values(values)
-        self.drawer.open(r.name, read_only=r.is_builtin, read_only_hint=READ_ONLY_HINT)
-
-    def save_form(self):
-        if not self.form.validate():
-            return
-        data = self.form.values()
-        data["rules_json"] = json.loads(data["rules_json"] or "{}")
-        try:
-            rule = sc.save_rule(data, self._editing_id)
-        except Exception as exc:
-            show_error(self, exc, "Regelwerk konnte nicht gespeichert werden")
-            return
-        self.drawer.mark_saved()
-        Toast.show(self, f"Regelwerk '{rule.name}' gespeichert", Toast.SUCCESS)
-        self.refresh()
-        self.table.select_ids([rule.id])
+        dlg = ScoringRuleDialog(record=r, parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"Regelwerk '{dlg.saved_name}' gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def clone_item(self):
         r = self._selected()
-        if r is None or not self.close_drawer():
+        if r is None:
             return
         clone = sc.clone_rule(r.id)
         Toast.show(self, f"Kopie '{clone.name}' angelegt", Toast.SUCCESS)

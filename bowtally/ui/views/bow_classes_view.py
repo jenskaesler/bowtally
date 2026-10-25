@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bow classes: drawer CRUD, clone, delete; order by drag and drop (sort_order persisted)."""
+"""Bow classes: modal CRUD, clone, delete; order by drag and drop (sort_order persisted)."""
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
 
@@ -10,10 +10,11 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.toast import Toast
+from bowtally.ui.constants import SETTINGS_COMBO_W
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
+from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
 HEADERS = ["Bezeichnung", "Kürzel", "Altersgruppe", "Typ"]
@@ -26,32 +27,58 @@ def builtin_chip(builtin: bool) -> Cell:
                 else ("Benutzerdefiniert", "primary"))
 
 
-class BowClassesView(ListView):
-    def __init__(self, parent=None):
-        self.form = Form()
+class BowClassDialog(RecordDialog):
+    def __init__(self, record=None, parent=None):
+        self._record = record
+        ro = bool(record and record.is_builtin)
+        super().__init__(
+            "Neue Bogenklasse" if record is None else "Bogenklasse bearbeiten",
+            read_only=ro, read_only_hint=READ_ONLY_HINT if ro else "", parent=parent)
+        if record:
+            self.form.set_values({k: getattr(record, k) for k in self.form.fields})
+        self._baseline = self.form.snapshot()
+        self.saved_id: int | None = None
+        self.saved_name: str = ""
+
+    def _setup_form(self):
         age = QComboBox()
         age.setEditable(True)
         age.addItems([""] + AGE_GROUPS)
-        self.form.add("name", "Bezeichnung", QLineEdit(), required=True)
-        self.form.add("abbreviation", "Kürzel", QLineEdit(), required=True,
-                      hint="Kurzform für Tabellen und Ergebnislisten, z. B. RH")
-        self.form.add("age_group", "Altersgruppe", age)
         desc = QPlainTextEdit()
-        desc.setFixedHeight(90)
+        desc.setMinimumHeight(70)
+        abbr = QLineEdit()
+        self.form.add("name", "Bezeichnung", QLineEdit(), required=True)
+        self.form.add("abbreviation", "Kürzel", abbr, required=True,
+                      hint="Kurzform für Tabellen und Ergebnislisten, z. B. RH")
+        abbr.setFixedWidth(SETTINGS_COMBO_W)
+        self.form.add("age_group", "Altersgruppe", age)
         self.form.add("description", "Beschreibung", desc)
 
+    def _do_save(self) -> bool:
+        try:
+            bc = md.save_bow_class(self.form.values(),
+                                   self._record.id if self._record else None)
+        except Exception as exc:
+            show_error(self, exc, "Bogenklasse konnte nicht gespeichert werden")
+            return False
+        self.saved_id = bc.id
+        self.saved_name = bc.name
+        return True
+
+
+class BowClassesView(ListView):
+    def __init__(self, parent=None):
         empty = EmptyState("layers", "Keine Bogenklassen",
                            "Lege eine Bogenklasse an, um Teilnehmer zuordnen zu können.",
                            "Neue Bogenklasse")
-        super().__init__("Bogenklassen", HEADERS, empty, self.form,
-                         "Bezeichnung oder Kürzel …", reorderable=True)
+        super().__init__("Bogenklassen", HEADERS, empty,
+                         search_placeholder="Bezeichnung oder Kürzel …", reorderable=True)
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neue Bogenklasse", self.new_item, "primary",
                                "Neue Bogenklasse anlegen (Strg+N)"))
         self.table.activated.connect(self.edit_item)
         self.table.reordered.connect(self._save_order)
         self._classes = {}
-        self._editing_id = None
         self._show_mine = QCheckBox("Meine Bogenklassen anzeigen")
         _s = QSettings("BowTally", "BowTally")
         self._show_mine.setChecked(_s.value("bow_classes/show_mine", False, type=bool))
@@ -93,7 +120,7 @@ class BowClassesView(ListView):
         self.action_bar.set_actions(bc.name, [
             Action("Bearbeiten", self.edit_item, enabled=not locked,
                    tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
-                   else "Im Seitenpanel bearbeiten"),
+                   else "Bogenklasse bearbeiten"),
             Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
                    tooltip="Löschen (Standard-Einträge sind schreibgeschützt)" if locked
@@ -109,36 +136,25 @@ class BowClassesView(ListView):
                 ("Löschen", self.delete_item, not bc.is_builtin)]
 
     def new_item(self):
-        if not self.close_drawer():
-            return
-        self._editing_id = None
-        self.form.set_values({})
-        self.drawer.open("Neue Bogenklasse")
+        dlg = BowClassDialog(parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"Bogenklasse '{dlg.saved_name}' gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def edit_item(self, *_):
         bc = self._selected()
-        if bc is None or not self.close_drawer():
+        if bc is None:
             return
-        self._editing_id = bc.id
-        self.form.set_values({k: getattr(bc, k) for k in self.form.fields})
-        self.drawer.open(bc.name, read_only=bc.is_builtin, read_only_hint=READ_ONLY_HINT)
-
-    def save_form(self):
-        if not self.form.validate():
-            return
-        try:
-            bc = md.save_bow_class(self.form.values(), self._editing_id)
-        except Exception as exc:
-            show_error(self, exc, "Bogenklasse konnte nicht gespeichert werden")
-            return
-        self.drawer.mark_saved()
-        Toast.show(self, f"Bogenklasse '{bc.name}' gespeichert", Toast.SUCCESS)
-        self.refresh()
-        self.table.select_ids([bc.id])
+        dlg = BowClassDialog(record=bc, parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"Bogenklasse '{dlg.saved_name}' gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def clone_item(self):
         bc = self._selected()
-        if bc is None or not self.close_drawer():
+        if bc is None:
             return
         clone = md.clone_bow_class(bc.id)
         Toast.show(self, f"Kopie '{clone.name}' angelegt", Toast.SUCCESS)

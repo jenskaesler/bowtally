@@ -197,8 +197,11 @@ class FormField(QWidget):
 class Form(QWidget):
     changed = Signal()
 
-    def __init__(self, parent=None):
+    def __init__(self, label_width: int | None = None, combo_width: int | None = None,
+                 parent=None):
         super().__init__(parent)
+        self._label_width = label_width
+        self._combo_width = combo_width
         self.fields: dict[str, FormField] = {}
         self._lay = QFormLayout(self)
         self._lay.setContentsMargins(0, 0, 0, 0)
@@ -209,6 +212,8 @@ class Form(QWidget):
     def add(self, key: str, label: str, widget: QWidget, required: bool = False,
             **kwargs) -> FormField:
         _apply_widget_policy(widget)
+        if self._combo_width is not None and isinstance(widget, (QComboBox, QAbstractSpinBox)):
+            widget.setFixedWidth(self._combo_width)
         field = FormField(widget, required=required, label_text=label, **kwargs)
         h_pol = widget.sizePolicy().horizontalPolicy()
         if h_pol in (QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding):
@@ -221,6 +226,8 @@ class Form(QWidget):
             lbl_text = f"{label} *" if required else label
             lbl = QLabel(lbl_text, objectName="fieldLabel")
             lbl.setBuddy(widget)
+            if self._label_width is not None:
+                lbl.setFixedWidth(self._label_width)
             self._lay.addRow(lbl, field)
         return field
 

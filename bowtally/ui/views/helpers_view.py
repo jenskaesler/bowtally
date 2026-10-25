@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """Volunteer management: global master data (no tournament) and per-tournament assignments."""
-from PySide6.QtCore import Qt
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import (QCheckBox, QDialog, QHBoxLayout, QLabel, QLineEdit,
-                               QListWidget, QListWidgetItem, QPlainTextEdit, QVBoxLayout,
-                               QWidget)
+from PySide6.QtCore import QSettings, Qt, QTime
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDialog, QGroupBox, QHBoxLayout,
+                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit,
+                               QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import HELPER_IMPORT_FIELDS
 from bowtally.services import helper_service as hs
@@ -15,12 +14,13 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import Form, email_validator
+from bowtally.ui.components.form_field import email_validator
 from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
+from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
 GLOBAL_HEADERS = ["Name", "Telefon", "E-Mail", "Notizen", "Status"]
@@ -84,53 +84,120 @@ class _HelperPicker(QDialog):
                 if self.list.item(i).checkState() == Qt.CheckState.Checked]
 
 
+class HelperDialog(RecordDialog):
+    """Create / edit a helper (global) or a tournament assignment (tournament mode)."""
+
+    def __init__(self, record=None, tournament_id=None, parent=None):
+        self._record = record
+        self._tournament_id = tournament_id
+        self._is_tournament = tournament_id is not None
+        if record is None:
+            title = "Neuer Helfer"
+        elif not self._is_tournament:
+            title = f"{record.first_name} {record.last_name}"
+        else:
+            title = f"{record.helper.first_name} {record.helper.last_name}"
+        super().__init__(title, parent=parent)
+        values: dict = {"confirmed": False}
+        if record is not None:
+            if not self._is_tournament:
+                values = {"first_name": record.first_name, "last_name": record.last_name,
+                          "phone": record.phone, "email": record.email, "notes": record.notes}
+            else:
+                values = {"first_name": record.helper.first_name,
+                          "last_name": record.helper.last_name,
+                          "phone": record.helper.phone, "email": record.helper.email,
+                          "notes": record.helper.notes, "task": record.task,
+                          "time_from": record.time_from, "time_to": record.time_to,
+                          "confirmed": record.confirmed}
+        self.form.set_values(values)
+        self._baseline = self.form.snapshot()
+        self.saved_id: int | None = None
+        self.saved_name: str = ""
+
+    def _setup_form(self):
+        notes = QPlainTextEdit()
+        notes.setMinimumHeight(70)
+        self.form.add("first_name", "Vorname", QLineEdit(), required=True)
+        self.form.add("last_name", "Nachname", QLineEdit(), required=True)
+        self.form.add("phone", "Telefon", QLineEdit())
+        self.form.add("email", "E-Mail", QLineEdit(), validator=email_validator)
+        self.form.add("notes", "Notizen", notes)
+        if self._is_tournament:
+            def _te():
+                w = QTimeEdit()
+                w.setDisplayFormat("HH:mm")
+                w.setSpecialValueText("–")
+                w.setTime(QTime(0, 0))
+                return w
+            self.form.add("task", "Aufgabe", QLineEdit(),
+                          hint="z. B. Parcours-Aufbau, Einschreibung, Ergebnisse")
+            self.form.add("time_from", "Zeit von", _te())
+            self.form.add("time_to", "Zeit bis", _te())
+            self.form.add("confirmed", "Bestätigt", QCheckBox("Bestätigung versendet"))
+        elif self._record is not None:
+            self._body_layout.addWidget(self._build_history(self._record.id))
+
+    def _build_history(self, helper_id: int) -> QWidget:
+        history = hs.get_helper_history(helper_id)
+        grp = QGroupBox("Turnierbeteiligung")
+        lay = QVBoxLayout(grp)
+        if not history:
+            lay.addWidget(QLabel("Noch bei keinem Turnier eingesetzt.",
+                                 objectName="pageSubtitle"))
+        else:
+            t = QTableWidget(len(history), 5)
+            t.setHorizontalHeaderLabels(["Turniername", "Datum", "Aufgabe",
+                                         "Einsatzzeit", "Bestätigt"])
+            t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            t.verticalHeader().hide()
+            t.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+            t.setMaximumHeight(180)
+            for r, row in enumerate(history):
+                date_str = f"{row['date']:%d.%m.%Y}" if row.get('date') else "–"
+                tf, tt = row.get('time_from') or "", row.get('time_to') or ""
+                time_str = f"{tf}–{tt}" if tf or tt else "–"
+                t.setItem(r, 0, QTableWidgetItem(row.get('name') or "–"))
+                t.setItem(r, 1, QTableWidgetItem(date_str))
+                t.setItem(r, 2, QTableWidgetItem(row.get('task') or "–"))
+                t.setItem(r, 3, QTableWidgetItem(time_str))
+                t.setItem(r, 4, QTableWidgetItem("Ja" if row.get('confirmed') else "Nein"))
+            t.resizeColumnsToContents()
+            lay.addWidget(t)
+        return grp
+
+    def _do_save(self) -> bool:
+        values = self.form.values()
+        try:
+            with busy():
+                if self._tournament_id is None:
+                    if self._record is None:
+                        result = hs.create_helper(values)
+                    else:
+                        result = hs.update_helper(self._record.id, values)
+                    self.saved_id = result.id
+                    self.saved_name = f"{result.first_name} {result.last_name}"
+                else:
+                    if self._record is None:
+                        result = hs.create_and_assign(self._tournament_id, values)
+                    else:
+                        result = hs.update_assignment(self._record.id, values)
+                    self.saved_id = result.id
+                    self.saved_name = (f"{result.helper.first_name} "
+                                       f"{result.helper.last_name}")
+        except Exception as exc:
+            show_error(self, exc, "Helfer konnte nicht gespeichert werden")
+            return False
+        return True
+
+
 class HelpersView(ListView):
     def __init__(self, parent=None):
-        f = Form()
-        f.add("first_name", "Vorname", QLineEdit(), required=True)
-        f.add("last_name", "Nachname", QLineEdit(), required=True)
-        f.add("phone", "Telefon", QLineEdit())
-        f.add("email", "E-Mail", QLineEdit(), validator=email_validator)
-        notes = QPlainTextEdit()
-        notes.setFixedHeight(60)
-        f.add("notes", "Notizen", notes)
-        lbl = QLabel("Einsatz in diesem Turnier", objectName="fieldLabel")
-        lbl.setContentsMargins(0, 8, 0, 0)
-        f.add_widget(lbl)
-        task_ff = f.add("task", "Aufgabe", QLineEdit(),
-                        hint="z. B. Parcours-Aufbau, Einschreibung, Ergebnisse")
-        from PySide6.QtWidgets import QTimeEdit
-        from PySide6.QtCore import QTime
-        def _te():
-            w = QTimeEdit()
-            w.setDisplayFormat("HH:mm")
-            w.setSpecialValueText("–")
-            w.setTime(QTime(0, 0))
-            return w
-        time_from_ff = f.add("time_from", "Zeit von", _te())
-        time_to_ff = f.add("time_to", "Zeit bis", _te())
-        confirmed_ff = f.add("confirmed", "Bestätigt", QCheckBox("Bestätigung versendet"))
-        self._tournament_fields = [lbl, task_ff, time_from_ff, time_to_ff, confirmed_ff]
-
-        # History section (global mode only, shown when editing an existing helper)
-        from PySide6.QtWidgets import QGroupBox
-        self._history_section = QGroupBox("Turnierbeteiligung")
-        _hl = QVBoxLayout(self._history_section)
-        _hl.setSpacing(4)
-        self._history_label = QLabel()
-        self._history_label.setWordWrap(True)
-        self._history_label.setObjectName("pageSubtitle")
-        self._history_label.setTextFormat(Qt.TextFormat.RichText)
-        _hl.addWidget(self._history_label)
-        f.add_widget(self._history_section)
-        self._history_section.setVisible(False)
-
-        self.form = f
-
         empty = EmptyState("users", "Keine Helfer",
                            "Lege neue Helfer an oder importiere eine Helferliste.",
                            "Neuer Helfer")
-        super().__init__("Helfer", TOURNAMENT_HEADERS, empty, f, "Name oder Aufgabe …")
+        super().__init__("Helfer", TOURNAMENT_HEADERS, empty,
+                         search_placeholder="Name oder Aufgabe …")
         empty.actionTriggered.connect(self.new_item)
 
         self._btn_from_master = button("Aus Stammdatei", self._pick_from_master,
@@ -164,7 +231,6 @@ class HelpersView(ListView):
         self.main_layout.insertWidget(2, footer)
         self.table.activated.connect(self.edit_item)
         self._rows: dict[int, object] = {}
-        self._editing_id: int | None = None
 
     # ---------------------------------------------------------------- data
     def refresh(self):
@@ -177,11 +243,7 @@ class HelpersView(ListView):
         self._btn_import.setVisible(not has_tournament)
         self._btn_print.setVisible(has_tournament)
 
-        for w in self._tournament_fields:
-            w.setVisible(has_tournament)
-
         if not has_tournament:
-            # Global mode: show master data
             self._rows = {}
             self.table.set_headers(GLOBAL_HEADERS)
             show_inactive = self._show_inactive.isChecked()
@@ -199,7 +261,6 @@ class HelpersView(ListView):
             ] for h in helpers], [h.id for h in helpers])
             self.header.set_subtitle(f"{len(helpers)} Helfer in Stammdatei")
         else:
-            # Tournament mode: show assignments
             self._rows = {}
             self.table.set_headers(TOURNAMENT_HEADERS)
             with busy():
@@ -229,8 +290,7 @@ class HelpersView(ListView):
             self.action_bar.set_actions("", [])
             return
         if context.tournament_id is None:
-            # Global mode actions
-            actions = [Action("Bearbeiten", self.edit_item, tooltip="Im Seitenpanel bearbeiten")]
+            actions = [Action("Bearbeiten", self.edit_item, tooltip="Helfer bearbeiten")]
             if n == 1:
                 h = self._rows.get(ids[0])
                 if h:
@@ -241,8 +301,7 @@ class HelpersView(ListView):
                                   self.delete_selected, "danger"))
             self.action_bar.set_actions(self.selection_info(n, "Helfer", "Helfer"), actions)
         else:
-            # Tournament mode actions
-            actions = [Action("Bearbeiten", self.edit_item, tooltip="Im Seitenpanel bearbeiten")]
+            actions = [Action("Bearbeiten", self.edit_item, tooltip="Helfereinsatz bearbeiten")]
             if n == 1:
                 th = self._rows.get(ids[0])
                 if th and th.helper.email:
@@ -256,7 +315,6 @@ class HelpersView(ListView):
 
     def context_entries(self, row_id):
         if context.tournament_id is None:
-            # Global mode
             h = self._rows.get(row_id)
             if h is None:
                 return []
@@ -269,7 +327,6 @@ class HelpersView(ListView):
                 ("Löschen", self.delete_selected),
             ]
         else:
-            # Tournament mode
             th = self._rows.get(row_id)
             if th is None:
                 return []
@@ -287,96 +344,26 @@ class HelpersView(ListView):
             ]
             return entries
 
-    # ---------------------------------------------------------------- new / edit / save
+    # ---------------------------------------------------------------- new / edit
     def new_item(self):
-        if not self.close_drawer():
-            return
-        self._editing_id = None
-        self.form.set_values({"confirmed": False})
-        self._history_section.setVisible(False)
-        self.drawer.open("Neuer Helfer")
+        dlg = HelperDialog(tournament_id=context.tournament_id, parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"{dlg.saved_name} gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def edit_item(self, *_):
         sel_ids = self.table.selected_ids()
-        if not sel_ids or not self.close_drawer():
+        if not sel_ids:
             return
-        aid = sel_ids[0]
-        if context.tournament_id is None:
-            # Global mode: aid is helper_id
-            h = self._rows.get(aid)
-            if h is None:
-                return
-            self._editing_id = aid
-            self.form.set_values({
-                "first_name": h.first_name, "last_name": h.last_name,
-                "phone": h.phone, "email": h.email, "notes": h.notes,
-                "task": None, "time_from": None, "time_to": None, "confirmed": False,
-            })
-            history = hs.get_helper_history(aid)
-            if history:
-                rows = []
-                for r in history:
-                    date_str = f"{r['date']:%d.%m.%Y}" if r['date'] else "–"
-                    time_str = "–".join(x for x in (r['time_from'], r['time_to']) if x)
-                    detail = " · ".join(filter(None, [r['task'], time_str,
-                                                      "bestätigt" if r['confirmed'] else None]))
-                    rows.append(
-                        f"<tr><td style='padding:2px 6px 2px 0'><b>{r['name']}</b></td>"
-                        f"<td style='padding:2px 6px 2px 0;color:#888'>{date_str}</td>"
-                        f"<td style='padding:2px 0'>{detail}</td></tr>"
-                    )
-                self._history_label.setText(f"<table>{''.join(rows)}</table>")
-            else:
-                self._history_label.setText("Noch bei keinem Turnier eingesetzt.")
-            self._history_section.setVisible(True)
-            self.drawer.open(f"{h.first_name} {h.last_name}")
-        else:
-            # Tournament mode: aid is TournamentHelper.id
-            th = self._rows.get(aid)
-            if th is None:
-                return
-            self._editing_id = aid
-            self.form.set_values({
-                "first_name": th.helper.first_name,
-                "last_name": th.helper.last_name,
-                "phone": th.helper.phone,
-                "email": th.helper.email,
-                "notes": th.helper.notes,
-                "task": th.task,
-                "time_from": th.time_from,
-                "time_to": th.time_to,
-                "confirmed": th.confirmed,
-            })
-            self._history_section.setVisible(False)
-            self.drawer.open(f"{th.helper.first_name} {th.helper.last_name}")
-
-    def save_form(self):
-        if not self.form.validate():
+        record = self._rows.get(sel_ids[0])
+        if record is None:
             return
-        tid = context.tournament_id
-        try:
-            with busy():
-                if tid is None:
-                    if self._editing_id is None:
-                        h = hs.create_helper(self.form.values())
-                    else:
-                        h = hs.update_helper(self._editing_id, self.form.values())
-                    self.drawer.mark_saved()
-                    Toast.show(self, f"{h.first_name} {h.last_name} gespeichert", Toast.SUCCESS)
-                    self.refresh()
-                    self.table.select_ids([h.id])
-                else:
-                    if self._editing_id is None:
-                        th = hs.create_and_assign(tid, self.form.values())
-                    else:
-                        th = hs.update_assignment(self._editing_id, self.form.values())
-                    self.drawer.mark_saved()
-                    Toast.show(self, f"{th.helper.first_name} {th.helper.last_name} gespeichert",
-                               Toast.SUCCESS)
-                    self.refresh()
-                    self.table.select_ids([th.id])
-        except Exception as exc:
-            show_error(self, exc, "Helfer konnte nicht gespeichert werden")
+        dlg = HelperDialog(record=record, tournament_id=context.tournament_id, parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"{dlg.saved_name} gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     # ---------------------------------------------------------------- actions
     def delete_selected(self):
@@ -384,7 +371,6 @@ class HelpersView(ListView):
         if not ids:
             return
         if context.tournament_id is not None:
-            # Tournament mode: remove assignment
             names = ", ".join(f"{self._rows[i].helper.first_name} {self._rows[i].helper.last_name}"
                               for i in ids if i in self._rows)
             if not ConfirmDialog.ask(self, "Helfer entfernen?",
@@ -400,7 +386,6 @@ class HelpersView(ListView):
                 return
             Toast.show(self, f"{len(ids)} Helfer entfernt", Toast.SUCCESS)
         else:
-            # Global mode: delete from master data
             names = ", ".join(f"{self._rows[i].first_name} {self._rows[i].last_name}"
                               for i in ids if i in self._rows)
             if not ConfirmDialog.ask(self, "Helfer löschen?",
@@ -453,8 +438,6 @@ class HelpersView(ListView):
         self.refresh()
 
     def _pick_from_master(self):
-        if not self.close_drawer():
-            return
         tid = context.tournament_id
         if tid is None:
             return

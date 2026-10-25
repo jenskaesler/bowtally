@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Archer master data: search, drawer CRUD, import / export, soft and hard delete."""
+"""Archer master data: search, modal CRUD, import / export, soft and hard delete."""
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QCheckBox, QComboBox, QCompleter, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
 
@@ -10,10 +10,11 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import DateField, Form, email_validator
+from bowtally.ui.components.form_field import DateField, email_validator
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
+from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
 HEADERS = ["Vorname", "Nachname", "Verein", "Klasse", "Mitgliedsnummer", "Status"]
@@ -21,30 +22,63 @@ EXPORT_HEADERS = ["Nachname", "Vorname", "Geburtsdatum", "Verein", "Mitgliedsnum
                   "Bogenklasse", "E-Mail", "Telefon", "Aktiv"]
 
 
+class ArcherDialog(RecordDialog):
+    def __init__(self, record=None, parent=None):
+        self._record = record
+        super().__init__(
+            "Neuer Schütze" if record is None else
+            f"{record.first_name} {record.last_name}", parent=parent)
+        values: dict = {"active": True}
+        if record:
+            values = {k: getattr(record, k) for k in self.form.fields}
+        self.form.set_values(values)
+        self._baseline = self.form.snapshot()
+        self.saved_id: int | None = None
+        self.saved_name: str = ""
+
+    def _setup_form(self):
+        notes = QPlainTextEdit()
+        notes.setMinimumHeight(90)
+        bow_class = QComboBox()
+        bow_class.addItem("(keine)", None)
+        for bc in md.list_bow_classes():
+            bow_class.addItem(bc.name, bc.id)
+        club = QLineEdit()
+        archers = md.list_archers(include_inactive=True)
+        club.setCompleter(QCompleter(sorted({a.club for a in archers if a.club})))
+        self.form.add("first_name", "Vorname", QLineEdit(), required=True)
+        self.form.add("last_name", "Nachname", QLineEdit(), required=True)
+        self.form.add("birth_date", "Geburtsdatum", DateField(),
+                      hint="Format TT.MM.JJJJ, optional")
+        self.form.add("club", "Verein", club)
+        self.form.add("member_number", "Mitgliedsnummer", QLineEdit())
+        self.form.add("default_bow_class_id", "Standardklasse", bow_class)
+        self.form.add("email", "E-Mail", QLineEdit(), validator=email_validator)
+        self.form.add("phone", "Telefon", QLineEdit())
+        self.form.add("notes", "Notizen", notes)
+        self.form.add("active", "Aktiv", QCheckBox("Aktiv (in Auswahllisten sichtbar)"))
+
+    def _do_save(self) -> bool:
+        try:
+            with busy():
+                archer = md.save_archer(self.form.values(),
+                                        self._record.id if self._record else None)
+        except Exception as exc:
+            show_error(self, exc, "Schütze konnte nicht gespeichert werden")
+            return False
+        self.saved_id = archer.id
+        self.saved_name = f"{archer.first_name} {archer.last_name}"
+        return True
+
+
 class ArchersView(ListView):
     def __init__(self, parent=None):
-        self.form = Form()
-        self.club = QLineEdit()
-        self.bow_class = QComboBox()
-        f = self.form
-        f.add("first_name", "Vorname", QLineEdit(), required=True)
-        f.add("last_name", "Nachname", QLineEdit(), required=True)
-        f.add("birth_date", "Geburtsdatum", DateField(), hint="Format TT.MM.JJJJ, optional")
-        f.add("club", "Verein", self.club)
-        f.add("member_number", "Mitgliedsnummer", QLineEdit())
-        f.add("default_bow_class_id", "Standardklasse", self.bow_class)
-        f.add("email", "E-Mail", QLineEdit(), validator=email_validator)
-        f.add("phone", "Telefon", QLineEdit())
-        notes = QPlainTextEdit()
-        notes.setFixedHeight(80)
-        f.add("notes", "Notizen", notes)
-        f.add("active", "Aktiv", QCheckBox("Aktiv (in Auswahllisten sichtbar)"))
-
         empty = EmptyState("users", "Noch keine Schützen",
                            "Lege den ersten Schützen an oder importiere eine Mitgliederliste.",
                            "Neuer Schütze")
-        super().__init__("Schützen", HEADERS, empty, self.form,
-                         "Name, Verein oder Mitgliedsnummer …", multi_select=True)
+        super().__init__("Schützen", HEADERS, empty,
+                         search_placeholder="Name, Verein oder Mitgliedsnummer …",
+                         multi_select=True)
         empty.actionTriggered.connect(self.new_item)
         self._show_inactive = QCheckBox("Inaktive Schützen anzeigen")
         _s = QSettings("BowTally", "BowTally")
@@ -67,13 +101,11 @@ class ArchersView(ListView):
         self.main_layout.insertWidget(2, _footer)
         self.table.activated.connect(self.edit_item)
         self._archers = {}
-        self._editing_id = None
 
     # ------------------------------------------------------------ data
     def refresh(self):
         with busy():
             archers = md.list_archers(include_inactive=True)
-            classes = md.list_bow_classes()
         self._archers = {a.id: a for a in archers}
         visible = archers if self._show_inactive.isChecked() else [a for a in archers if a.active]
         self.table.set_rows([[a.first_name, a.last_name, a.club,
@@ -87,11 +119,6 @@ class ArchersView(ListView):
         active = sum(a.active for a in archers)
         self.header.set_subtitle(f"{len(archers)} Schützen | {active} aktiv | "
                                  f"{len(clubs)} Vereine")
-        self.bow_class.clear()
-        self.bow_class.addItem("(keine)", None)
-        for bc in classes:
-            self.bow_class.addItem(bc.name, bc.id)
-        self.club.setCompleter(QCompleter(sorted({a.club for a in archers if a.club}), self))
         self.on_selection(self.table.selected_ids())
 
     def _selected(self):
@@ -103,7 +130,7 @@ class ArchersView(ListView):
         if n == 0:
             actions = []
         elif n == 1:
-            actions = [Action("Bearbeiten", self.edit_item, tooltip="Im Seitenpanel bearbeiten"),
+            actions = [Action("Bearbeiten", self.edit_item, tooltip="Schützen bearbeiten"),
                        Action("Löschen", self.delete_selected, "danger",
                               tooltip="Schützen löschen (mit Rückfrage)")]
         else:
@@ -123,34 +150,21 @@ class ArchersView(ListView):
                 ("Löschen", self.delete_selected)]
 
     def new_item(self):
-        if not self.close_drawer():
-            return
-        self._editing_id = None
-        self.form.set_values({"active": True})
-        self.drawer.open("Neuer Schütze")
+        dlg = ArcherDialog(parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"{dlg.saved_name} gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def edit_item(self, *_):
         sel = self._selected()
-        if not sel or not self.close_drawer():
+        if not sel:
             return
-        a = sel[0]
-        self._editing_id = a.id
-        self.form.set_values({k: getattr(a, k) for k in self.form.fields})
-        self.drawer.open(f"{a.first_name} {a.last_name}")
-
-    def save_form(self):
-        if not self.form.validate():
-            return
-        try:
-            with busy():
-                archer = md.save_archer(self.form.values(), self._editing_id)
-        except Exception as exc:
-            show_error(self, exc, "Schütze konnte nicht gespeichert werden")
-            return
-        self.drawer.mark_saved()
-        Toast.show(self, f"{archer.first_name} {archer.last_name} gespeichert", Toast.SUCCESS)
-        self.refresh()
-        self.table.select_ids([archer.id])
+        dlg = ArcherDialog(record=sel[0], parent=self)
+        if dlg.exec() and dlg.saved_id:
+            Toast.show(self, f"{dlg.saved_name} gespeichert", Toast.SUCCESS)
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
 
     def change_class(self):
         sel = self._selected()
