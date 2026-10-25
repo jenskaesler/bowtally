@@ -465,7 +465,7 @@ class SettingsDialog(QDialog):
         nc_lay.setContentsMargins(0, 8, 0, 0)
         nc_form = QFormLayout()
         self._nc_url = QLineEdit(ss.get("backup_nextcloud_url") or "")
-        self._nc_url.setPlaceholderText("https://cloud.example.com")
+        self._nc_url.setPlaceholderText("https://ihre-nextcloud.de")
         self._nc_user = QLineEdit(ss.get("backup_nextcloud_user") or "")
         self._nc_pass = QLineEdit(bs._get_password("backup_nextcloud_password"))
         self._nc_pass.setEchoMode(QLineEdit.EchoMode.Password)

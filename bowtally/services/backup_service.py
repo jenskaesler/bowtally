@@ -95,6 +95,13 @@ def backup_network() -> str:
     return str(zip_path)
 
 
+def _nc_dav_base(url: str, user: str) -> str:
+    """Return WebDAV base URL ending in /; handles both base-URL and full DAV-URL input."""
+    if "/remote.php/dav/" in url:
+        return url.rstrip("/") + "/"
+    return f"{url}/remote.php/dav/files/{user}/"
+
+
 def _nc_auth(user: str, pwd: str) -> str:
     return "Basic " + base64.b64encode(f"{user}:{pwd}".encode()).decode()
 
@@ -131,7 +138,7 @@ def backup_nextcloud() -> str:
     auth = _nc_auth(user, pwd)
     with tempfile.TemporaryDirectory() as tmp:
         zip_path = _create_zip(Path(tmp))
-        dav_base = f"{url}/remote.php/dav/files/{user}/"
+        dav_base = _nc_dav_base(url, user)
         folder_url = f"{dav_base}{remote_path}/"
         remote = f"{folder_url}{zip_path.name}"
         _nc_mkcol_recursive(dav_base, remote_path, auth)
@@ -174,7 +181,7 @@ def test_nextcloud(url: str, user: str, password: str, remote_path: str) -> None
     if not url or not user:
         raise ValueError("URL und Benutzername erforderlich.")
     auth = _nc_auth(user, password)
-    dav_base = f"{url}/remote.php/dav/files/{user}/"
+    dav_base = _nc_dav_base(url, user)
     check_url = f"{dav_base}{remote_path}/"
     req = _nc_request(check_url, "PROPFIND", auth)
     req.add_header("Depth", "0")
