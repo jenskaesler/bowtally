@@ -40,6 +40,7 @@ class ActionBar(QFrame):
     def set_actions(self, info: str, actions: list[Action]) -> None:
         """Replace content; an empty action list hides the bar."""
         for b in self._buttons:
+            self._lay.removeWidget(b)
             b.deleteLater()
         self._buttons = []
         self.label.setText(info)
