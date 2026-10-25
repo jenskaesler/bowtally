@@ -22,6 +22,8 @@ from bowtally.ui.components.toast import Toast
 
 DEFAULT_TARGETS = 28
 DEFAULT_DEADLINE_DAYS = 14
+WIZARD_LABEL_W = 200   # fixed label column so all pages align
+WIZARD_COMBO_W = 220   # fixed width for combos / date / time / spin
 STEPS = ["Grunddaten", "Konfiguration", "Bogenklassen", "Fristen und Zeiten",
          "Startgebühren", "Kontakt und Bank", "Hinweise und Texte", "Zusammenfassung"]
 CHIP_COLUMNS = 3
@@ -143,7 +145,14 @@ def _form() -> QFormLayout:
     f = QFormLayout()
     f.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     f.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+    f.setHorizontalSpacing(12)
     return f
+
+
+def _lbl(text: str) -> QLabel:
+    lbl = QLabel(text)
+    lbl.setFixedWidth(WIZARD_LABEL_W)
+    return lbl
 
 
 def _field_row(field: QWidget, btn: "QWidget | None") -> QWidget:
@@ -229,6 +238,7 @@ class TournamentWizard(QWizard):
         self.date.setDate(QDate(t.date) if t else QDate.currentDate().addDays(60))
         self.date.setCalendarPopup(True)
         self.date.setDisplayFormat("dd.MM.yyyy")
+        self.date.setFixedWidth(WIZARD_COMBO_W)
         self.location = QLineEdit(self._t("location", ""))
         self.organizer = QLineEdit(self._t("organizer", ""))
         self.description = QPlainTextEdit(self._t("description", ""))
@@ -238,21 +248,21 @@ class TournamentWizard(QWizard):
         self.name.textChanged.connect(page.completeChanged)
         club = ss.get_club_profile()
         form = _form()
-        form.addRow("Turniername *", self.name)
-        form.addRow("Datum *", self.date)
+        form.addRow(_lbl("Turniername *"), self.name)
+        form.addRow(_lbl("Datum *"), self.date)
         loc_row = _field_row(self.location,
                              button("Aus Stammdaten", lambda: _fill_if_empty(
                                  self.location, _club_address(club)),
                                     tooltip="Vereinsadresse übernehmen")
                              if club.get("city") else None)
-        form.addRow("Ort", loc_row)
+        form.addRow(_lbl("Ort"), loc_row)
         org_row = _field_row(self.organizer,
                              button("Aus Stammdaten", lambda: _fill_if_empty(
                                  self.organizer, club.get("club_name", "")),
                                     tooltip="Vereinsname als Veranstalter übernehmen")
                              if club.get("club_name") else None)
-        form.addRow("Veranstalter", org_row)
-        form.addRow("Beschreibung (intern)", self.description)
+        form.addRow(_lbl("Veranstalter"), org_row)
+        form.addRow(_lbl("Beschreibung (intern)"), self.description)
         page.body.addLayout(form)
         page.body.addStretch()
         return page
@@ -313,6 +323,7 @@ class TournamentWizard(QWizard):
         self.course_notes.setFixedHeight(70)
 
         self.scoring_mode = QComboBox()
+        self.scoring_mode.setFixedWidth(WIZARD_COMBO_W)
         for val, lbl in [
             ("per_target", "Scheibenwertung"),
             ("per_round", "Rundenwertung"),
@@ -362,9 +373,9 @@ class TournamentWizard(QWizard):
             button("Aus Stammdaten", lambda: _fill_text_if_empty(self.course_notes, course_desc),
                    tooltip="Parcour-Beschreibung aus Vereinsprofil übernehmen")
             if course_desc else None)
-        form.addRow("Wertungsmodus", self.scoring_mode)
-        form.addRow("Startgruppen", self.groups)
-        form.addRow("Hinweise zum Parcours", notes_row)
+        form.addRow(_lbl("Wertungsmodus"), self.scoring_mode)
+        form.addRow(_lbl("Startgruppen"), self.groups)
+        form.addRow(_lbl("Hinweise zum Parcours"), notes_row)
         page.body.addLayout(form)
         page.body.addWidget(self._round_group)
         page.body.addStretch()
@@ -469,18 +480,21 @@ class TournamentWizard(QWizard):
         self.deadline = QDateEdit()
         self.deadline.setCalendarPopup(True)
         self.deadline.setDisplayFormat("dd.MM.yyyy")
+        self.deadline.setFixedWidth(WIZARD_COMBO_W)
         deadline = self._t("registration_deadline")
         self.deadline.setDate(QDate(deadline) if deadline else
                               self.date.date().addDays(-DEFAULT_DEADLINE_DAYS))
         self.max_participants = QSpinBox()
         self.max_participants.setRange(0, 9999)
         self.max_participants.setValue(self._t("max_participants", 0))
+        self.max_participants.setFixedWidth(WIZARD_COMBO_W)
         self.checkin_time = QTimeEdit(QTime.fromString(self._t("checkin_start_time", "09:00"),
                                                        "HH:mm"))
         self.shooting_time = QTimeEdit(QTime.fromString(self._t("shooting_start_time", "10:00"),
                                                         "HH:mm"))
         for w in (self.checkin_time, self.shooting_time):
             w.setDisplayFormat("HH:mm")
+            w.setFixedWidth(WIZARD_COMBO_W)
         self.practice = QCheckBox("Einschießen erlaubt")
         self.practice.setChecked(self._t("practice_allowed", True))
         self.practice_location = QLineEdit(self._t("practice_location", ""))
@@ -490,13 +504,13 @@ class TournamentWizard(QWizard):
         page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden, wie viele Plätze "
                      "gibt es und wann geht es am Turniertag los?")
         form = _form()
-        form.addRow("Anmeldefrist", self.deadline)
-        form.addRow("Maximale Teilnehmerzahl", self.max_participants)
+        form.addRow(_lbl("Anmeldefrist"), self.deadline)
+        form.addRow(_lbl("Maximale Teilnehmerzahl"), self.max_participants)
         form.addRow("", QLabel("0 = keine Begrenzung", objectName="pageSubtitle"))
-        form.addRow("Einschreibung ab", self.checkin_time)
-        form.addRow("Schießbeginn", self.shooting_time)
+        form.addRow(_lbl("Einschreibung ab"), self.checkin_time)
+        form.addRow(_lbl("Schießbeginn"), self.shooting_time)
         form.addRow("", self.practice)
-        form.addRow("Einschießbereich", self.practice_location)
+        form.addRow(_lbl("Einschießbereich"), self.practice_location)
         self.practice.toggled.connect(lambda on: form.setRowVisible(self.practice_location, on))
         form.setRowVisible(self.practice_location, self.practice.isChecked())
         from PySide6.QtWidgets import QGroupBox
@@ -601,16 +615,16 @@ class TournamentWizard(QWizard):
                                        tooltip="Name, Telefon und E-Mail dieser Person übernehmen"))
             combo_widget = QWidget()
             combo_widget.setLayout(combo_row)
-            form.addRow("Kontaktperson", combo_widget)
+            form.addRow(_lbl("Kontaktperson"), combo_widget)
         else:
-            form.addRow("Kontaktperson", self.contact_name)
-        form.addRow("Telefon", self.contact_phone)
-        form.addRow("E-Mail", self.contact_email)
+            form.addRow(_lbl("Kontaktperson"), self.contact_name)
+        form.addRow(_lbl("Telefon"), self.contact_phone)
+        form.addRow(_lbl("E-Mail"), self.contact_email)
         form.addRow(QLabel("Bankverbindung", objectName="sectionTitle"))
-        form.addRow("Kontoinhaber", self.bank_holder)
-        form.addRow("IBAN", self.bank_iban)
-        form.addRow("BIC", self.bank_bic)
-        form.addRow("Verwendungszweck", self.bank_reference)
+        form.addRow(_lbl("Kontoinhaber"), self.bank_holder)
+        form.addRow(_lbl("IBAN"), self.bank_iban)
+        form.addRow(_lbl("BIC"), self.bank_bic)
+        form.addRow(_lbl("Verwendungszweck"), self.bank_reference)
         page.body.addLayout(form)
         page.body.addStretch()
         return page
@@ -641,9 +655,9 @@ class TournamentWizard(QWizard):
         page = _Page(6, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
                      "eine Zeile je Hinweis.")
         form = _form()
-        form.addRow("Einleitungstext", self.intro)
-        form.addRow("Wichtige Hinweise", self.legal)
-        form.addRow("Abschlusstext", self.closing)
+        form.addRow(_lbl("Einleitungstext"), self.intro)
+        form.addRow(_lbl("Wichtige Hinweise"), self.legal)
+        form.addRow(_lbl("Abschlusstext"), self.closing)
         page.body.addLayout(form)
         page.body.addStretch()
         return page
