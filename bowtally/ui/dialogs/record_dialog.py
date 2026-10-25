@@ -16,7 +16,7 @@ Subclass pattern:
     def _do_save(self) -> bool:
         ...save...; self.saved_id = ...; return True
 """
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout, QLabel,
                                QPlainTextEdit, QScrollArea, QTextEdit, QVBoxLayout, QWidget)
 
@@ -34,10 +34,7 @@ class RecordDialog(QDialog):
                  read_only_hint: str = "", parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setFixedWidth(560)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
-        screen_h = QApplication.primaryScreen().availableGeometry().height()
-        self.setMaximumHeight(int(screen_h * 0.8))
+        self.setMinimumWidth(400)
 
         self._read_only = read_only
         self._baseline: tuple = ()
@@ -69,9 +66,9 @@ class RecordDialog(QDialog):
         cancel_btn = button("Abbrechen", self._on_cancel)
 
         footer = QHBoxLayout()
-        footer.addWidget(cancel_btn)
         footer.addStretch()
         footer.addWidget(self._save_btn)
+        footer.addWidget(cancel_btn)
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 16, 16, 16)
@@ -87,6 +84,19 @@ class RecordDialog(QDialog):
 
     def showEvent(self, event):
         super().showEvent(event)
+        s = QSettings("BowTally", "BowTally")
+        key = f"dialogs/{type(self).__name__}"
+        w = s.value(f"{key}/width", type=int)
+        h = s.value(f"{key}/height", type=int)
+        if w and h:
+            self.resize(w, h)
+        else:
+            self.adjustSize()
+            screen_h = QApplication.primaryScreen().availableGeometry().height()
+            if self.height() > screen_h * 0.8:
+                self.resize(self.width(), int(screen_h * 0.8))
+            if self.width() < 560:
+                self.resize(560, self.height())
         p = self.parent()
         if p:
             pg = p.window().geometry()
@@ -94,6 +104,13 @@ class RecordDialog(QDialog):
             self.move(pg.x() + (pg.width() - sg.width()) // 2,
                       pg.y() + (pg.height() - sg.height()) // 2)
         self.form.focus_first()
+
+    def done(self, result):
+        s = QSettings("BowTally", "BowTally")
+        key = f"dialogs/{type(self).__name__}"
+        s.setValue(f"{key}/width", self.width())
+        s.setValue(f"{key}/height", self.height())
+        super().done(result)
 
     def _setup_form(self) -> None:
         """Override to add fields to self.form and optional widgets to self._body_layout."""
@@ -122,6 +139,10 @@ class RecordDialog(QDialog):
                 self, _DISCARD_TITLE, _DISCARD_TEXT, "Verwerfen", destructive=False):
             event.ignore()
             return
+        s = QSettings("BowTally", "BowTally")
+        key = f"dialogs/{type(self).__name__}"
+        s.setValue(f"{key}/width", self.width())
+        s.setValue(f"{key}/height", self.height())
         super().closeEvent(event)
 
     def keyPressEvent(self, event):
