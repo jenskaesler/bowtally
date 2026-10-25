@@ -23,8 +23,8 @@ from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.views import ListView
 
-GLOBAL_HEADERS = ["Name", "Telefon", "E-Mail", "Notizen", "Aktiv"]
-TOURNAMENT_HEADERS = ["Name", "Aufgabe", "Von", "Bis", "Bestätigt", "Aktiv", "Telefon", "E-Mail"]
+GLOBAL_HEADERS = ["Name", "Telefon", "E-Mail", "Notizen", "Status"]
+TOURNAMENT_HEADERS = ["Name", "Aufgabe", "Von", "Bis", "Bestätigt", "Status", "Telefon", "E-Mail"]
 GLOBAL_EXPORT_HEADERS = ["Nachname", "Vorname", "Telefon", "E-Mail", "Notizen"]
 
 
@@ -225,8 +225,8 @@ class HelpersView(ListView):
                 h = self._rows.get(ids[0])
                 if h:
                     label = "Als inaktiv markieren" if h.active else "Wieder aktivieren"
-                    actions.append(Action(label,
-                                          lambda a=h.active: self._toggle_global_active(ids[0], not a)))
+                    _hid, _na = ids[0], not h.active
+                    actions.append(Action(label, lambda: self._toggle_global_active(_hid, _na)))
             actions.append(Action(f"{n} Helfer löschen" if n > 1 else "Löschen",
                                   self.delete_selected, "danger"))
             self.action_bar.set_actions(self.selection_info(n, "Helfer", "Helfer"), actions)
@@ -250,10 +250,11 @@ class HelpersView(ListView):
             h = self._rows.get(row_id)
             if h is None:
                 return []
+            _na = not h.active
             return [
                 ("Bearbeiten", self.edit_item),
                 ("Als inaktiv markieren" if h.active else "Wieder aktivieren",
-                 lambda a=h.active: self._toggle_global_active(row_id, not a)),
+                 lambda: self._toggle_global_active(row_id, _na)),
                 None,
                 ("Löschen", self.delete_selected),
             ]
@@ -265,11 +266,12 @@ class HelpersView(ListView):
             entries = [("Bearbeiten", self.edit_item)]
             if th.helper.email:
                 entries.append(("Bestätigung senden", lambda: self._mailto(row_id)))
+            _nc, _na = not th.confirmed, not th.helper.active
             entries += [
                 ("Als bestätigt markieren" if not th.confirmed else "Bestätigung zurücksetzen",
-                 lambda c=th.confirmed: self._toggle_confirmed(row_id, not c)),
+                 lambda: self._toggle_confirmed(row_id, _nc)),
                 ("Als inaktiv markieren" if th.helper.active else "Wieder aktivieren",
-                 lambda a=th.helper.active: self._set_helper_active(row_id, not a)),
+                 lambda: self._set_helper_active(row_id, _na)),
                 None,
                 ("Entfernen", self.delete_selected),
             ]
