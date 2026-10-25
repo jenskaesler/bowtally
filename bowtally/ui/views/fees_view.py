@@ -16,6 +16,16 @@ from bowtally.ui.views.participants_view import money
 
 HEADERS = ["Bezeichnung", "Betrag", "Teilnehmer", "Beschreibung"]
 CLOSED_HINT = "Das Turnier ist abgeschlossen, Änderungen sind gesperrt."
+PHASE_LOCK_HINT = "Startgebühren können nach der Ausschreibungs-Phase nicht mehr geändert werden."
+
+
+def _locked(t) -> tuple[bool, str]:
+    """Returns (locked, hint)."""
+    if t.status == "closed":
+        return True, CLOSED_HINT
+    if ts.phase_index(t.phase) > ts.phase_index("announcement"):
+        return True, PHASE_LOCK_HINT
+    return False, ""
 
 
 class AmountField(QDoubleSpinBox):
@@ -70,7 +80,7 @@ class FeesView(ListView):
         self.table.set_rows([[f.name, Cell(f.amount, text=money(f.amount)),
                               self._usage.get(f.id, 0), f.description] for f in fees],
                             [f.id for f in fees])
-        locked = t.status == "closed"
+        locked, _hint = _locked(t)
         for b in (self.btn_new, self.btn_templates):
             b.setEnabled(not locked)
         self.header.set_subtitle(f"{len(fees)} Gebühren · werden in der Ausschreibung und "
@@ -86,13 +96,13 @@ class FeesView(ListView):
             self.action_bar.set_actions("", [])
             return
         used = self._usage.get(f.id, 0)
-        locked = self.tournament.status == "closed"
+        locked, hint = _locked(self.tournament)
         self.action_bar.set_actions(f.name, [
             Action("Bearbeiten", self.edit_item, enabled=not locked,
-                   tooltip=CLOSED_HINT if locked else "Im Seitenpanel bearbeiten"),
+                   tooltip=hint if locked else "Im Seitenpanel bearbeiten"),
             Action("Löschen", self.delete_item, "danger", enabled=not used and not locked,
                    tooltip=f"Löschen nicht möglich: {used} Teilnehmern zugewiesen" if used
-                   else CLOSED_HINT if locked else "Startgebühr löschen (mit Rückfrage)")])
+                   else hint if locked else "Startgebühr löschen (mit Rückfrage)")])
 
     def context_entries(self, row_id):
         used = self._usage.get(row_id, 0)
@@ -114,8 +124,8 @@ class FeesView(ListView):
         self._editing_id = f.id
         self.form.set_values({"name": f.name, "amount": f.amount,
                               "description": f.description})
-        self.drawer.open(f.name, read_only=self.tournament.status == "closed",
-                         read_only_hint=CLOSED_HINT)
+        locked, hint = _locked(self.tournament)
+        self.drawer.open(f.name, read_only=locked, read_only_hint=hint)
 
     def save_form(self):
         if not self.form.validate():

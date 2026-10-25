@@ -528,6 +528,10 @@ class MainWindow(QMainWindow):
             self.select_page(self.dashboard)
             self.dashboard.show_tournament()
         elif key in ("edit", "edit_contact", "edit_bank", "edit_classes", "edit_fees"):
+            if key == "edit_classes" and ts.phase_index(t.phase) > ts.phase_index("announcement"):
+                Toast.show(self, "Bogenklassen sind nach der Ausschreibungs-Phase gesperrt.",
+                           Toast.WARNING)
+                return
             _pages = {"edit": 0, "edit_contact": 6, "edit_bank": 6,
                       "edit_classes": 2, "edit_fees": 5}
             self.tournaments.open_tournament(t.id)

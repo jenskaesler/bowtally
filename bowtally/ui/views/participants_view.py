@@ -272,16 +272,19 @@ class ParticipantsView(QWidget):
         from bowtally.services.settings_service import get as _get_setting
         self.tournament = t = tournament
         editable = t.status != "closed"
+        assignable = editable and t.phase != "shooting"
         cap = ts._capacity(t)
         waitlist_auto = _get_setting("waitlist_mode", "block") == "auto"
         self.capacity.set_capacity(cap)
+        shooting_hint = "In der Schieß-Phase können keine Teilnehmer mehr verwaltet werden."
         for b, tip in ((self.btn_import, "Teilnehmerliste aus CSV, Excel oder OpenDocument"),
                        (self.btn_renumber, "Nummern 1..n nach Klasse und Name, Gruppen reihum")):
-            b.setEnabled(editable)
-            b.setToolTip(tip if editable else CLOSED_HINT)
-        add_ok = editable and (not cap.is_full or waitlist_auto)
+            b.setEnabled(assignable)
+            b.setToolTip(tip if assignable else (CLOSED_HINT if not editable else shooting_hint))
+        add_ok = assignable and (not cap.is_full or waitlist_auto)
         self.btn_add.setEnabled(add_ok)
         self.btn_add.setToolTip(CLOSED_HINT if not editable
+                                else shooting_hint if not assignable
                                 else full_hint(cap) if cap.is_full and not waitlist_auto
                                 else "Schützen aus den Stammdaten zuweisen (Strg+N)")
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
@@ -377,10 +380,17 @@ class ParticipantsView(QWidget):
     def _locked(self) -> bool:
         return self.tournament is not None and self.tournament.status == "closed"
 
+    def _assignment_locked(self) -> bool:
+        return self.tournament is not None and (
+            self.tournament.status == "closed" or self.tournament.phase == "shooting"
+        )
+
     def _on_selection(self, ids):
         n = len(ids)
         locked = self._locked()
+        alocked = self._assignment_locked()
         tip = CLOSED_HINT if locked else ""
+        atip = tip or ("In der Schieß-Phase gesperrt." if alocked else "")
         sel = self._selected()
         to_confirm = sum(p.registration_status == "registered" for p in sel)
         to_pay = sum(p.payment_status != "paid" and p.registration_status != "withdrawn"
@@ -393,17 +403,18 @@ class ParticipantsView(QWidget):
                    else "Zahlung eingegangen", self.mark_paid_selected,
                    enabled=not locked and to_pay > 0,
                    tooltip=tip or 'Zahlungsstatus „Bezahlt" mit heutigem Datum'),
-            Action("Klasse ändern", self.change_class, enabled=not locked,
-                   tooltip=tip or "Bogenklasse für die Auswahl setzen"),
-            Action("Gruppe ändern", self.change_group, enabled=not locked,
-                   tooltip=tip or "Startgruppe für die Auswahl setzen"),
-            Action("Entfernen", self.remove_selected, "danger", enabled=not locked,
-                   tooltip=tip or "Aus dem Turnier entfernen (mit Rückfrage)")]
+            Action("Klasse ändern", self.change_class, enabled=not alocked,
+                   tooltip=atip or "Bogenklasse für die Auswahl setzen"),
+            Action("Gruppe ändern", self.change_group, enabled=not alocked,
+                   tooltip=atip or "Startgruppe für die Auswahl setzen"),
+            Action("Entfernen", self.remove_selected, "danger", enabled=not alocked,
+                   tooltip=atip or "Aus dem Turnier entfernen (mit Rückfrage)")]
         self.action_bar.set_actions(
             "1 Teilnehmer ausgewählt" if n == 1 else f"{n} Teilnehmer ausgewählt", actions)
 
     def _context_menu(self, _pid, pos):
         locked = self._locked()
+        alocked = self._assignment_locked()
         checkin_phase = self.tournament.phase in ("checkin", "shooting")
         sel = self._selected()
         active = ("registered", "confirmed", "checked_in")
@@ -421,6 +432,9 @@ class ParticipantsView(QWidget):
                             not locked and any(p.registration_status in active
                                                and p.registration_status != "checked_in"
                                                for p in sel)))
+            entries.append(("Einchecken rückgängig", lambda: self._set_status("confirmed"),
+                            not locked and any(p.registration_status == "checked_in"
+                                               for p in sel)))
         entries += [
             ("Als DNS markieren (nicht gestartet)", lambda: self._set_status("dns"),
              not locked and any(p.registration_status in active for p in sel)),
@@ -433,10 +447,10 @@ class ParticipantsView(QWidget):
              not locked and not all_withdrawn),
             None,
             ("Gebühr zuweisen …", self.change_fee, not locked and not all_withdrawn),
-            ("Klasse ändern …", self.change_class, not locked and not all_withdrawn),
-            ("Gruppe ändern …", self.change_group, not locked and not all_withdrawn),
+            ("Klasse ändern …", self.change_class, not alocked and not all_withdrawn),
+            ("Gruppe ändern …", self.change_group, not alocked and not all_withdrawn),
             None,
-            ("Entfernen", self.remove_selected, not locked),
+            ("Entfernen", self.remove_selected, not alocked),
         ]
         has_email = any(p.archer.email for p in sel)
         email_ok = has_email and not locked
