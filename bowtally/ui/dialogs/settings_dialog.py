@@ -632,6 +632,7 @@ class SettingsDialog(QDialog):
             club["logo_path"] = self.logo_edit.text().strip()
             ss.set_many(values)
             ss.save_club_profile(club)
+            self._save_backup_settings()
         except Exception as exc:
             show_error(self, exc, "Einstellungen konnten nicht gespeichert werden")
             return

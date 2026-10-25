@@ -439,14 +439,15 @@ class ParticipantsView(QWidget):
             ("Entfernen", self.remove_selected, not locked),
         ]
         has_email = any(p.archer.email for p in sel)
+        email_ok = has_email and not locked
         entries += [
             None,
             ("E-Mail: Anmeldebestätigung senden",
-             lambda: self._send_email(ss.KEY_EMAIL_TPL_CONFIRMATION), has_email),
+             lambda: self._send_email(ss.KEY_EMAIL_TPL_CONFIRMATION), email_ok),
             ("E-Mail: Zahlungserinnerung senden",
-             lambda: self._send_email(ss.KEY_EMAIL_TPL_PAYMENT), has_email),
+             lambda: self._send_email(ss.KEY_EMAIL_TPL_PAYMENT), email_ok),
             ("E-Mail: Startunterlagen senden",
-             lambda: self._send_email(ss.KEY_EMAIL_TPL_DOCS), has_email),
+             lambda: self._send_email(ss.KEY_EMAIL_TPL_DOCS), email_ok),
         ]
         menu(self, entries).exec(pos)
 

@@ -72,8 +72,9 @@ DEFAULT_SETTINGS = [
     ("email_results_subject", "Ergebnisse – {turniername}", "email", "string",
      "E-Mail-Vorlage: Betreff Ergebnisversand"),
     ("email_results_body",
-     "Hallo {name},\n\nhier sind die Ergebnisse des Turniers {turniername} vom {datum}.\n\n"
-     "Klasse: {klasse}\nVerein: {verein}\n\nBis zum nächsten Turnier!\nDein Team",
+     "Hallo {name},\n\nhier sind deine Ergebnisse des Turniers {turniername} vom {datum}.\n\n"
+     "Klasse: {klasse}\nPlatz: {platz}\nPunkte: {punkte}\nVerein: {verein}\n\n"
+     "Bis zum nächsten Turnier!\nDein Team",
      "email", "string", "E-Mail-Vorlage: Text Ergebnisversand"),
     ("email_waitlist_subject", "Nachrücken – {turniername}", "email", "string",
      "E-Mail-Vorlage: Betreff Wartelisten-Nachrücker"),
