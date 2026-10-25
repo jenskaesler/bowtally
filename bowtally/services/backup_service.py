@@ -95,23 +95,27 @@ def backup_network() -> str:
     return str(zip_path)
 
 
-def _nc_opener(url: str, user: str, pwd: str):
+def _nc_auth(user: str, pwd: str) -> str:
+    return "Basic " + base64.b64encode(f"{user}:{pwd}".encode()).decode()
+
+
+def _nc_request(url: str, method: str, auth: str, data=None):
     import urllib.request
-    mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-    mgr.add_password(None, url, user, pwd)
-    return urllib.request.build_opener(urllib.request.HTTPBasicAuthHandler(mgr))
+    req = urllib.request.Request(url, method=method, data=data)
+    req.add_header("Authorization", auth)
+    return req
 
 
-def _nc_mkcol_recursive(opener, base: str, path: str) -> None:
-    """MKCOL each segment of path under base; ignores 405 (already exists)."""
+def _nc_mkcol_recursive(base: str, path: str, auth: str) -> None:
+    """MKCOL each segment of path under base; ignores 405/409/404 (already exists)."""
     import urllib.request, urllib.error
     parts = path.strip("/").split("/")
     for i in range(1, len(parts) + 1):
         seg_url = base + "/".join(parts[:i]) + "/"
         try:
-            opener.open(urllib.request.Request(seg_url, method="MKCOL"))
+            urllib.request.urlopen(_nc_request(seg_url, "MKCOL", auth))
         except urllib.error.HTTPError as e:
-            if e.code not in (405, 409):  # 405/409 = collection already exists
+            if e.code not in (405, 409, 404):  # already exists or parent not found
                 raise
 
 
@@ -124,15 +128,15 @@ def backup_nextcloud() -> str:
     remote_path = (ss.get("backup_nextcloud_path") or "BowTally/Backups").strip("/")
     if not url or not user:
         raise ValueError("Nextcloud-URL und Benutzername erforderlich.")
+    auth = _nc_auth(user, pwd)
     with tempfile.TemporaryDirectory() as tmp:
         zip_path = _create_zip(Path(tmp))
         dav_base = f"{url}/remote.php/dav/files/{user}/"
         folder_url = f"{dav_base}{remote_path}/"
         remote = f"{folder_url}{zip_path.name}"
-        opener = _nc_opener(url, user, pwd)
-        _nc_mkcol_recursive(opener, dav_base, remote_path)
+        _nc_mkcol_recursive(dav_base, remote_path, auth)
         with open(zip_path, "rb") as f:
-            opener.open(urllib.request.Request(remote, data=f.read(), method="PUT"))
+            urllib.request.urlopen(_nc_request(remote, "PUT", auth, f.read()))
     return remote
 
 
@@ -169,17 +173,16 @@ def test_nextcloud(url: str, user: str, password: str, remote_path: str) -> None
     remote_path = (remote_path or "BowTally/Backups").strip("/")
     if not url or not user:
         raise ValueError("URL und Benutzername erforderlich.")
-    opener = _nc_opener(url, user, password)
+    auth = _nc_auth(user, password)
     dav_base = f"{url}/remote.php/dav/files/{user}/"
     check_url = f"{dav_base}{remote_path}/"
-    req = urllib.request.Request(check_url, method="PROPFIND")
+    req = _nc_request(check_url, "PROPFIND", auth)
     req.add_header("Depth", "0")
     try:
-        opener.open(req, timeout=10)
+        urllib.request.urlopen(req, timeout=10)
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            # Directory missing — try to create it
-            _nc_mkcol_recursive(opener, dav_base, remote_path)
+            _nc_mkcol_recursive(dav_base, remote_path, auth)
         else:
             raise ConnectionError(f"HTTP {e.code}: {e.reason}") from e
 

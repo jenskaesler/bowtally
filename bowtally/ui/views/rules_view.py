@@ -8,14 +8,17 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHeaderView, QHBoxL
                                QLineEdit, QPlainTextEdit, QSpinBox, QTableWidgetItem,
                                QToolButton, QVBoxLayout, QWidget)
 
+from bowtally.io.importer import RULE_IMPORT_FIELDS
 from bowtally.services import scoring_service as sc
-from bowtally.ui import button, show_error, theme
+from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT, Cell, ReorderTable
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.toast import Toast
+from bowtally.ui.dialogs.export_helper import export_button
+from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.views import ListView
 from bowtally.ui.views.bow_classes_view import READ_ONLY_HINT, builtin_chip
 
@@ -184,6 +187,9 @@ class RulesView(ListView):
         _fl.setContentsMargins(0, 4, 0, 0)
         _fl.addWidget(self._show_mine)
         _fl.addStretch()
+        _fl.addWidget(export_button(self, "regelwerke", self._export_sheets))
+        _fl.addWidget(button("Importieren", self._import,
+                             tooltip="Regelwerke aus CSV, Excel oder OpenDocument importieren"))
         self.main_layout.insertWidget(2, _footer)
 
     def refresh(self):
@@ -283,4 +289,28 @@ class RulesView(ListView):
             show_error(self, exc)
             return
         Toast.show(self, f"Regelwerk '{r.name}' gelöscht", Toast.SUCCESS)
+        self.refresh()
+
+    def _export_sheets(self, _filtered: bool):
+        rows = [[r.name, r.description, r.max_shots_per_target,
+                 "Ja" if r.allow_retry_shot else "Nein",
+                 json.dumps(r.ring_values, ensure_ascii=False),
+                 json.dumps(r.rules_json or {}, ensure_ascii=False)]
+                for r in self._rules.values()]
+        return [("Regelwerke", ["Bezeichnung", "Beschreibung", "Schüsse/Scheibe",
+                                "Nachschuss", "Zonen (JSON)", "Sonderregeln (JSON)"], rows)]
+
+    def _import(self):
+        res = run_import(self, RULE_IMPORT_FIELDS, "Regelwerke importieren")
+        if res is None:
+            return
+        records, strategy = res
+        try:
+            with busy():
+                r = sc.import_rules(records, strategy)
+        except Exception as exc:
+            show_error(self, exc, "Import fehlgeschlagen")
+            return
+        Toast.show(self, f"Import abgeschlossen: {r['created']} neu, {r['updated']} "
+                         f"aktualisiert, {r['skipped']} übersprungen", Toast.SUCCESS)
         self.refresh()

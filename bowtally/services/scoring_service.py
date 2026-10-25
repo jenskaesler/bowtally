@@ -85,6 +85,42 @@ def clone_rule(rule_id: int) -> ScoringRule:
                       "rules_json": dict(src.rules_json or {})})
 
 
+def import_rules(records: list[dict], strategy: str) -> dict:
+    """strategy: 'skip' | 'update' | 'new'. Returns counters."""
+    import json as _json
+    result = {"created": 0, "updated": 0, "skipped": 0}
+    with session_scope() as s:
+        for rec in records:
+            rec = dict(rec)
+            for key in ("ring_values", "rules_json"):
+                v = rec.get(key)
+                if isinstance(v, str) and v.strip():
+                    try:
+                        rec[key] = _json.loads(v)
+                    except Exception:
+                        rec[key] = None
+            name = (rec.get("name") or "").strip()
+            if not name or not rec.get("ring_values"):
+                continue
+            existing = None if strategy == "new" else s.scalars(
+                select(ScoringRule).where(ScoringRule.name == name,
+                                          ScoringRule.is_builtin.is_(False))).first()
+            try:
+                data = _validate_rule(rec)
+            except ValidationError:
+                continue
+            if existing is None:
+                s.add(ScoringRule(is_builtin=False, **data))
+                result["created"] += 1
+            elif strategy == "update":
+                for k, v in data.items():
+                    setattr(existing, k, v)
+                result["updated"] += 1
+            else:
+                result["skipped"] += 1
+    return result
+
+
 def delete_rule(rule_id: int) -> None:
     with session_scope() as s:
         rule = s.get(ScoringRule, rule_id)

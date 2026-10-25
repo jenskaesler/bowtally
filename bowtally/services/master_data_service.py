@@ -195,6 +195,33 @@ def clone_bow_class(class_id: int) -> BowClass:
                            "age_group": src.age_group, "description": src.description})
 
 
+def import_bow_classes(records: list[dict], strategy: str) -> dict:
+    """strategy: 'skip' | 'update' | 'new'. Returns counters."""
+    result = {"created": 0, "updated": 0, "skipped": 0}
+    with session_scope() as s:
+        for rec in records:
+            name = (rec.get("name") or "").strip()
+            if not name:
+                continue
+            existing = None if strategy == "new" else s.scalars(
+                select(BowClass).where(func.lower(BowClass.name) == name.lower(),
+                                       BowClass.is_builtin.is_(False))).first()
+            if existing is None:
+                max_order = s.scalar(select(func.max(BowClass.sort_order))) or 0
+                s.add(BowClass(sort_order=max_order + 1, is_builtin=False,
+                               **{k: (v.strip() if isinstance(v, str) else v) or None
+                                  for k, v in rec.items() if k in BOW_CLASS_FIELDS}))
+                result["created"] += 1
+            elif strategy == "update":
+                for k, v in rec.items():
+                    if k in BOW_CLASS_FIELDS and v is not None:
+                        setattr(existing, k, (v.strip() if isinstance(v, str) else v) or None)
+                result["updated"] += 1
+            else:
+                result["skipped"] += 1
+    return result
+
+
 def delete_bow_class(class_id: int) -> None:
     with session_scope() as s:
         bc = s.get(BowClass, class_id)

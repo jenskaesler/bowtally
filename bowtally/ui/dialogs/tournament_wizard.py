@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """9-step tournament wizard (also used to edit an existing tournament).
 
 Every page shows a step indicator, a title and a short explanation.
@@ -22,7 +22,7 @@ from bowtally.ui.components.toast import Toast
 
 DEFAULT_TARGETS = 28
 DEFAULT_DEADLINE_DAYS = 14
-STEPS = ["Grunddaten", "Regelwerk", "Bogenklassen", "Konfiguration", "Fristen und Zeiten",
+STEPS = ["Grunddaten", "Konfiguration", "Bogenklassen", "Fristen und Zeiten",
          "Startgebühren", "Kontakt und Bank", "Hinweise und Texte", "Zusammenfassung"]
 CHIP_COLUMNS = 3
 INTRO_PLACEHOLDER = "Herzliche Einladung zum …"
@@ -192,8 +192,8 @@ class TournamentWizard(QWizard):
             repolish(self.button(which))
         self.rules = sc.list_rules()
         self.classes = md.list_bow_classes()
-        for page in (self._page_basics(), self._page_rule(), self._page_classes(),
-                     self._page_config(), self._page_deadlines(), self._page_fees(),
+        for page in (self._page_basics(), self._page_config(), self._page_classes(),
+                     self._page_deadlines(), self._page_fees(),
                      self._page_contact(), self._page_texts(), self._page_summary()):
             self.addPage(page)
 
@@ -250,83 +250,12 @@ class TournamentWizard(QWizard):
         page.body.addStretch()
         return page
 
-    # ------------------------------------------------------------ 2 rule
-    def _page_rule(self) -> QWizardPage:
-        self.rule_list = QListWidget()
-        for r in self.rules:
-            item = QListWidgetItem(r.name + ("  ·  standard" if r.is_builtin else ""))
-            item.setData(Qt.ItemDataRole.UserRole, r.id)
-            self.rule_list.addItem(item)
-            if self.tournament and r.id == self.tournament.scoring_rule_id:
-                self.rule_list.setCurrentItem(item)
-        self.rule_detail = QLabel()
-        self.rule_detail.setWordWrap(True)
-        self.rule_detail.setTextFormat(Qt.TextFormat.RichText)
-        self.rule_detail.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.rule_detail.setObjectName("card")
-        self.rule_detail.setMinimumWidth(200)
-        page = _Page(1, "Regelwerk",
-                     "Welches Regelwerk gilt? Links auswählen – rechts siehst du Details "
-                     "und die Punktevergabe. Es gibt keine Vorauswahl.",
-                     lambda: self.selected_rule() is not None)
-        self.rule_list.currentItemChanged.connect(lambda *_: (self._show_rule(),
-                                                              page.completeChanged.emit()))
-        left = QVBoxLayout()
-        left.addWidget(QLabel("Regelwerk auswählen", objectName="fieldLabel"))
-        left.addWidget(self.rule_list, 1)
-        right = QVBoxLayout()
-        right.addWidget(QLabel("Regeldetails", objectName="fieldLabel"))
-        right.addWidget(self.rule_detail, 1)
-        row = QHBoxLayout()
-        row.setSpacing(14)
-        row.addLayout(left, 1)
-        row.addLayout(right, 1)
-        page.body.addLayout(row)
-        self._show_rule()
-        return page
-
-    def selected_rule(self):
-        item = self.rule_list.currentItem()
-        if item is None:
-            return None
-        rid = item.data(Qt.ItemDataRole.UserRole)
-        return next(r for r in self.rules if r.id == rid)
-
-    def _show_rule(self):
-        rule = self.selected_rule()
-        if not rule:
-            self.rule_detail.setText(
-                "<p style='color:gray;padding:12px'>Bitte links ein Regelwerk auswählen.</p>")
-            return
-        zones_html = "".join(
-            f"<tr><td style='padding:2px 20px 2px 0;color:gray'>{z['zone']}</td>"
-            f"<td style='text-align:right;font-weight:bold'>{z['points']}</td></tr>"
-            for z in rule.ring_values
-        )
-        note = (rule.rules_json or {}).get("note", "")
-        retry = "  ·  Nachschuss erlaubt" if rule.allow_retry_shot else ""
-        builtin = "  <span style='color:gray'>(standard)</span>" if rule.is_builtin else ""
-        html = (
-            f"<div style='padding:12px'>"
-            f"<p style='font-size:12pt;font-weight:bold;margin:0 0 6px'>{rule.name}{builtin}</p>"
-            f"<p style='margin:0 0 4px;color:gray'>"
-            f"{rule.max_shots_per_target} Schuss je Scheibe{retry}</p>"
-            + (f"<p style='margin:4px 0'>{note}</p>" if note else "")
-            + f"<p style='font-weight:bold;margin:12px 0 4px'>Punkte je Trefferzone</p>"
-            f"<table>{zones_html}</table></div>"
-        )
-        self.rule_detail.setText(html)
-        if hasattr(self, "shots"):
-            self.shots.setMaximum(rule.max_shots_per_target)
-            if not self.tournament:
-                self.shots.setValue(rule.max_shots_per_target)
-
-    # ------------------------------------------------------------ 3 classes (chips)
+    # ------------------------------------------------------------ 2 classes (chips)
     def _page_classes(self) -> QWizardPage:
         selected = {bc.id for bc in self.tournament.bow_classes} if self.tournament else None
         self.class_chips: dict[int, QPushButton] = {}
-        page = _Page(2, "Bogenklassen", "Welche Klassen werden gewertet? Zum An- und Abwählen "
-                     "einfach anklicken. Standardmäßig keine vorausgewählt.",
+        page = _Page(2, "Bogenklassen", "Welche Klassen werden gewertet? "
+                     "Zum An- und Abwählen einfach anklicken. Standardmäßig keine vorausgewählt.",
                      lambda: any(c.isChecked() for c in self.class_chips.values()))
         inner = QWidget()
         grid = QGridLayout(inner)
@@ -366,9 +295,19 @@ class TournamentWizard(QWizard):
             for cid, chip in self.class_chips.items():
                 chip.setChecked(cid in custom_ids)
 
-    # ------------------------------------------------------------ 4 config
+    # ------------------------------------------------------------ 1 config
     def _page_config(self) -> QWizardPage:
         from PySide6.QtWidgets import QGroupBox
+        self.default_rule = QComboBox()
+        self.default_rule.addItem("Bitte wählen …", None)
+        for r in self.rules:
+            self.default_rule.addItem(r.name + ("  ·  standard" if r.is_builtin else ""), r.id)
+        pre = self._t("scoring_rule_id")
+        if pre is not None:
+            idx = self.default_rule.findData(pre)
+            if idx >= 0:
+                self.default_rule.setCurrentIndex(idx)
+
         self.groups = QLineEdit(self._t("start_groups", ""))
         self.groups.setPlaceholderText("z. B. A, B, C, D")
         self.course_notes = QPlainTextEdit(self._t("notes", ""))
@@ -415,8 +354,11 @@ class TournamentWizard(QWizard):
         rg_lay.addLayout(btn_row)
         self._init_round_table()
 
-        page = _Page(3, "Konfiguration", "Rundenkonfiguration, Wertungsmodus und Startgruppen. "
-                     "Jede Runde kann ein eigenes Regelwerk und eigene Scheibenanzahl haben.")
+        page = _Page(1, "Konfiguration",
+                     "Regelwerk, Rundenkonfiguration, Wertungsmodus und Startgruppen. "
+                     "Jede Runde kann ein eigenes Regelwerk und eigene Scheibenanzahl haben.",
+                     lambda: self.default_rule.currentData() is not None)
+        self.default_rule.currentIndexChanged.connect(page.completeChanged)
         form = QFormLayout()
         club = ss.get_club_profile()
         course_desc = club.get("course_description") or ""
@@ -425,6 +367,7 @@ class TournamentWizard(QWizard):
             button("Aus Stammdaten", lambda: _fill_text_if_empty(self.course_notes, course_desc),
                    tooltip="Parcour-Beschreibung aus Vereinsprofil übernehmen")
             if course_desc else None)
+        form.addRow("Regelwerk (Standard)", self.default_rule)
         form.addRow("Wertungsmodus", self.scoring_mode)
         form.addRow("Startgruppen", self.groups)
         form.addRow("Hinweise zum Parcours", notes_row)
@@ -550,7 +493,7 @@ class TournamentWizard(QWizard):
         self.practice_location.setPlaceholderText("z. B. dem Einschießplatz am Vereinsheim")
         self.capacity = CapacityBar()
         self.max_participants.valueChanged.connect(self._update_capacity)
-        page = _Page(4, "Fristen und Zeiten", "Bis wann kann man sich anmelden, wie viele Plätze "
+        page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden, wie viele Plätze "
                      "gibt es und wann geht es am Turniertag los?")
         form = QFormLayout()
         form.addRow("Anmeldefrist", self.deadline)
@@ -589,7 +532,7 @@ class TournamentWizard(QWizard):
         else:
             fees = [{"name": f.name, "amount": f.amount} for f in ts.list_fee_templates()]
         self.fee_table = FeeTable(fees)
-        page = _Page(5, "Startgebühren", "Vorbelegt mit den Vorlagen. Bezeichnung und Betrag "
+        page = _Page(4, "Startgebühren", "Vorbelegt mit den Vorlagen. Bezeichnung und Betrag "
                      "sind direkt änderbar. Mindestens eine Gebühr wird empfohlen.")
         page.body.addWidget(self.fee_table, 1)
         return page
@@ -605,7 +548,7 @@ class TournamentWizard(QWizard):
         self.bank_bic = QLineEdit(self._t("bank_bic", ""))
         self.bank_reference = QLineEdit(self._t("bank_reference_template", ""))
         self.bank_reference.setPlaceholderText("z. B. 3D Turnier 2027, {name}, {bow_class}")
-        page = _Page(6, "Kontakt und Bankdaten", "Wer ist Ansprechpartner und wohin wird das "
+        page = _Page(5, "Kontakt und Bankdaten", "Wer ist Ansprechpartner und wohin wird das "
                      "Startgeld überwiesen? Platzhalter im Verwendungszweck: {name}, "
                      "{bow_class}.")
         club = ss.get_club_profile()
@@ -701,7 +644,7 @@ class TournamentWizard(QWizard):
         self.closing.setPlaceholderText(CLOSING_PLACEHOLDER)
         for w in (self.intro, self.legal, self.closing):
             w.setFixedHeight(130)
-        page = _Page(7, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
+        page = _Page(6, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
                      "eine Zeile je Hinweis.")
         form = QFormLayout()
         form.addRow("Einleitungstext", self.intro)
@@ -726,8 +669,8 @@ class TournamentWizard(QWizard):
         self._sum_layout.setSpacing(8)
         self.generate = QCheckBox("Ausschreibung jetzt generieren")
         self.generate.setChecked(self.tournament is None)
-        page = _Page(8, "Zusammenfassung", "Bitte prüfen. Über „Bearbeiten“ springst du "
-                     "direkt zum jeweiligen Schritt.")
+        page = _Page(7, "Zusammenfassung",
+                     "Bitte prüfen. Bearbeiten-Links springen direkt zum jeweiligen Schritt.")
         page.initializePage = self._fill_summary
         page.validatePage = self._create
         scroll = QScrollArea()
@@ -752,7 +695,8 @@ class TournamentWizard(QWizard):
             if item.widget():
                 item.widget().deleteLater()
 
-        rule = self.selected_rule()
+        rule_id = self.default_rule.currentData()
+        rule = next((r for r in self.rules if r.id == rule_id), None)
         names = [bc.name for bc in self.classes if bc.id in self._class_ids()]
         groups = ts.split_groups(self.groups.text())
         fees = self.fee_table.fees()
@@ -770,24 +714,24 @@ class TournamentWizard(QWizard):
                                ("Datum", self.date.date().toString("dd.MM.yyyy")),
                                ("Ort", self.location.text() or "–"),
                                ("Veranstalter", self.organizer.text() or "–")]),
-            (1, "Regelwerk", [("Regelwerk", rule.name if rule else "–")]),
-            (2, "Bogenklassen", [(f"{len(names)} Klassen", ", ".join(names))]),
-            (3, "Konfiguration", [("Runden", str(self._round_table.rowCount())),
+            (1, "Konfiguration", [("Regelwerk", rule.name if rule else "–"),
+                                  ("Runden", str(self._round_table.rowCount())),
                                   ("Wertung", self.scoring_mode.currentText()),
                                   ("Startgruppen", ", ".join(groups) or "keine")]),
-            (4, "Fristen und Zeiten", [
+            (2, "Bogenklassen", [(f"{len(names)} Klassen", ", ".join(names))]),
+            (3, "Fristen und Zeiten", [
                 ("Anmeldefrist", self.deadline.date().toString("dd.MM.yyyy")),
                 ("Max. Teilnehmer", self.max_participants.value() or "unbegrenzt"),
                 ("Einschreibung / Start", f"{self.checkin_time.time().toString('HH:mm')} / "
                                           f"{self.shooting_time.time().toString('HH:mm')} Uhr"),
                 ("Einschießen", (self.practice_location.text() or "ja")
                  if self.practice.isChecked() else "nein")]),
-            (5, "Startgebühren", [(f["name"], money(f["amount"])) for f in fees]),
-            (6, "Kontakt und Bank", [("Kontakt", " · ".join(filter(None, (
+            (4, "Startgebühren", [(f["name"], money(f["amount"])) for f in fees]),
+            (5, "Kontakt und Bank", [("Kontakt", " · ".join(filter(None, (
                 self.contact_name.text(), self.contact_phone.text(),
                 self.contact_email.text()))) or "–"),
                 ("IBAN", self.bank_iban.text() or "–")]),
-            (7, "Hinweise und Texte", [("Einleitung", short(self.intro.toPlainText()) or "–"),
+            (6, "Hinweise und Texte", [("Einleitung", short(self.intro.toPlainText()) or "–"),
                                        ("Hinweise", f"{legal_count} Einträge")]),
         ]
         LABEL_W = 160
@@ -816,7 +760,7 @@ class TournamentWizard(QWizard):
                 r.addWidget(k_lbl)
                 r.addWidget(v_lbl, 1)
                 box_lay.addLayout(r)
-            if step == 5 and not fees:
+            if step == 4 and not fees:
                 warn = QLabel(f"<b>Warnung:</b> Keine Startgebühr angelegt. Ohne Gebühr ist "
                               "kein Wechsel in die Anmeldephase möglich.")
                 warn.setWordWrap(True)
@@ -830,7 +774,7 @@ class TournamentWizard(QWizard):
         data = {"name": self.name.text().strip(), "date": self.date.date().toPython(),
                 "location": self.location.text(), "organizer": self.organizer.text(),
                 "description": self.description.toPlainText(),
-                "scoring_rule_id": self.selected_rule().id,
+                "scoring_rule_id": self.default_rule.currentData(),
                 "num_targets": (self._round_table.cellWidget(0, 2).value() or DEFAULT_TARGETS)
                                if self._round_table.cellWidget(0, 2) else DEFAULT_TARGETS,
                 "shots_per_target": (self._round_table.cellWidget(0, 3).value() or 1)

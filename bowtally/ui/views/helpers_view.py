@@ -99,8 +99,16 @@ class HelpersView(ListView):
         f.add_widget(lbl)
         task_ff = f.add("task", "Aufgabe", QLineEdit(),
                         hint="z. B. Parcours-Aufbau, Einschreibung, Ergebnisse")
-        time_from_ff = f.add("time_from", "Zeit von", QLineEdit(), hint="z. B. 08:00")
-        time_to_ff = f.add("time_to", "Zeit bis", QLineEdit(), hint="z. B. 16:00")
+        from PySide6.QtWidgets import QTimeEdit
+        from PySide6.QtCore import QTime
+        def _te():
+            w = QTimeEdit()
+            w.setDisplayFormat("HH:mm")
+            w.setSpecialValueText("–")
+            w.setTime(QTime(0, 0))
+            return w
+        time_from_ff = f.add("time_from", "Zeit von", _te())
+        time_to_ff = f.add("time_to", "Zeit bis", _te())
         confirmed_ff = f.add("confirmed", "Bestätigt", QCheckBox("Bestätigung versendet"))
         self._tournament_fields = [lbl, task_ff, time_from_ff, time_to_ff, confirmed_ff]
 

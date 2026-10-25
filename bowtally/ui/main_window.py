@@ -534,8 +534,8 @@ class MainWindow(QMainWindow):
                 Toast.show(self, "Bogenklassen sind nach der Ausschreibungs-Phase gesperrt.",
                            Toast.WARNING)
                 return
-            _pages = {"edit": 0, "edit_contact": 6, "edit_bank": 6,
-                      "edit_classes": 2, "edit_fees": 5}
+            _pages = {"edit": 0, "edit_contact": 5, "edit_bank": 5,
+                      "edit_classes": 2, "edit_fees": 4}
             self.tournaments.open_tournament(t.id)
             self.tournaments.detail.edit_at_page(_pages[key])
             context.notify()

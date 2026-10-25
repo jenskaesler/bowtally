@@ -73,7 +73,8 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     st = _styles(font, bold, primary, text2)
-    pagesize = tpl.page_size(settings.get(ss.KEY_PRINT_PAPER_SIZE), "landscape")
+    pagesize = tpl.page_size(settings.get(ss.KEY_PRINT_PAPER_SIZE),
+                             settings.get(ss.KEY_PRINT_ORIENTATION) or "portrait")
     created = datetime.now().strftime("%d.%m.%Y %H:%M")
 
     def footer(canvas, doc):

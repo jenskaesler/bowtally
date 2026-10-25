@@ -9,10 +9,10 @@ import re
 from datetime import date
 from typing import Callable
 
-from PySide6.QtCore import QDate, QEvent, Qt, QTimer, Signal
+from PySide6.QtCore import QDate, QEvent, Qt, QTime, QTimer, Signal
 from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QHBoxLayout,
                                QLabel, QLineEdit, QPlainTextEdit, QSizePolicy, QSpinBox,
-                               QTextEdit, QVBoxLayout, QWidget)
+                               QTextEdit, QTimeEdit, QVBoxLayout, QWidget)
 
 from bowtally.ui import repolish
 
@@ -54,6 +54,8 @@ class DateField(QDateEdit):
 def read_value(w: QWidget):
     if hasattr(w, "field_value"):
         return w.field_value()
+    if isinstance(w, QTimeEdit):
+        return w.time().toString("HH:mm")
     if isinstance(w, QLineEdit):
         return w.text().strip()
     if isinstance(w, (QPlainTextEdit, QTextEdit)):
@@ -75,6 +77,8 @@ def read_value(w: QWidget):
 def write_value(w: QWidget, value) -> None:
     if hasattr(w, "set_field_value"):
         w.set_field_value(value)
+    elif isinstance(w, QTimeEdit):
+        w.setTime(QTime.fromString(str(value or ""), "HH:mm") if value else QTime(0, 0))
     elif isinstance(w, QLineEdit):
         w.setText("" if value is None else str(value))
     elif isinstance(w, (QPlainTextEdit, QTextEdit)):
@@ -95,7 +99,7 @@ def write_value(w: QWidget, value) -> None:
 
 def _change_signal(w: QWidget):
     for name in ("changed", "textChanged", "currentTextChanged", "toggled", "valueChanged",
-                 "dateChanged"):
+                 "timeChanged", "dateChanged"):
         if hasattr(w, name):
             return getattr(w, name)
     return None

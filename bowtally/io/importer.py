@@ -48,6 +48,26 @@ HELPER_IMPORT_FIELDS = [
     ImportField("notes", "Notizen", aliases=["bemerkung", "notes"]),
 ]
 
+BOW_CLASS_IMPORT_FIELDS = [
+    ImportField("name", "Bezeichnung", True, aliases=["bogenklasse", "bow class"]),
+    ImportField("abbreviation", "Kürzel", True, aliases=["kürzel", "abbreviation", "short"]),
+    ImportField("age_group", "Altersgruppe", aliases=["altersgruppe", "age group", "age_group"]),
+    ImportField("description", "Beschreibung", aliases=["beschreibung", "description"]),
+]
+
+RULE_IMPORT_FIELDS = [
+    ImportField("name", "Bezeichnung", True, aliases=["regelwerk", "rule"]),
+    ImportField("description", "Beschreibung", aliases=["beschreibung", "description"]),
+    ImportField("max_shots_per_target", "Schüsse/Scheibe", type="int",
+                aliases=["max_shots_per_target", "schüsse/scheibe", "schüsse"]),
+    ImportField("allow_retry_shot", "Nachschuss", type="bool",
+                aliases=["allow_retry_shot", "nachschuss"]),
+    ImportField("ring_values", "Zonen (JSON)", required=True,
+                aliases=["ring_values", "zonen (json)", "zonen"]),
+    ImportField("rules_json", "Sonderregeln (JSON)",
+                aliases=["rules_json", "sonderregeln (json)", "sonderregeln"]),
+]
+
 DUPLICATE_STRATEGIES = {"skip": "Überspringen", "update": "Aktualisieren", "new": "Immer neu"}
 
 

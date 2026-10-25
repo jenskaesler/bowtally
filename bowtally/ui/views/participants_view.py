@@ -3,7 +3,8 @@
 inline editing, bulk actions, capacity limit and import."""
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel,
-                               QListWidget, QListWidgetItem, QVBoxLayout, QWidget)
+                               QListWidget, QListWidgetItem, QMenu, QToolButton, QVBoxLayout,
+                               QWidget)
 
 from bowtally.io.importer import PARTICIPANT_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
@@ -227,10 +228,15 @@ class ParticipantsView(QWidget):
         self.status_filter.currentIndexChanged.connect(lambda _i: self._apply_filter())
         self.btn_add = button("Schütze zuweisen", self.pick_archers, "primary",
                               "Schützen aus den Stammdaten zuweisen (Strg+N)")
-        self.btn_import = button("Importieren", self._import,
-                                 tooltip="Teilnehmerliste aus CSV, Excel oder OpenDocument")
-        self.btn_renumber = button("Startnummern neu vergeben", self._renumber,
-                                   tooltip="Nummern 1..n nach Klasse und Name, Gruppen reihum")
+        self._more_menu = QMenu()
+        self._act_renumber = self._more_menu.addAction(
+            "Startnummern neu vergeben", self._renumber)
+        self._act_import = self._more_menu.addAction(
+            "Importieren …", self._import)
+        self.btn_more = QToolButton()
+        self.btn_more.setText("Weitere ▾")
+        self.btn_more.setMenu(self._more_menu)
+        self.btn_more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(280)
         bar = QHBoxLayout()
@@ -240,8 +246,7 @@ class ParticipantsView(QWidget):
         bar.addSpacing(12)
         bar.addWidget(self.capacity)
         bar.addStretch()
-        bar.addWidget(self.btn_renumber)
-        bar.addWidget(self.btn_import)
+        bar.addWidget(self.btn_more)
         bar.addWidget(self.btn_add)
 
         empty = EmptyState("users", "Noch keine Teilnehmer",
@@ -278,10 +283,15 @@ class ParticipantsView(QWidget):
         waitlist_auto = _get_setting("waitlist_mode", "block") == "auto"
         self.capacity.set_capacity(cap)
         shooting_hint = "In der Schieß-Phase können keine Teilnehmer mehr verwaltet werden."
-        for b, tip in ((self.btn_import, "Teilnehmerliste aus CSV, Excel oder OpenDocument"),
-                       (self.btn_renumber, "Nummern 1..n nach Klasse und Name, Gruppen reihum")):
-            b.setEnabled(assignable)
-            b.setToolTip(tip if assignable else (CLOSED_HINT if not editable else shooting_hint))
+        self._act_renumber.setEnabled(assignable)
+        self._act_renumber.setToolTip(
+            "Nummern 1..n nach Klasse und Name, Gruppen reihum" if assignable
+            else (CLOSED_HINT if not editable else shooting_hint))
+        self._act_import.setEnabled(assignable)
+        self._act_import.setToolTip(
+            "Teilnehmerliste aus CSV, Excel oder OpenDocument" if assignable
+            else (CLOSED_HINT if not editable else shooting_hint))
+        self.btn_more.setEnabled(assignable)
         add_ok = assignable and (not cap.is_full or waitlist_auto)
         self.btn_add.setEnabled(add_ok)
         self.btn_add.setToolTip(CLOSED_HINT if not editable

@@ -3,14 +3,17 @@
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
 
+from bowtally.io.importer import BOW_CLASS_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
-from bowtally.ui import button, show_error
+from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.toast import Toast
+from bowtally.ui.dialogs.export_helper import export_button
+from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.views import ListView
 
 HEADERS = ["Bezeichnung", "Kürzel", "Altersgruppe", "Typ"]
@@ -60,6 +63,9 @@ class BowClassesView(ListView):
         _fl.setContentsMargins(0, 4, 0, 0)
         _fl.addWidget(self._show_mine)
         _fl.addStretch()
+        _fl.addWidget(export_button(self, "bogenklassen", self._export_sheets))
+        _fl.addWidget(button("Importieren", self._import,
+                             tooltip="Bogenklassen aus CSV, Excel oder OpenDocument importieren"))
         self.main_layout.insertWidget(2, _footer)
 
     def refresh(self):
@@ -153,6 +159,26 @@ class BowClassesView(ListView):
             show_error(self, exc)
             return
         Toast.show(self, f"Bogenklasse '{bc.name}' gelöscht", Toast.SUCCESS)
+        self.refresh()
+
+    def _export_sheets(self, _filtered: bool):
+        rows = [[bc.name, bc.abbreviation, bc.age_group, bc.description]
+                for bc in self._classes.values()]
+        return [("Bogenklassen", ["Bezeichnung", "Kürzel", "Altersgruppe", "Beschreibung"], rows)]
+
+    def _import(self):
+        res = run_import(self, BOW_CLASS_IMPORT_FIELDS, "Bogenklassen importieren")
+        if res is None:
+            return
+        records, strategy = res
+        try:
+            with busy():
+                r = md.import_bow_classes(records, strategy)
+        except Exception as exc:
+            show_error(self, exc, "Import fehlgeschlagen")
+            return
+        Toast.show(self, f"Import abgeschlossen: {r['created']} neu, {r['updated']} "
+                         f"aktualisiert, {r['skipped']} übersprungen", Toast.SUCCESS)
         self.refresh()
 
     def _save_order(self, ids: list):
