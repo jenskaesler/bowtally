@@ -543,6 +543,8 @@ class MainWindow(QMainWindow):
         elif key == "results_pdf":
             self.open_tournament(t.id, "results")
             self.tournaments.detail.results._create_pdf()
+        elif key == "next_phase":
+            self.next_phase()
         elif key == "export_all":
             run_export(self, f"Turnier_{t.name}{FORMATS[0][2]}", FORMATS[0][1],
                        tournament_sheets(t.id))

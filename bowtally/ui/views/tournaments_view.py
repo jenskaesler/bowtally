@@ -189,14 +189,17 @@ class TournamentDetail(QWidget):
         return True
 
     def _update_tab_visibility(self):
-        visible = self.current.phase in CHECKIN_PHASES
-        self.tabs.setTabVisible(TABS.index("checkin"), visible)
-        if not visible and self.tabs.currentIndex() == TABS.index("checkin"):
-            self.tabs.setCurrentIndex(0)
-        fees_hidden = self.current.phase in ("shooting", "scoring", "closed")
-        self.tabs.setTabVisible(TABS.index("fees"), not fees_hidden)
-        if fees_hidden and self.tabs.currentIndex() == TABS.index("fees"):
-            self.tabs.setCurrentIndex(0)
+        phase = self.current.phase
+        rules = {
+            "checkin": phase in CHECKIN_PHASES,
+            "scoring": phase in ("shooting", "scoring", "closed"),
+            "results": phase in ("scoring", "closed"),
+            "fees":    phase not in ("shooting", "scoring", "closed"),
+        }
+        for key, visible in rules.items():
+            self.tabs.setTabVisible(TABS.index(key), visible)
+            if not visible and self.tabs.currentIndex() == TABS.index(key):
+                self.tabs.setCurrentIndex(0)
 
     def _external_change(self):
         if self.current is not None and self.isVisible():
