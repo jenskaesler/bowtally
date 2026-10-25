@@ -6,6 +6,31 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.10.6] – 2026-10-25
+
+### Hinzugefügt
+
+- **Modal-Dialoge für Stammdaten**: Bogenklassen, Regelwerke, Helfer und Schützen öffnen beim
+  Anlegen und Bearbeiten jetzt eigenständige Dialoge statt einer Seitenleiste. Jeder Dialog
+  enthält alle Felder des Datensatzes, Pflichtfeldmarkierung, Inline-Validierung und einen
+  Dirty-Check beim Schließen (Nachfrage bei ungespeicherten Änderungen).
+- **Helfer-Bearbeitungsdialog**: Im globalen Modus wird die bisherige Turnierbeteiligung des
+  Helfers als schreibgeschützte Tabelle angezeigt.
+- **Größe der Dialoge speichern**: Die Fenstergröße jedes Dialogs wird beim Schließen in den
+  Einstellungen gespeichert und beim nächsten Öffnen wiederhergestellt.
+
+### Verbessert
+
+- **Dialoge skalierbar**: Die Stammdaten-Dialoge sind frei per Maus skalierbar (zuvor feste
+  Breite 560 px).
+- **Schaltflächenreihenfolge**: In allen neuen Dialogen folgt „Abbrechen" rechts neben
+  „Speichern" (Windows-Konvention).
+
+### Behoben
+
+- **X-Button der Dialoge**: Das Setzen von `setWindowFlags()` nach der Konstruktion hat auf
+  Windows den nativen Schließen-Button deaktiviert; der Aufruf wurde entfernt.
+
 ## [2026.10.4] – 2026-10-25
 
 ### Hinzugefügt
