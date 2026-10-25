@@ -21,7 +21,7 @@ from bowtally.ui.dialogs.settings_dialog import SettingsDialog
 from bowtally.ui.views.archers_view import ArchersView
 from bowtally.ui.views.bow_classes_view import BowClassesView
 from bowtally.ui.views.dashboard import DashboardView
-from bowtally.ui.views.guide_view import GuideView
+from bowtally.ui.views.guide_view import GuideView, unchecked_manual_tasks
 from bowtally.ui.views.helpers_view import HelpersView
 from bowtally.ui.views.rules_view import RulesView
 from bowtally.ui.views.tournaments_view import TournamentsView
@@ -475,7 +475,9 @@ class MainWindow(QMainWindow):
         # check first, change only after the user agreed
         conds = ts.get_phase_conditions(t.id, target)
         errors = [c.message for c in conds if not c.ok and c.severity == "blocker"]
-        warnings = [c.message for c in conds if not c.ok and c.severity == "warning"]
+        warnings = ([f"Noch nicht erledigt: {lbl}"
+                     for lbl in unchecked_manual_tasks(t.id, t.phase)]
+                    + [c.message for c in conds if not c.ok and c.severity == "warning"])
         if errors:
             QMessageBox.critical(self, "Phasenwechsel nicht möglich",
                                  f"Der Wechsel zu „{label}“ ist noch nicht möglich:\n\n"

@@ -103,6 +103,13 @@ def task_done(task: Task, checks: dict, checklist: dict) -> bool | None:
     return None
 
 
+def unchecked_manual_tasks(tournament_id: int, phase: str) -> list[str]:
+    """Labels of manual checklist tasks for phase that are not yet ticked."""
+    checklist = ts.get_checklist_state(tournament_id)
+    return [task.text for task in PHASE_TASKS.get(phase, [])
+            if task.manual and not checklist.get(task.manual)]
+
+
 def next_open_task(tournament_id: int) -> Task | None:
     t = ts.get_tournament(tournament_id)
     checks, checklist = ts.get_status_checks(tournament_id), ts.get_checklist_state(tournament_id)
