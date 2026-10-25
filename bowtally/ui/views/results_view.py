@@ -16,7 +16,7 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.spinner import Spinner
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button, open_path
-from bowtally.ui.utils.mailto import open_mailto
+from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
 NOT_PRINTABLE = "Ergebnisliste erst ab der Phase „Schießen“ verfügbar"
@@ -135,6 +135,7 @@ class _SendResultsDialog(QDialog):
                 "datum": f"{t.date:%d.%m.%Y}",
                 "platz": str(r.rank) if r else "",
                 "punkte": str(r.total) if r else "",
+                **tournament_ctx(t, p),
             }, self)
         self.accept()
 

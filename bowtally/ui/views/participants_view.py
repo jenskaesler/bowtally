@@ -11,7 +11,7 @@ from bowtally.services import participant_service as ps
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 from bowtally.ui import busy, button, restore_geom, save_geom, show_error
-from bowtally.ui.utils.mailto import open_mailto
+from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
@@ -205,6 +205,7 @@ class _WaitlistNotifyDialog(QDialog):
                 "turniername": t.name,
                 "datum": f"{t.date:%d.%m.%Y}",
                 "freigewordene_plaetze": str(self._freed),
+                **tournament_ctx(t, p),
             }, self)
         self.accept()
 
@@ -485,6 +486,7 @@ class ParticipantsView(QWidget):
                     "klasse": p.bow_class.name if p.bow_class else "",
                     "turniername": t.name,
                     "datum": f"{t.date:%d.%m.%Y}",
+                    **tournament_ctx(t, p),
                 }, self)
 
     def mark_paid_selected(self):
@@ -625,6 +627,7 @@ class ParticipantsView(QWidget):
                 "klasse": p.bow_class.name if p.bow_class else "",
                 "turniername": t.name,
                 "datum": f"{t.date:%d.%m.%Y}",
+                **tournament_ctx(t, p),
             }, self)
 
     # ------------------------------------------------------------ add / import

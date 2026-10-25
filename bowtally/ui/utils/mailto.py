@@ -15,6 +15,27 @@ class _SafeDict(dict):
         return "{" + key + "}"
 
 
+def tournament_ctx(t, p=None) -> dict:
+    """Build extra email context from tournament and optionally a participant."""
+    ctx = {
+        "ort": t.location or "",
+        "iban": t.bank_iban or "",
+        "anmeldefrist": f"{t.registration_deadline:%d.%m.%Y}" if t.registration_deadline else "",
+    }
+    if p is not None:
+        name = f"{p.archer.first_name} {p.archer.last_name}"
+        cls = p.bow_class.name if p.bow_class else ""
+        ref = (t.bank_reference_template or "").replace("{name}", name).replace(
+            "{bow_class}", cls)
+        ctx.update({
+            "startnummer": str(p.start_number) if p.start_number else "",
+            "startgruppe": p.start_group or "",
+            "startzeit": p.start_time or "",
+            "verwendungszweck": ref,
+        })
+    return ctx
+
+
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
                 parent=None) -> None:
     """Open a mailto: URL built from app_settings template `template_key`.

@@ -183,19 +183,36 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
 </table>
 <p><i>Beispiel:</i> <code>3D Turnier 2027, {name}, {bow_class}</code></p>
 <p><b>E-Mail-Vorlagen</b> – verfügbare Platzhalter:</p>
-<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+<p><i>Immer verfügbar:</i></p>
+<table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
   <tr><td><code>{name}</code></td><td>Vor- und Nachname des Teilnehmers / Helfers</td></tr>
-  <tr><td><code>{verein}</code></td><td>Vereinsname des Teilnehmers</td></tr>
-  <tr><td><code>{klasse}</code></td><td>Bogenklasse des Teilnehmers</td></tr>
   <tr><td><code>{turniername}</code></td><td>Name des Turniers</td></tr>
   <tr><td><code>{datum}</code></td><td>Turnierdatum (TT.MM.JJJJ)</td></tr>
+  <tr><td><code>{ort}</code></td><td>Veranstaltungsort des Turniers</td></tr>
+  <tr><td><code>{anmeldefrist}</code></td><td>Anmeldefrist (TT.MM.JJJJ)</td></tr>
+  <tr><td><code>{iban}</code></td><td>IBAN aus den Turnier-Bankdaten</td></tr>
   <tr><td><code>{vereinsname}</code></td><td>Vereinsname aus dem Vereinsprofil</td></tr>
   <tr><td><code>{kontakt_name}</code></td><td>Name der Standard-Kontaktperson</td></tr>
   <tr><td><code>{kontakt_email}</code></td><td>E-Mail der Standard-Kontaktperson</td></tr>
   <tr><td><code>{kontakt_telefon}</code></td><td>Telefon der Standard-Kontaktperson</td></tr>
-  <tr><td><code>{platz}</code></td><td>Endrang des Teilnehmers <i>(nur Ergebnisvorlage)</i></td></tr>
+</table>
+<p><i>Nur in Teilnehmer-Vorlagen:</i></p>
+<table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
+  <tr><td><code>{verein}</code></td><td>Vereinsname des Teilnehmers</td></tr>
+  <tr><td><code>{klasse}</code></td><td>Bogenklasse des Teilnehmers</td></tr>
+  <tr><td><code>{startnummer}</code></td><td>Zugewiesene Startnummer</td></tr>
+  <tr><td><code>{startgruppe}</code></td><td>Startgruppe (z.B. Gruppe A)</td></tr>
+  <tr><td><code>{startzeit}</code></td><td>Geplante Startzeit</td></tr>
+  <tr><td><code>{verwendungszweck}</code></td><td>Zahlungsreferenz aus der Verwendungszweck-Vorlage</td></tr>
+  <tr><td><code>{freigewordene_plaetze}</code></td><td>Freigewordene Plätze <i>(nur Wartelistenvorlage)</i></td></tr>
+  <tr><td><code>{platz}</code></td><td>Endrang <i>(nur Ergebnisvorlage)</i></td></tr>
   <tr><td><code>{punkte}</code></td><td>Gesamtpunktzahl <i>(nur Ergebnisvorlage)</i></td></tr>
-  <tr><td><code>{freigewordene_plaetze}</code></td><td>Anzahl freigewordener Plätze <i>(nur Wartelistenvorlage)</i></td></tr>
+</table>
+<p><i>Nur in der Helfer-Vorlage:</i></p>
+<table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
+  <tr><td><code>{aufgabe}</code></td><td>Zugewiesene Aufgabe des Helfers</td></tr>
+  <tr><td><code>{von}</code></td><td>Einsatzbeginn</td></tr>
+  <tr><td><code>{bis}</code></td><td>Einsatzende</td></tr>
 </table>
 <h3>Tastenkürzel</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">

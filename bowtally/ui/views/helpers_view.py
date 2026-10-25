@@ -10,7 +10,7 @@ from bowtally.io.importer import HELPER_IMPORT_FIELDS
 from bowtally.services import helper_service as hs
 from bowtally.services.settings_service import KEY_EMAIL_TPL_HELPER
 from bowtally.ui import busy, button, show_error
-from bowtally.ui.utils.mailto import open_mailto
+from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
@@ -490,9 +490,12 @@ class HelpersView(ListView):
             return
         open_mailto(KEY_EMAIL_TPL_HELPER, th.helper.email, {
             "name": f"{th.helper.first_name} {th.helper.last_name}",
-            "verein": "", "klasse": "",
             "turniername": t.name,
             "datum": f"{t.date:%d.%m.%Y}",
+            "aufgabe": th.task or "",
+            "von": th.time_from or "",
+            "bis": th.time_to or "",
+            **tournament_ctx(t),
         }, self)
 
     # ---------------------------------------------------------------- import / export
