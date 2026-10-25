@@ -572,10 +572,10 @@ def promote_from_waitlist(tournament_id: int) -> int:
     _MIN = datetime.min
     entities: list[tuple] = []
     for key, members in by_club.items():
-        ts_val = min((p.created_at or _MIN) for p in members)
+        ts_val = min((p.registered_at or _MIN) for p in members)
         if key is None:
             for p in members:
-                entities.append((p.created_at or _MIN, [p]))
+                entities.append((p.registered_at or _MIN, [p]))
         else:
             entities.append((ts_val, members))
     entities.sort(key=lambda x: x[0])
