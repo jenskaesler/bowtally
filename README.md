@@ -10,7 +10,7 @@ Anwendung gepflegt.
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **2026.10.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.10.4** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 
@@ -57,7 +57,9 @@ Aktuelle Version: **2026.10.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ### Auswertung
 
-- **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo“ bei Gleichstand,
+- **Multi-Runden-Turniere**: bis zu beliebig vielen Runden, jede mit eigenem Regelwerk und
+  Scheibenzahl. Wertung wahlweise je Scheibe, je Runde oder als Gesamtwertung.
+- **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo” bei Gleichstand,
   einstellbarer Tie-Break.
 - **Druckfertige Ergebnisliste** als PDF: Deckblatt mit Vereinslogo, eine Seite je Klasse.
 - **Export** als CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
@@ -68,8 +70,9 @@ Aktuelle Version: **2026.10.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 - **Schützen** mit Suche, aktiv/inaktiv, Import aus CSV/XLSX/ODS (Spalten-Zuordnung, Vorschau,
   Validierung, Umgang mit Duplikaten) und Export.
-- **Regelwerke**: IBO 3D, ASA 3D und WA 3D eingebaut und schreibgeschützt; eigene Regelwerke
-  durch Klonen, mit Zonen-Editor.
+- **Regelwerke**: 14 eingebaute Regelwerke (IBO 3D, ASA 3D, WA 3D, DBSV Wald-/Jagdrunde,
+  Feldbogen IFAA bekannt/unbekannt, WA Halle 18 m/25 m, 3D Hunter, NFAA 3D u. a.) und eigene
+  Regelwerke durch Klonen, mit Zonen-Editor.
 - **Bogenklassen**: zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
 ### Einstellungen
@@ -202,7 +205,7 @@ kommt aus `bowtally/__version__.py`.
 | Anwendung | `build\dist\BowTally\BowTally.exe` |
 | Installer | `build\dist\BowTally-<version>-Setup.exe` |
 
-Nur den Installer neu bauen: `makensis /DVERSION=2026.10.1 build\setup.nsi`
+Nur den Installer neu bauen: `makensis /DVERSION=2026.10.4 build\setup.nsi`
 
 ### Release
 

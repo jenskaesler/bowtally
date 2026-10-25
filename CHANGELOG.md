@@ -6,6 +6,29 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.10.4] – 2026-10-25
+
+### Hinzugefügt
+
+- **Multi-Runden-Turniere**: Turniere können aus mehreren Runden bestehen. Drei Wertungsmodi
+  wählbar: je Scheibe (`per_target`), je Runde (`per_round`) oder Gesamtwertung (`total_only`).
+  Jede Runde hat eine eigene Bezeichnung, ein eigenes Regelwerk, Scheibenzahl, Pfeile und
+  Entfernungstyp.
+- **Turnier-Assistent – Konfigurationsseite neu**: Rundenstruktur direkt in einer Tabelle
+  pflegen (Bezeichnung, Regelwerk, Scheiben, Pfeile, Entfernung). Zeilen per „+ Runde" ergänzen
+  oder per Löschen-Button entfernen. Die separaten Felder „Anzahl Scheiben", „Schüsse je Scheibe"
+  und „Anzahl Runden" wurden durch die Tabelle ersetzt.
+- **14 integrierte Regelwerke**: Zu den drei eingebauten Regelwerken (IBO 3D, ASA 3D, WA 3D)
+  kommen elf weitere: 3D Hunter (IBO), 3D Standard 3-Pfeil, Feldbogen IFAA (bekannte Entfernung),
+  Feldbogen IFAA (unbekannte Entfernung), WA Halle 18m (mit X-Ring-Tiebreak), Blasrohr Standard,
+  DBSV 3D-Waldrunde, DBSV 3D-Jagdrunde, IBO 3D mit 12-Ring, NFAA 3D und WA Halle 25m.
+- **Leitfaden**: Aufgabe „Rundenstruktur konfiguriert" in der Vorbereitungsphase.
+
+### Behoben
+
+- **Nextcloud-Backup**: HTTP 409 (Conflict) beim Erstellen bereits existierender Ordner wird jetzt
+  korrekt ignoriert (Nextcloud verhält sich hier abweichend vom WebDAV-Standard, der 405 liefert).
+
 ## [2026.10.1] – 2026-10-24
 
 ### Verbessert
@@ -282,7 +305,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.1...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.4...HEAD
+[2026.10.4]: https://github.com/jenskaesler/bowtally/compare/v2026.10.1...v2026.10.4
 [2026.10.1]: https://github.com/jenskaesler/bowtally/compare/v2026.10.0...v2026.10.1
 [2026.10.0]: https://github.com/jenskaesler/bowtally/compare/v0.7.0...v2026.10.0
 [0.7.0]: https://github.com/jenskaesler/bowtally/compare/v0.6.0...v0.7.0
