@@ -181,6 +181,7 @@ class SettingsDialog(QDialog):
         splitter.addWidget(nav)
         splitter.addWidget(stack)
         splitter.setStretchFactor(1, 1)
+        splitter.setHandleWidth(1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
                                    | QDialogButtonBox.StandardButton.Cancel)

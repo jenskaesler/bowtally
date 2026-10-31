@@ -4,7 +4,6 @@
 Light and dark mode share the brand colors (primary / secondary / accent); neutrals
 (background, surface, border, text) come from separate light and dark settings.
 """
-import base64 as _b64
 import os as _os
 import tempfile as _tf
 
@@ -52,13 +51,23 @@ def _write_check_svg(color: str) -> str:
     return _check_svg_cache[color]
 
 
-def _arrow_svg_url(color: str, d: str) -> str:
+_arrow_svg_cache: dict[str, str] = {}
+
+
+def _write_arrow_svg(color: str, d: str) -> str:
+    key = f"{color}_{d}"
+    if key in _arrow_svg_cache:
+        return _arrow_svg_cache[key]
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24">'
         f'<path d="{d}" fill="none" stroke="{color}" stroke-width="2.5" '
         'stroke-linecap="round" stroke-linejoin="round"/></svg>'
     )
-    return "data:image/svg+xml;base64," + _b64.b64encode(svg.encode()).decode()
+    fd, path = _tf.mkstemp(suffix=".svg", prefix="btarr_")
+    _os.write(fd, svg.encode())
+    _os.close(fd)
+    _arrow_svg_cache[key] = path.replace("\\", "/")
+    return _arrow_svg_cache[key]
 
 
 # ---------------------------------------------------------------- color helpers
@@ -157,8 +166,8 @@ def build_stylesheet(overrides: dict[str, str] | None = None) -> str:
 
 def _qss(t: dict[str, str]) -> str:
     _chk = _write_check_svg(t['on_primary'])
-    _arr_d = _arrow_svg_url(t['text'], "M6 9l6 6 6-6")
-    _arr_u = _arrow_svg_url(t['text'], "M18 15l-6-6-6 6")
+    _arr_d = _write_arrow_svg(t['text'], "M6 9l6 6 6-6")
+    _arr_u = _write_arrow_svg(t['text'], "M18 15l-6-6-6 6")
     return f"""
 QWidget {{ color: {t['text']}; font-size: 10pt; }}
 QMainWindow, QDialog, QWizard, QWizardPage, QWidget#contentArea, QScrollArea,
@@ -271,6 +280,9 @@ QGroupBox {{
 }}
 QGroupBox::title {{ subcontrol-origin: margin; left: 12px; padding: 0 4px;
     color: {t['text2']}; }}
+
+QSplitter::handle {{ background: {t['border']}; }}
+QSplitter::handle:horizontal {{ width: 1px; }}
 
 QStatusBar {{ background: {t['sidebar']}; border-top: 1px solid {t['border']}; }}
 QStatusBar QLabel {{ color: {t['text2']}; font-size: 9pt; padding: 2px 8px; }}

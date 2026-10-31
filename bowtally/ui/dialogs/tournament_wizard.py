@@ -78,6 +78,10 @@ class _Page(QWizardPage):
         return self._is_complete() if self._is_complete else super().isComplete()
 
     def set_action_btn(self, btn: QWidget) -> None:
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
+        self.layout().addWidget(sep)
         row = QHBoxLayout()
         row.addWidget(btn)
         row.addStretch()
@@ -186,44 +190,10 @@ class TournamentWizard(QWizard):
             repolish(self.button(which))
         self.rules = sc.list_rules()
         self.classes = md.list_bow_classes()
-        self._wizard_pages: list = []
         for page in (self._page_basics(), self._page_config(), self._page_classes(),
                      self._page_deadlines(), self._page_fees(),
                      self._page_contact(), self._page_texts(), self._page_summary()):
             self.addPage(page)
-            self._wizard_pages.append(page)
-        # Action button (pages with set_action_btn) and generate checkbox (summary) in button row
-        self.setOption(QWizard.WizardOption.HaveCustomButton1, True)
-        self.setOption(QWizard.WizardOption.HaveCustomButton2, True)
-        self.setButton(QWizard.WizardButton.CustomButton2, self.generate)
-        self.setButtonLayout([
-            QWizard.WizardButton.BackButton,
-            QWizard.WizardButton.CustomButton2,
-            QWizard.WizardButton.CustomButton1,
-            QWizard.WizardButton.Stretch,
-            QWizard.WizardButton.NextButton,
-            QWizard.WizardButton.FinishButton,
-            QWizard.WizardButton.CancelButton,
-        ])
-        self.button(QWizard.WizardButton.CustomButton1).setVisible(False)
-        self.generate.setVisible(False)
-        self.currentIdChanged.connect(self._sync_custom_btn)
-        self._sync_custom_btn(0)
-
-    def _sync_custom_btn(self, _=None):
-        page = self.currentPage()
-        cb1 = self.button(QWizard.WizardButton.CustomButton1)
-        action = getattr(page, '_action_btn', None)
-        cb1.setVisible(action is not None)
-        if action is not None:
-            cb1.setText(action.text())
-            try:
-                cb1.clicked.disconnect()
-            except RuntimeError:
-                pass
-            cb1.clicked.connect(lambda: action.click())
-        self.generate.setVisible(
-            bool(self._wizard_pages) and page is self._wizard_pages[-1])
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -758,6 +728,7 @@ class TournamentWizard(QWizard):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(self._sum_widget)
         page.body.addWidget(scroll, 1)
+        page.body.addWidget(self.generate)
         return page
 
     def _jump(self, link: str):
