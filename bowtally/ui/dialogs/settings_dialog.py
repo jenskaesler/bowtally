@@ -492,9 +492,10 @@ class SettingsDialog(QDialog):
         self.mode.setCurrentIndex(max(0, self.mode.findData(
             values.get(ss.KEY_UI_THEME_MODE) or "system")))
         self.mode.currentIndexChanged.connect(self._preview)
-        mode_row = self._form()
+        mode_box = QGroupBox("Darstellung")
+        mode_row = self._form(mode_box)
         mode_row.addRow(self._flbl("Darstellung"), self.mode)
-        lay.addLayout(mode_row)
+        lay.addWidget(mode_box)
 
         self.color_fields: dict[str, ColorField] = {}
         boxes = {"brand": self._form(), "light": self._form(), "dark": self._form()}
@@ -628,7 +629,7 @@ class SettingsDialog(QDialog):
                                     tooltip="Schreibzugriff auf Verzeichnis prüfen"))
         local_btns.addWidget(button("Backup jetzt erstellen",
                                     lambda: self._do_backup_now(bs, "local"), "primary",
-                                    "Datenbank als ZIP sichern"))
+                                    "Datenbank als JSON sichern"))
         local_btns.addStretch()
         local_form.addRow("", local_btns)
         self._backup_stack.addWidget(local_w)
@@ -663,7 +664,7 @@ class SettingsDialog(QDialog):
                                   tooltip="Netzwerkpfad auf Erreichbarkeit prüfen"))
         net_btns.addWidget(button("Backup jetzt erstellen",
                                   lambda: self._do_backup_now(bs, "network"), "primary",
-                                  "Datenbank als ZIP auf Netzlaufwerk sichern"))
+                                  "Datenbank als JSON auf Netzlaufwerk sichern"))
         net_btns.addStretch()
         net_form.addRow("", net_btns)
         self._backup_stack.addWidget(net_w)
@@ -705,13 +706,13 @@ class SettingsDialog(QDialog):
         # ---- Box 3: Wiederherstellen
         restore_box = QGroupBox("Wiederherstellen")
         restore_lay = QVBoxLayout(restore_box)
-        restore_lay.addWidget(QLabel("Wähle eine lokale Backup-Datei (.zip):",
+        restore_lay.addWidget(QLabel("Wähle eine lokale Backup-Datei (.json):",
                                      objectName="pageSubtitle"))
         restore_btns = QHBoxLayout()
         restore_btns.addWidget(button("Backup wiederherstellen",
                                       lambda: self._do_restore(bs),
                                       "danger",
-                                      "Backup-ZIP auswählen und Datenbank ersetzen"))
+                                      "Backup-JSON auswählen und Datenbank ersetzen"))
         restore_btns.addStretch()
         restore_lay.addLayout(restore_btns)
         lay.addWidget(restore_box)
@@ -785,8 +786,12 @@ class SettingsDialog(QDialog):
 
     def _do_restore(self, bs):
         path, _ = QFileDialog.getOpenFileName(self, "Backup auswählen", "",
-                                               "ZIP-Dateien (*.zip)")
+                                               "BowTally-Backup (*.json);;Altes Backup (*.zip *.db)")
         if not path:
+            return
+        if path.lower().endswith((".zip", ".db")):
+            show_error(self, "Alte ZIP/DB-Backups können nicht importiert werden.\n"
+                             "Bitte ein JSON-Backup verwenden.", "Nicht unterstütztes Format")
             return
         from bowtally.ui.components.confirm_dialog import ConfirmDialog
         if not ConfirmDialog.ask(self, "Datenbank wiederherstellen?",
@@ -795,7 +800,7 @@ class SettingsDialog(QDialog):
                                  "Wiederherstellen", destructive=True):
             return
         try:
-            bs.restore(path)
+            bs.restore_json(path)
         except Exception as exc:
             show_error(self, exc, "Wiederherstellung fehlgeschlagen")
             return
