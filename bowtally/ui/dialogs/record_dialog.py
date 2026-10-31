@@ -65,10 +65,10 @@ class RecordDialog(QDialog):
         self._save_btn.setEnabled(not read_only)
         cancel_btn = button("Abbrechen", self._on_cancel)
 
-        footer = QHBoxLayout()
-        footer.addStretch()
-        footer.addWidget(self._save_btn)
-        footer.addWidget(cancel_btn)
+        self._footer_layout = QHBoxLayout()
+        self._footer_layout.addStretch()
+        self._footer_layout.addWidget(self._save_btn)
+        self._footer_layout.addWidget(cancel_btn)
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(16, 16, 16, 16)
@@ -80,7 +80,7 @@ class RecordDialog(QDialog):
             lay.addWidget(hint_lbl)
         lay.addWidget(scroll, 1)
         lay.addWidget(sep)
-        lay.addLayout(footer)
+        lay.addLayout(self._footer_layout)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -115,6 +115,10 @@ class RecordDialog(QDialog):
         s.setValue(f"{key}/width", self.width())
         s.setValue(f"{key}/height", self.height())
         super().done(result)
+
+    def set_left_footer_widget(self, widget) -> None:
+        """Insert a widget at the left of the footer row (before the stretch)."""
+        self._footer_layout.insertWidget(0, widget)
 
     def _setup_form(self) -> None:
         """Override to add fields to self.form and optional widgets to self._body_layout."""

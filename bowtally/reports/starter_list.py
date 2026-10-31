@@ -42,33 +42,29 @@ def build_starter_list(tournament_id: int, sort_by: str = "number",
     page_w = pagesize[0] - tpl.MARGIN_LEFT - tpl.MARGIN_RIGHT
 
     parts = [p for p in t.participants if is_active_participant(p)]
-    if sort_by == "group":
-        parts.sort(key=lambda p: (p.start_group or "", p.start_number or 0, p.archer.last_name))
-    else:
-        parts.sort(key=lambda p: (p.start_number or 10**9, p.archer.last_name))
-
     title_s = ParagraphStyle("t", fontName=bold, fontSize=15, leading=19, textColor=primary)
     sub_s = ParagraphStyle("s", fontName=font, fontSize=9, leading=12)
+    grp_s = ParagraphStyle("g", fontName=bold, fontSize=11, leading=14, textColor=primary)
 
-    headers = ["St.-Nr.", "Name", "Verein", "Klasse", "Gruppe"]
-    rows = [headers] + [[
-        p.start_number or "",
-        f"{p.archer.last_name}, {p.archer.first_name}",
-        p.archer.club or "",
-        p.bow_class.abbreviation or p.bow_class.name if p.bow_class else "",
-        p.start_group or "",
-    ] for p in parts]
-
-    col_widths = [18 * mm, None, 55 * mm, 22 * mm, 22 * mm]
-    col_widths[1] = page_w - sum(w for w in col_widths if w)
-    table = Table(rows, colWidths=col_widths, repeatRows=1)
-    table.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (-1, -1), font), ("FONTNAME", (0, 0), (-1, 0), bold),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("BACKGROUND", (0, 0), (-1, 0), primary), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.3, border),
-        ("TOPPADDING", (0, 1), (-1, -1), 5), ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
-    ]))
+    def _part_table(members):
+        headers = ["St.-Nr.", "Name", "Verein", "Klasse"]
+        rows = [headers] + [[
+            p.start_number or "",
+            f"{p.archer.last_name}, {p.archer.first_name}",
+            p.archer.club or "",
+            p.bow_class.abbreviation or p.bow_class.name if p.bow_class else "",
+        ] for p in members]
+        cw = [18 * mm, None, 55 * mm, 22 * mm]
+        cw[1] = page_w - sum(w for w in cw if w)
+        tbl = Table(rows, colWidths=cw, repeatRows=1)
+        tbl.setStyle(TableStyle([
+            ("FONTNAME", (0, 0), (-1, -1), font), ("FONTNAME", (0, 0), (-1, 0), bold),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("BACKGROUND", (0, 0), (-1, 0), primary), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.3, border),
+            ("TOPPADDING", (0, 1), (-1, -1), 5), ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+        ]))
+        return tbl
 
     sort_label = "Startgruppe" if sort_by == "group" else "Startnummer"
     story = [
@@ -77,8 +73,22 @@ def build_starter_list(tournament_id: int, sort_by: str = "number",
         Paragraph(f"{t.date:%d.%m.%Y}" + (f" · {t.location}" if t.location else "")
                   + f" · {len(parts)} Teilnehmer · sortiert nach {sort_label}", sub_s),
         Spacer(1, 6 * mm),
-        table,
     ]
+
+    if sort_by == "group":
+        parts.sort(key=lambda p: (p.start_group or "\xff", p.start_number or 0, p.archer.last_name))
+        groups: dict[str, list] = {}
+        for p in parts:
+            groups.setdefault(p.start_group or "", []).append(p)
+        for key in sorted(groups, key=lambda k: (k == "", k)):
+            label = key if key else "Ohne Gruppe"
+            story.append(Paragraph(label, grp_s))
+            story.append(Spacer(1, 2 * mm))
+            story.append(_part_table(groups[key]))
+            story.append(Spacer(1, 6 * mm))
+    else:
+        parts.sort(key=lambda p: (p.start_number or 10**9, p.archer.last_name))
+        story.append(_part_table(parts))
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM)

@@ -27,6 +27,7 @@ class CourseTargetDialog(RecordDialog):
     def __init__(self, record=None, parent=None):
         self._record = record
         super().__init__("Neue Scheibe" if record is None else "Scheibe bearbeiten", parent=parent)
+        self.set_left_footer_widget(self._inv_btn)
         if record:
             self.form.set_values({
                 "number": record.number,
@@ -64,12 +65,13 @@ class CourseTargetDialog(RecordDialog):
         inv_btn.setToolTip("Bezeichnung aus aktivem Vereinsinventar übernehmen")
         inv_btn.clicked.connect(self._pick_from_inventory)
         self.form.add("number", "Scheiben-Nr.", num, required=True)
+        self._inv_btn = inv_btn
         self.form.add("animal_name", "Tier / Bezeichnung", name_edit)
-        self.form.add_widget(inv_btn)
         self.form.add("distance_m", "Distanz", dist)
         self.form.add("arrow_stop_class", "Pfeilstoppklasse", arrow)
         self.form.add("terrain_type", "Geländetyp", terrain)
-        self.form.add("max_group_size", "Max. Gruppengröße", grp)
+        self.form.add("max_group_size", "Max. Gruppengröße", grp,
+                      hint="Wird bei der Auslosung berücksichtigt: keine Startgruppe wird größer als dieser Wert.")
         self.form.add("helper_note", "Helfernotiz", note)
 
     def _pick_from_inventory(self):
