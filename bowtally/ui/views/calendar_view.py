@@ -97,6 +97,8 @@ class _HoverCard(QFrame):
         self.setObjectName("hoverCard")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setFixedWidth(280)
+        self.setAutoFillBackground(True)
+        self.setStyleSheet("QFrame#hoverCard{background:palette(base);border:1px solid palette(mid);border-radius:8px;}")
 
         eff = QGraphicsDropShadowEffect(self)
         eff.setBlurRadius(12)
@@ -212,6 +214,85 @@ class _DayCell(QFrame):
 
 
 # ---------------------------------------------------------------------------
+# Year view helpers
+# ---------------------------------------------------------------------------
+
+class _MiniMonth(QFrame):
+    monthClicked = Signal(int, int)   # year, month
+    dayClicked = Signal(object)       # date
+
+    def __init__(self, year: int, month: int, by_date: dict, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(4, 4, 4, 4)
+        lay.setSpacing(2)
+
+        hdr = QPushButton(_MONTH_NAMES[month - 1])
+        hdr.setFlat(True)
+        f = hdr.font(); f.setBold(True); hdr.setFont(f)
+        hdr.clicked.connect(lambda: self.monthClicked.emit(year, month))
+        lay.addWidget(hdr)
+
+        grid_w = QWidget()
+        grid = QGridLayout(grid_w)
+        grid.setSpacing(1)
+        grid.setContentsMargins(0, 0, 0, 0)
+
+        for col, name in enumerate(_DAY_ABBR):
+            lbl = QLabel(name[0])
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            f2 = lbl.font(); f2.setPointSize(max(6, f2.pointSize() - 2)); lbl.setFont(f2)
+            grid.addWidget(lbl, 0, col)
+
+        first_wd = date(year, month, 1).weekday()
+        _, num_days = calendar.monthrange(year, month)
+        t_col = theme.current()
+
+        for day in range(1, num_days + 1):
+            slot = first_wd + day - 1
+            d = date(year, month, day)
+            lbl = QLabel(str(day))
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            f3 = lbl.font(); f3.setPointSize(max(6, f3.pointSize() - 2)); lbl.setFont(f3)
+            lbl.setFixedSize(20, 16)
+            tournaments = by_date.get(d, [])
+            if tournaments:
+                tok = _phase_color(tournaments[0].phase)
+                color = t_col.get(tok, t_col["primary"])
+                lbl.setStyleSheet(
+                    f"background:{color};color:{t_col['bg']};border-radius:3px;")
+                lbl.mousePressEvent = lambda _e, d2=d: self.dayClicked.emit(d2)
+            grid.addWidget(lbl, slot // 7 + 1, slot % 7)
+
+        lay.addWidget(grid_w)
+
+
+class _YearView(QWidget):
+    monthClicked = Signal(int, int)
+    dayClicked = Signal(object)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._grid = QGridLayout(self)
+        self._grid.setSpacing(8)
+
+    def set_year(self, year: int, by_date: dict):
+        while self._grid.count():
+            item = self._grid.takeAt(0)
+            if w := item.widget():
+                w.deleteLater()
+        for i in range(12):
+            row, col = divmod(i, 4)
+            mm = _MiniMonth(year, i + 1, by_date)
+            mm.monthClicked.connect(self.monthClicked)
+            mm.dayClicked.connect(self.dayClicked)
+            self._grid.addWidget(mm, row, col)
+        for c in range(4):
+            self._grid.setColumnStretch(c, 1)
+
+
+# ---------------------------------------------------------------------------
 # Main calendar view
 # ---------------------------------------------------------------------------
 
@@ -243,24 +324,26 @@ class CalendarView(QWidget):
         f.setPointSize(f.pointSize() + 1)
         self._title_lbl.setFont(f)
 
+        self._btn_year = QPushButton("Jahr")
         self._btn_month = QPushButton("Monat")
         self._btn_week = QPushButton("Woche")
         self._btn_day = QPushButton("Tag")
         self._mode_grp = QButtonGroup(self)
-        for i, (name, btn_w) in enumerate([("month", self._btn_month),
+        for i, (name, btn_w) in enumerate([("year", self._btn_year),
+                                            ("month", self._btn_month),
                                             ("week", self._btn_week),
                                             ("day", self._btn_day)]):
             btn_w.setCheckable(True)
             btn_w.setObjectName("calModeBtn")
             self._mode_grp.addButton(btn_w, i)
-        {"month": self._btn_month, "week": self._btn_week,
+        {"year": self._btn_year, "month": self._btn_month, "week": self._btn_week,
          "day": self._btn_day}.get(self._mode, self._btn_month).setChecked(True)
         self._mode_grp.idClicked.connect(self._on_mode_id)
 
         mode_bar = QHBoxLayout()
         mode_bar.setSpacing(0)
         mode_bar.setContentsMargins(0, 0, 0, 0)
-        for btn_w in (self._btn_month, self._btn_week, self._btn_day):
+        for btn_w in (self._btn_year, self._btn_month, self._btn_week, self._btn_day):
             mode_bar.addWidget(btn_w)
 
         nav = QHBoxLayout()
@@ -320,6 +403,8 @@ class CalendarView(QWidget):
 
     def _step(self, n: int) -> date:
         a = self._anchor
+        if self._mode == "year":
+            return date(a.year + n, a.month, a.day)
         if self._mode == "month":
             m = a.month + n
             y = a.year + (m - 1) // 12
@@ -331,7 +416,7 @@ class CalendarView(QWidget):
         return a + timedelta(days=n)
 
     def _on_mode_id(self, idx: int):
-        self._mode = ["month", "week", "day"][idx]
+        self._mode = ["year", "month", "week", "day"][idx]
         try:
             ss.set_value(_MODE_KEY, self._mode)
         except Exception:
@@ -346,12 +431,44 @@ class CalendarView(QWidget):
             item = self._content_lay.takeAt(0)
             if w := item.widget():
                 w.deleteLater()
-        if self._mode == "month":
+        if self._mode == "year":
+            self._build_year()
+        elif self._mode == "month":
             self._build_month()
         elif self._mode == "week":
             self._build_week()
         else:
             self._build_day()
+
+    def _build_year(self):
+        year = self._anchor.year
+        self._title_lbl.setText(str(year))
+        view = _YearView()
+        view.set_year(year, self._by_date)
+        view.monthClicked.connect(self._on_year_month_click)
+        view.dayClicked.connect(self._on_year_day_click)
+        self._content_lay.addWidget(view)
+        self._content_lay.addStretch()
+
+    def _on_year_month_click(self, year: int, month: int):
+        self._anchor = date(year, month, 1)
+        self._mode = "month"
+        self._btn_month.setChecked(True)
+        try:
+            ss.set_value(_MODE_KEY, "month")
+        except Exception:
+            pass
+        self._rebuild()
+
+    def _on_year_day_click(self, d: date):
+        self._anchor = d
+        self._mode = "day"
+        self._btn_day.setChecked(True)
+        try:
+            ss.set_value(_MODE_KEY, "day")
+        except Exception:
+            pass
+        self._rebuild()
 
     def _build_month(self):
         a = self._anchor
