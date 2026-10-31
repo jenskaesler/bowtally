@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Participant management of one tournament: picker, registration / payment status,
 inline editing, bulk actions, capacity limit and import."""
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout, QLabel,
-                               QListWidget, QListWidgetItem, QMenu, QToolButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtCore import QDate, Qt
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDateEdit, QDialog, QDoubleSpinBox,
+                               QFormLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+                               QMenu, QPushButton, QRadioButton, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import PARTICIPANT_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
@@ -22,6 +22,7 @@ from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.status_chip import payment_chip, registration_chip
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
+from bowtally.ui.dialogs.export_helper import open_path
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.views import menu
 
@@ -211,6 +212,87 @@ class _WaitlistNotifyDialog(QDialog):
         self.accept()
 
 
+class _ConfirmPaymentDialog(QDialog):
+    """Capture payment status (and optionally fee) when confirming registrations."""
+
+    def __init__(self, fees, current_fee_id, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Anmeldung bestätigen")
+        self.resize(380, 240)
+
+        form = QFormLayout()
+        form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+
+        self.fee_combo = QComboBox()
+        self.fee_combo.addItem("– keine –", 0)
+        for f in fees:
+            self.fee_combo.addItem(f"{f.name} ({money(f.amount)})", f.id)
+        idx = self.fee_combo.findData(current_fee_id or 0)
+        self.fee_combo.setCurrentIndex(max(0, idx))
+        form.addRow("Startgebühr:", self.fee_combo)
+
+        self._btn_grp = QButtonGroup(self)
+        self._radio_unpaid = QRadioButton("Ausstehend")
+        self._radio_pending = QRadioButton("Erwartet")
+        self._radio_paid = QRadioButton("Eingegangen")
+        self._radio_unpaid.setChecked(True)
+        for i, rb in enumerate([self._radio_unpaid, self._radio_pending, self._radio_paid]):
+            self._btn_grp.addButton(rb, i)
+        pay_row = QHBoxLayout()
+        pay_row.setContentsMargins(0, 0, 0, 0)
+        for rb in (self._radio_unpaid, self._radio_pending, self._radio_paid):
+            pay_row.addWidget(rb)
+        pay_row.addStretch()
+        pay_widget = QWidget()
+        pay_widget.setLayout(pay_row)
+        form.addRow("Zahlung:", pay_widget)
+
+        self.amount_spin = QDoubleSpinBox()
+        self.amount_spin.setRange(0, 9999)
+        self.amount_spin.setDecimals(2)
+        self.amount_spin.setSuffix(" €")
+        self._lbl_amount = QLabel("Betrag:")
+        form.addRow(self._lbl_amount, self.amount_spin)
+
+        self.date_edit = QDateEdit(QDate.currentDate())
+        self.date_edit.setCalendarPopup(True)
+        self._lbl_date = QLabel("Datum:")
+        form.addRow(self._lbl_date, self.date_edit)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(button("Abbrechen", self.reject))
+        btn_row.addWidget(button("Bestätigen", self.accept, "primary"))
+
+        lay = QVBoxLayout(self)
+        lay.addLayout(form)
+        lay.addStretch()
+        lay.addLayout(btn_row)
+
+        self._toggle_paid(False)
+        self._radio_paid.toggled.connect(self._toggle_paid)
+
+    def _toggle_paid(self, checked: bool):
+        for w in (self._lbl_amount, self.amount_spin, self._lbl_date, self.date_edit):
+            w.setVisible(checked)
+
+    def fee_id(self) -> int | None:
+        return self.fee_combo.currentData() or None
+
+    def payment_status(self) -> str:
+        return ("unpaid", "pending", "paid")[self._btn_grp.checkedId()]
+
+    def amount(self) -> float | None:
+        return self.amount_spin.value() if self._radio_paid.isChecked() else None
+
+    def payment_date(self):
+        if not self._radio_paid.isChecked():
+            return None
+        from datetime import date as _date
+        d = self.date_edit.date()
+        return _date(d.year(), d.month(), d.day())
+
+
 class ParticipantsView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -233,21 +315,24 @@ class ParticipantsView(QWidget):
             "Startnummern neu vergeben", self._renumber)
         self._act_import = self._more_menu.addAction(
             "Importieren …", self._import)
-        self.btn_more = QToolButton()
-        self.btn_more.setText("Weitere ▾")
+        self._more_menu.addSeparator()
+        self._act_draw = self._more_menu.addAction("Auslosung …", self._run_draw)
+        self._act_starter = self._more_menu.addAction(
+            "Starterfeld drucken", self._print_starter)
+        self.btn_more = QPushButton("Weitere ▾")
         self.btn_more.setMenu(self._more_menu)
-        self.btn_more.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.btn_more.setStyleSheet("QPushButton::menu-indicator { image: none; }")
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(280)
         bar = QHBoxLayout()
-        bar.addWidget(self.search)
+        bar.addWidget(self.btn_add)
+        bar.addWidget(self.btn_more)
+        bar.addSpacing(8)
+        bar.addWidget(self.search, 1)
         bar.addWidget(self.group_filter)
         bar.addWidget(self.status_filter)
-        bar.addSpacing(12)
+        bar.addSpacing(8)
         bar.addWidget(self.capacity)
-        bar.addStretch()
-        bar.addWidget(self.btn_more)
-        bar.addWidget(self.btn_add)
 
         empty = EmptyState("users", "Noch keine Teilnehmer",
                            "Weise Schützen aus den Stammdaten zu oder importiere eine "
@@ -292,7 +377,9 @@ class ParticipantsView(QWidget):
         self._act_import.setToolTip(
             "Teilnehmerliste aus CSV, Excel oder OpenDocument" if assignable
             else (CLOSED_HINT if not editable else shooting_hint))
-        self.btn_more.setEnabled(assignable)
+        self._act_draw.setEnabled(editable)
+        self._act_starter.setEnabled(True)
+        self.btn_more.setEnabled(True)
         add_ok = assignable and (not cap.is_full or waitlist_auto)
         self.btn_add.setEnabled(add_ok)
         self.btn_add.setToolTip(CLOSED_HINT if not editable
@@ -476,7 +563,13 @@ class ParticipantsView(QWidget):
         sel = self._selected()
         if not sel:
             return
-        n = ps.bulk_confirm([p.id for p in sel])
+        first_fee_id = sel[0].entry_fee_id if sel else None
+        dlg = _ConfirmPaymentDialog(self.tournament.fees, first_fee_id, self)
+        if not dlg.exec():
+            return
+        n = ps.confirm_with_payment(
+            [p.id for p in sel], dlg.fee_id(), dlg.payment_status(), dlg.amount(),
+            dlg.payment_date())
         Toast.show(self, f"{n} Anmeldungen bestätigt", Toast.SUCCESS)
         self._reload()
         with_email = [p for p in sel if p.archer.email]
@@ -701,6 +794,22 @@ class ParticipantsView(QWidget):
         Toast.show(self, f"{r['added']} Teilnehmer hinzugefügt ({r['created']} Schützen neu "
                          f"angelegt, {r['updated']} aktualisiert)", Toast.SUCCESS)
         self._reload()
+
+    def _run_draw(self):
+        from bowtally.ui.dialogs.draw_dialog import DrawDialog
+        DrawDialog(self).exec()
+        self._reload()
+
+    def _print_starter(self):
+        from bowtally.reports.starter_list import build_starter_list
+        try:
+            with busy():
+                path = build_starter_list(self.tournament.id, sort_by="group")
+        except Exception as exc:
+            show_error(self, exc)
+            return
+        Toast.show(self, "Starterfeld erstellt", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
 
     # global shortcuts
     def shortcut_new(self):

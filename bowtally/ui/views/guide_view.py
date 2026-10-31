@@ -46,7 +46,7 @@ PHASE_TASKS = {
     ],
     "preparation": [
         Task("Bogenklassen im Turnier prüfen", "edit_classes", "Bogenklassen bearbeiten"),
-        Task("Parcours planen und aufbauen", manual="parcours_ready"),
+        Task("Parcours planen und aufbauen", "course", "Parcours-Planung", manual="parcours_ready"),
         Task("Helfer einteilen", "helpers", "Helferverwaltung", manual="helpers_assigned"),
         Task("Anmeldeliste vorbereiten", "participants", "Teilnehmerverwaltung"),
         Task("Rundenstruktur konfiguriert", "edit", "Turnierkonfiguration bearbeiten",
@@ -62,6 +62,7 @@ PHASE_TASKS = {
     ],
     "checkin": [
         Task("Einschreibeliste drucken", "print_checkin", "Teilnehmerliste drucken"),
+        Task("Auslosung durchführen", "draw", "Auslosung starten", manual="draw_done"),
         Task("Einschreibetisch vorbereiten", manual="checkin_desk_ready"),
         Task("Teilnehmer vor Ort einchecken", "checkin", "Einschreibe-Ansicht",
              auto="checkin_started"),

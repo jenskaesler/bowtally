@@ -20,8 +20,10 @@ from bowtally.ui.dialogs.export_helper import FORMATS, open_path, run_export, to
 from bowtally.ui.dialogs.settings_dialog import SettingsDialog
 from bowtally.ui.views.archers_view import ArchersView
 from bowtally.ui.views.bow_classes_view import BowClassesView
+from bowtally.ui.views.inventory_view import InventoryView
 from bowtally.ui.views.dashboard import DashboardView
 from bowtally.ui.views.guide_view import GuideView, unchecked_manual_tasks
+from bowtally.ui.views.calendar_view import CalendarView
 from bowtally.ui.views.helpers_view import HelpersView
 from bowtally.ui.views.rules_view import RulesView
 from bowtally.ui.views.tournaments_view import TournamentsView
@@ -226,8 +228,10 @@ class MainWindow(QMainWindow):
         self.archers = ArchersView()
         self.rules = RulesView()
         self.bow_classes = BowClassesView()
+        self.inventory = InventoryView()
         self.tournaments = TournamentsView()
         self.helpers = HelpersView()
+        self.calendar = CalendarView()
         self.stack = QStackedWidget()
         self.stack.setObjectName("contentArea")
 
@@ -235,10 +239,12 @@ class MainWindow(QMainWindow):
             ("Dashboard", "dashboard", self.dashboard),
             ("Leitfaden", "rules", self.guide),
             ("Turniere", "target", self.tournaments),
+            ("Kalender", "calendar", self.calendar),
             ("Schützen", "users", self.archers),
             ("Helfer", "users", self.helpers),
             ("Regelwerke", "file", self.rules),
             ("Bogenklassen", "layers", self.bow_classes),
+            ("Inventar", "inventory", self.inventory),
         ]
         self.nav = self._nav_list()
         for text, icon_name, target in entries:
@@ -322,6 +328,7 @@ class MainWindow(QMainWindow):
         self.dashboard.action.connect(self.run_action)
         self.dashboard.navigate.connect(self._navigate_to)
         self.guide.action.connect(self.run_action)
+        self.calendar.openTournament.connect(self.open_tournament)
         self.tournaments.openRequested.connect(lambda tid: self.open_tournament(tid))
         self.tournaments.changed.connect(self._data_changed)
         context.changed.connect(self._context_changed)
@@ -519,7 +526,8 @@ class MainWindow(QMainWindow):
         if t is None:
             return
         tabs = {"participants": "participants", "fees": "fees", "checkin": "checkin",
-                "scoring": "scoring", "results": "results"}
+                "scoring": "scoring", "results": "results",
+                "course": "course", "schedule": "schedule"}
         if key in tabs:
             self.open_tournament(t.id, tabs[key])
         elif key == "guide":
@@ -541,6 +549,9 @@ class MainWindow(QMainWindow):
             context.notify()
         elif key == "announcement":
             self._generate_announcement(t.id)
+        elif key == "draw":
+            from bowtally.ui.dialogs.draw_dialog import DrawDialog
+            DrawDialog(self).exec()
         elif key == "print_checkin":
             self._print_checkin_list(t.id)
         elif key == "scoring_incomplete":

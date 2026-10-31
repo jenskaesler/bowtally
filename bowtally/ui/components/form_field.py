@@ -9,9 +9,9 @@ from datetime import date
 from typing import Callable
 
 from PySide6.QtCore import QDate, QEvent, Qt, QTime, QTimer, Signal
-from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QFormLayout,
-                               QLabel, QLineEdit, QPlainTextEdit, QSizePolicy, QSpinBox,
-                               QTextEdit, QTimeEdit, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox,
+                               QFormLayout, QLabel, QLineEdit, QPlainTextEdit, QSizePolicy,
+                               QSpinBox, QTextEdit, QTimeEdit, QVBoxLayout, QWidget)
 
 from bowtally.ui import repolish
 
@@ -64,7 +64,7 @@ def read_value(w: QWidget):
         return w.toPlainText().strip()
     if isinstance(w, QCheckBox):
         return w.isChecked()
-    if isinstance(w, QSpinBox):
+    if isinstance(w, (QSpinBox, QDoubleSpinBox)):
         return w.value()
     if isinstance(w, QComboBox):
         if w.isEditable():
@@ -87,6 +87,8 @@ def write_value(w: QWidget, value) -> None:
         w.setPlainText(value or "")
     elif isinstance(w, QCheckBox):
         w.setChecked(bool(value))
+    elif isinstance(w, QDoubleSpinBox):
+        w.setValue(float(value or w.minimum()))
     elif isinstance(w, QSpinBox):
         w.setValue(int(value or w.minimum()))
     elif isinstance(w, QComboBox):

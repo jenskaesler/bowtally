@@ -290,6 +290,8 @@ class TournamentWizard(QWizard):
         from PySide6.QtWidgets import QGroupBox
         self.groups = QLineEdit(self._t("start_groups", ""))
         self.groups.setPlaceholderText("z. B. A, B, C, D")
+        self._draw_cb = QCheckBox("Teilnehmer per Auslosung einteilen")
+        self._draw_cb.setChecked(bool(self._t("use_draw", False)))
         self.course_notes = QPlainTextEdit(self._t("notes", ""))
         self.course_notes.setPlaceholderText("z. B. Festes Schuhwerk empfohlen, Parcours ca. "
                                              "4 km")
@@ -344,6 +346,7 @@ class TournamentWizard(QWizard):
                        or ss.get("default_parcours_description", "") or "")
         form.addRow(_lbl("Wertungsmodus"), self.scoring_mode)
         form.addRow(_lbl("Startgruppen"), self.groups)
+        form.addRow(_lbl(""), self._draw_cb)
         form.addRow(_lbl("Hinweise zum Parcours"), self.course_notes)
         page.body.addLayout(form)
         page.body.addWidget(self._round_group)
@@ -793,6 +796,7 @@ class TournamentWizard(QWizard):
                 "num_rounds": self._round_table.rowCount(),
                 "scoring_mode": self.scoring_mode.currentData() or "per_target",
                 "start_groups": ", ".join(ts.split_groups(self.groups.text())) or None,
+                "use_draw": self._draw_cb.isChecked(),
                 "notes": self.course_notes.toPlainText(),
                 "registration_deadline": self.deadline.date().toPython(),
                 "max_participants": self.max_participants.value(),
@@ -818,6 +822,14 @@ class TournamentWizard(QWizard):
             show_error(self, exc, "Turnier konnte nicht gespeichert werden")
             return False
         self.created_id = t.id
+        if self._template is not None:
+            try:
+                from bowtally.services import course_service as cs
+                from bowtally.services import prize_service as prs
+                cs.copy_targets(self._template.id, t.id)
+                prs.copy_prizes(self._template.id, t.id)
+            except Exception:
+                pass
         parent = self.parent() or self
         Toast.show(parent, f"Turnier '{t.name}' "
                    f"{'gespeichert' if self.tournament else 'erstellt'}", Toast.SUCCESS)

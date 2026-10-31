@@ -10,7 +10,7 @@ Anwendung gepflegt.
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **2026.10.4** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.10.7** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 
@@ -25,12 +25,14 @@ Aktuelle Version: **2026.10.4** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 - **Aktives Turnier in der Seitenleiste**: Phasenübersicht mit Datum, Knopf „Nächste Phase“ und
   Phasenwechsel-Protokoll. Das zuletzt geöffnete Turnier wird beim Start wiederhergestellt.
 - **Leitfaden** je Phase: Erklärung, Aufgaben mit Direktlinks, Statusampeln für den nächsten
-  Phasenwechsel und eine abhakbare Checkliste (Parcours, Helfer, Einschreibetisch,
+  Phasenwechsel und eine abhakbare Checkliste (Parcours, Helfer, Auslosung, Einschreibetisch,
   Siegerehrung, Aushang).
 - **Turnier-Assistent** in neun Schritten: Grunddaten, Regelwerk, Bogenklassen, Parcours,
   Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
 - **Turnier kopieren**: Ein bestehendes Turnier als Vorlage nutzen – der Assistent startet
-  vorausgefüllt, Teilnehmer und Ergebnisse werden nicht übernommen.
+  vorausgefüllt. Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
+- **Jahreskalender**: Alle Turniere im Monatsraster nach Phase eingefärbt, ICS-Export für
+  externe Kalender-Apps.
 
 ### Ausschreibung und Anmeldung
 
@@ -55,6 +57,18 @@ Aktuelle Version: **2026.10.4** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 - **Filter** nach Klasse, Startgruppe und „nur unvollständige“; eine Scheibe lässt sich für alle
   Teilnehmer auf einmal setzen.
 
+### Turniertag – Planung und Aushang
+
+- **Parcours-Planung**: Alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp und
+  Helferhinweis. Reihenfolge per Drag-and-Drop. PDF-Druck: Aufbauplan und Scheibenplan.
+- **Zeitplan**: Startgruppen mit Startzeit und Dauer. PDF-Druck: Zeitplan-Aushang.
+- **Auslosung**: Automatische Gruppeneinteilung mit Startnummern und Startscheiben,
+  optional getrennt nach Bogenklasse.
+- **Wertungszettel-Vorlagen**: Konfigurierbare Spalten (Name, Typ, Breite) per Editor,
+  vier eingebaute Vorlagen (3D, Feld, Halle, Blasrohr). Ausdruck direkt nach der Auslosung.
+- **Starterfeld-Liste**: Alle Teilnehmer sortiert nach Startnummer oder Gruppe als PDF.
+- **Gruppen-Aushang**: Eine Seite je Startgruppe mit Teilnehmern und Scheibenübersicht.
+
 ### Auswertung
 
 - **Multi-Runden-Turniere**: bis zu beliebig vielen Runden, jede mit eigenem Regelwerk und
@@ -62,6 +76,9 @@ Aktuelle Version: **2026.10.4** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 - **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo” bei Gleichstand,
   einstellbarer Tie-Break.
 - **Druckfertige Ergebnisliste** als PDF: Deckblatt mit Vereinslogo, eine Seite je Klasse.
+- **Preis- und Siegerliste**: Rangliste mit zugewiesenen Preisen je Bogenklasse als PDF.
+- **Urkunden**: Eine Seite je Podiumsplatz mit Platzhalter-Texten als PDF.
+- **Preise**: Preise je Turnier mit Rang, Bogenklasse und Betrag, werden beim Klonen übernommen.
 - **Export** als CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
 - **Turnier-Dashboard**: Teilnehmer, Einnahmen, Ergebnisfortschritt, Klassen, Zeitplan und die
   nächste offene Aufgabe.
@@ -164,13 +181,16 @@ Tests oder eine portable Installation.
 ```
 bowtally/
   database/   ORM-Modelle, Engine, Alembic-Migrationen, Seed-Daten
-  services/   Geschäftslogik (kein UI-Code): Turniere, Teilnehmer, Wertung, Rangliste, Einstellungen
-  reports/    PDFs: Ergebnisliste, Ausschreibung, Einschreibeliste (reportlab)
+  services/   Geschäftslogik (kein UI-Code): Turniere, Teilnehmer, Wertung, Rangliste,
+              Parcours, Auslosung, Preise, Wertungszettel, Einstellungen
+  reports/    PDFs: Ergebnisliste, Ausschreibung, Einschreibeliste, Parcours, Zeitplan,
+              Wertungszettel, Starterfeld, Gruppen-Aushang, Urkunden, Preis- und Siegerliste
   io/         Import/Export CSV, XLSX, ODS
   ui/
     components/  wiederverwendbare Widgets (Seitenpanel, Tabelle, Hinweise, Chips, …)
-    views/       Seiten (Dashboard, Leitfaden, Turniere, Teilnehmer, Ergebnisse, …)
-    dialogs/     Turnier-Assistent, Einstellungen, Import/Export
+    views/       Seiten (Dashboard, Leitfaden, Turniere, Teilnehmer, Parcours, Zeitplan,
+                 Kalender, Preise, Wertungszettel, Ergebnisse, …)
+    dialogs/     Turnier-Assistent, Auslosung, Einstellungen, Import/Export
     theme.py     Stylesheet, Farbpalette und Icons aus den Einstellungen
 build/        PyInstaller-Spec, Build-Skript, NSIS-Skript
 tests/        pytest
@@ -205,7 +225,7 @@ kommt aus `bowtally/__version__.py`.
 | Anwendung | `build\dist\BowTally\BowTally.exe` |
 | Installer | `build\dist\BowTally-<version>-Setup.exe` |
 
-Nur den Installer neu bauen: `makensis /DVERSION=2026.10.4 build\setup.nsi`
+Nur den Installer neu bauen: `makensis /DVERSION=2026.10.7 build\setup.nsi`
 
 ### Release
 

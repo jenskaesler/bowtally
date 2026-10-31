@@ -17,6 +17,24 @@ LOG_MAX_BYTES = 5 * 1024 * 1024
 LOG_BACKUP_COUNT = 3
 PDF_TEMP_DIR = Path(tempfile.gettempdir()) / APP_NAME
 
+
+def export_dir() -> Path:
+    """Configured export directory (default: ~/Downloads). Includes mkdir."""
+    try:
+        from bowtally.services import settings_service as ss
+        p = ss.get("default_export_path")
+        if p:
+            d = Path(p)
+            d.mkdir(parents=True, exist_ok=True)
+            return d
+    except Exception:
+        pass
+    d = Path.home() / "Downloads"
+    if not d.exists():
+        d = Path.home()
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
 # Package dir: inside a PyInstaller bundle data files live under sys._MEIPASS
 _BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 PACKAGE_DIR = _BASE / "bowtally"

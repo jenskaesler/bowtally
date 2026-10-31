@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Settings dialog: club profile, design (colors), print and behavior."""
+"""Settings dialog: club profile, design (colors), print, export path and behavior."""
 from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
-                               QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGroupBox,
-                               QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+                               QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGridLayout,
+                               QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
                                QScrollArea, QSpinBox, QStackedWidget, QTabWidget,
                                QVBoxLayout, QWidget)
 
@@ -63,6 +63,13 @@ BRAND_COLORS = {ss.KEY_COLOR_PRIMARY, ss.KEY_COLOR_SECONDARY, ss.KEY_COLOR_ACCEN
 
 def _valid_hex(text: str) -> bool:
     return text.startswith("#") and len(text) == 7 and QColor(text).isValid()
+
+
+def _browse_export_path(edit: QLineEdit, parent=None):
+    path = QFileDialog.getExistingDirectory(parent, "Standard-Exportpfad wählen",
+                                            edit.text() or str(Path.home() / "Downloads"))
+    if path:
+        edit.setText(path)
 
 
 class ColorField(QWidget):
@@ -240,9 +247,10 @@ class SettingsDialog(QDialog):
     def _contacts_tab(self) -> QWidget:
         club = ss.get_club_profile()
         inner = QWidget()
-        lay = QVBoxLayout(inner)
-        lay.setSpacing(10)
-        for role_key, role_label in CONTACT_ROLES.items():
+        grid = QGridLayout(inner)
+        grid.setSpacing(10)
+        roles = list(CONTACT_ROLES.items())
+        for i, (role_key, role_label) in enumerate(roles):
             box = QGroupBox(role_label)
             form = self._form(box)
             for field, placeholder, label in (
@@ -255,8 +263,12 @@ class SettingsDialog(QDialog):
                 edit.setPlaceholderText(placeholder)
                 self.club_edits[field] = edit
                 form.addRow(self._flbl(label), edit)
-            lay.addWidget(box)
-        lay.addStretch()
+            row, col = divmod(i, 2)
+            # last role (bow_ref, index 4) spans both columns if in odd position
+            span = 2 if i == len(roles) - 1 and len(roles) % 2 == 1 else 1
+            grid.addWidget(box, row, col, 1, span)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(inner)
@@ -613,6 +625,28 @@ class SettingsDialog(QDialog):
         self.club_edits["course_description"] = edit_course
         inner = QWidget()
         lay = QVBoxLayout(inner)
+        # --- export path ---
+        box_export = QGroupBox("Speicherorte")
+        form_export = self._form(box_export)
+        path_row = QHBoxLayout()
+        path_row.setContentsMargins(0, 0, 0, 0)
+        path_edit = QLineEdit(ss.get("default_export_path") or "")
+        path_edit.setPlaceholderText("Leer lassen für Downloads-Ordner")
+        path_edit.setMinimumWidth(SETTINGS_COMBO_W)
+        path_btn = QPushButton("Durchsuchen …")
+        path_btn.clicked.connect(lambda: _browse_export_path(path_edit, self))
+        path_row.addWidget(path_edit, 1)
+        path_row.addWidget(path_btn)
+        path_widget = QWidget()
+        path_widget.setLayout(path_row)
+        form_export.addRow(self._flbl("Standard-Exportpfad"), path_widget)
+        hint = QLabel("Gilt für PDF-Exporte, Starterfeld und Kalender-ICS.\n"
+                      "Leer lassen für den Downloads-Ordner.",
+                      objectName="pageSubtitle")
+        hint.setWordWrap(True)
+        form_export.addRow("", hint)
+        self.value_widgets["default_export_path"] = path_edit
+        lay.addWidget(box_export)
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
             if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \

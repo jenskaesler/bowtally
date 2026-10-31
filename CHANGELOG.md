@@ -6,6 +6,48 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.10.7] – 2026-10-31
+
+### Hinzugefügt
+
+- **Parcours-Tab**: Im Turnier-Detail (ab Phase Vorbereitung) können alle Scheiben/Ziele des
+  Parcours gepflegt werden – Nummer, Tier/Scheibe, Distanz, Pfeilstopp-Klasse, Geländetyp,
+  maximale Gruppengröße und Helferhinweis. Die Reihenfolge ist per Drag-and-Drop änderbar.
+  Zwei Druckfunktionen: **Aufbauplan** (alle Scheiben mit Helferhinweis) und **Scheibenplan**
+  (kompaktes Layout ohne Notizen) als PDF.
+- **Zeitplan-Tab**: Startgruppen mit Startzeit und geschätzter Dauer anlegen und bearbeiten.
+  Druckfunktion **Zeitplan-Aushang** als PDF.
+- **Jahreskalender** (Seitenleiste): Monatsraster mit allen Turnieren als farbige Badges
+  nach Turnierphase. Jahreswahl per Spinner. Klick auf ein Turnier öffnet es direkt. ICS-Export
+  für Kalender-Apps.
+- **Wertungszettel-Vorlagen**: Globale Verwaltung von Wertungszettel-Vorlagen mit
+  konfigurierbaren Spalten (Name, Typ, Breite) per Drag-and-Drop-Editor. Vier eingebaute
+  Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
+- **Auslosung**: Dialog zur automatischen Gruppeneinteilung – Gruppengröße, Rotation
+  (sequenziell/zufällig), optional getrennt nach Bogenklasse. Weist Startgruppe, Startnummer
+  und Startscheibe zu. Optional direkt im Anschluss Wertungszettel drucken.
+- **Preise-Tab**: Preise je Turnier mit Rang, Name, Bogenklasse (optional), Beschreibung und
+  Wert. Beim Klonen eines Turniers werden Preise mit übernommen.
+- **Urkunden-PDF**: Eine Seite je Podiumsplatz mit konfigurierbaren Textblöcken und
+  Platzhaltern (`{name}`, `{klasse}`, `{platz}`, `{punkte}`, `{turniername}`, `{datum}`).
+  Abrufbar im Auswertungs-Tab.
+- **Preis- und Siegerliste**: Rangliste je Bogenklasse mit zugewiesenen Preisen als PDF.
+  Abrufbar im Auswertungs-Tab und im Preise-Tab.
+- **Starterfeld-Liste**: Alle aktiven Teilnehmer als PDF, sortierbar nach Startnummer oder
+  Startgruppe. Im Menü „Weitere ▾" der Teilnehmerverwaltung.
+- **Gruppen-Aushang**: Eine Seite je Startgruppe mit Teilnehmerliste, Startscheibe und
+  Scheibenübersicht des Parcours als PDF.
+- **Leitfaden – Auslosung**: Neue Aufgabe „Auslosung durchführen" mit Direktlink in der
+  Einschreibungsphase.
+
+### Geändert
+
+- **Turnier kopieren**: Parcours-Ziele und Preise werden beim Klonen mit übernommen.
+- **Auswertungs-Tab**: Neue Schaltflächen „Urkunden drucken" und „Preis- und Siegerliste" in
+  der Button-Leiste (ab Phase Schießen).
+- **Teilnehmerverwaltung**: Menü „Weitere ▾" enthält jetzt „Auslosung …" und
+  „Starterfeld drucken".
+
 ## [2026.10.6] – 2026-10-25
 
 ### Hinzugefügt
@@ -330,7 +372,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.4...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.7...HEAD
+[2026.10.7]: https://github.com/jenskaesler/bowtally/compare/v2026.10.6...v2026.10.7
+[2026.10.6]: https://github.com/jenskaesler/bowtally/compare/v2026.10.4...v2026.10.6
 [2026.10.4]: https://github.com/jenskaesler/bowtally/compare/v2026.10.1...v2026.10.4
 [2026.10.1]: https://github.com/jenskaesler/bowtally/compare/v2026.10.0...v2026.10.1
 [2026.10.0]: https://github.com/jenskaesler/bowtally/compare/v0.7.0...v2026.10.0

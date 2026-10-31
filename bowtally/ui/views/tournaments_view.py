@@ -17,13 +17,18 @@ from bowtally.ui.context import context
 from bowtally.ui.dialogs.tournament_wizard import TournamentWizard
 from bowtally.ui.views import ListView
 from bowtally.ui.views.checkin_view import CHECKIN_PHASES, CheckinView
+from bowtally.ui.views.course_view import CourseView
 from bowtally.ui.views.fees_view import FeesView
 from bowtally.ui.views.participants_view import ParticipantsView
+from bowtally.ui.views.prizes_view import PrizesView
 from bowtally.ui.views.results_view import ResultsView
+from bowtally.ui.views.schedule_view import ScheduleView
 from bowtally.ui.views.scoring_view import ScoringView
 
 HEADERS = ["Datum", "Name", "Ort", "Phase", "Teilnehmer", "Regelwerk"]
-TABS = ["participants", "checkin", "scoring", "results", "fees"]
+TABS = ["participants", "course", "schedule", "checkin", "scoring", "results", "prizes", "fees"]
+TAB_LABELS = ["Teilnehmer", "Parcours", "Zeitplan", "Einschreibung",
+              "Ergebniseingabe", "Auswertung", "Preise", "Startgebühren"]
 CLOSED_HINT = "Abgeschlossene Turniere sind gesperrt"
 
 
@@ -161,14 +166,15 @@ class TournamentDetail(QWidget):
         self.header.add(button("Alle Turniere", self.backRequested.emit,
                                tooltip="Turnierliste anzeigen (das Turnier bleibt geöffnet)"),
                         self.btn_edit)
-        self.pages = {"participants": ParticipantsView(), "checkin": CheckinView(),
-                      "scoring": ScoringView(), "results": ResultsView(), "fees": FeesView()}
+        self.pages = {"participants": ParticipantsView(), "course": CourseView(),
+                      "schedule": ScheduleView(), "checkin": CheckinView(),
+                      "scoring": ScoringView(), "results": ResultsView(),
+                      "prizes": PrizesView(), "fees": FeesView()}
         self.participants, self.scoring = self.pages["participants"], self.pages["scoring"]
         self.results = self.pages["results"]
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        for key, label in zip(TABS, ["Teilnehmer", "Einschreibung", "Ergebniseingabe",
-                                     "Auswertung", "Startgebühren"]):
+        for key, label in zip(TABS, TAB_LABELS):
             self.tabs.addTab(self.pages[key], label)
         self.tabs.currentChanged.connect(lambda _i: self.reload())
         lay = QVBoxLayout(self)
@@ -190,11 +196,15 @@ class TournamentDetail(QWidget):
 
     def _update_tab_visibility(self):
         phase = self.current.phase
+        in_prep = ts.phase_index(phase) >= ts.phase_index("preparation")
         rules = {
-            "checkin": phase in CHECKIN_PHASES,
-            "scoring": phase in ("shooting", "scoring", "closed"),
-            "results": phase in ("scoring", "closed"),
-            "fees":    phase in ("draft", "announcement"),
+            "course":   in_prep,
+            "schedule": in_prep and not getattr(self.current, "use_draw", False),
+            "checkin":  phase in CHECKIN_PHASES,
+            "scoring":  phase in ("shooting", "scoring", "closed"),
+            "results":  phase in ("scoring", "closed"),
+            "prizes":   True,
+            "fees":     phase in ("draft", "announcement"),
         }
         for key, visible in rules.items():
             self.tabs.setTabVisible(TABS.index(key), visible)

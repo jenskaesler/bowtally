@@ -77,8 +77,7 @@ def _logo(path, max_w, max_h):
 
 
 def announcement_path(tournament_id: int) -> Path:
-    config.PDF_TEMP_DIR.mkdir(parents=True, exist_ok=True)
-    return config.PDF_TEMP_DIR / f"announcement_{tournament_id}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
+    return config.export_dir() / f"announcement_{tournament_id}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
 
 
 def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None) -> Path:

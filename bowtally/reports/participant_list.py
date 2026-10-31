@@ -19,10 +19,9 @@ HEADERS = ["Nr.", "Name", "Verein", "Klasse", "Gruppe", "Startgeld", "Bezahlt", 
 
 
 def checkin_list_path(tournament_id: int) -> Path:
-    config.PDF_TEMP_DIR.mkdir(parents=True, exist_ok=True)
     t = ts.get_tournament(tournament_id)
     safe = re.sub(r"[^\w-]+", "_", t.name).strip("_") or "Turnier"
-    return config.PDF_TEMP_DIR / f"Einschreibeliste_{safe}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
+    return config.export_dir() / f"Einschreibeliste_{safe}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
 
 
 def build_checkin_list(tournament_id: int, path: str | Path | None = None) -> Path:

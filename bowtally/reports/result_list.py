@@ -260,7 +260,6 @@ def _add_podium_style(style, i, rank, total, primary, bold):
 
 
 def temp_pdf_path(tournament_id: int) -> Path:
-    config.PDF_TEMP_DIR.mkdir(parents=True, exist_ok=True)
     t = get_tournament(tournament_id)
     safe = re.sub(r"[^\w-]+", "_", t.name).strip("_") or "Turnier"
-    return config.PDF_TEMP_DIR / f"Ergebnisliste_{safe}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
+    return config.export_dir() / f"Ergebnisliste_{safe}_{datetime.now():%Y%m%d_%H%M%S}.pdf"

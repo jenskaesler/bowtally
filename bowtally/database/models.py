@@ -167,6 +167,7 @@ class Tournament(Base):
     scoring_rule_id: Mapped[int | None] = mapped_column(ForeignKey("scoring_rules.id"))
     # Comma separated start group names, e.g. "A, B, C" (set in the wizard)
     start_groups: Mapped[str | None] = mapped_column(Text)
+    use_draw: Mapped[bool] = mapped_column(Boolean, default=False)
     description: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
@@ -214,6 +215,12 @@ class Tournament(Base):
     rounds: Mapped[list["TournamentRound"]] = relationship(
         back_populates="tournament", cascade="all, delete-orphan",
         order_by="TournamentRound.sort_order, TournamentRound.round_number")
+    prizes: Mapped[list["Prize"]] = relationship(
+        cascade="all, delete-orphan", order_by="Prize.sort_order, Prize.rank, Prize.id")
+    course_targets: Mapped[list["CourseTarget"]] = relationship(
+        cascade="all, delete-orphan", order_by="CourseTarget.sort_order, CourseTarget.id")
+    schedule_groups: Mapped[list["ScheduleGroup"]] = relationship(
+        cascade="all, delete-orphan", order_by="ScheduleGroup.id")
 
 
 REGISTRATION_STATUSES = ("registered", "confirmed", "checked_in", "dns", "dnf", "dsq",
@@ -346,6 +353,57 @@ class TournamentHelper(Base):
     helper: Mapped["Helper"] = relationship()
 
 
+class ScoreSheetTemplate(Base):
+    __tablename__ = "score_sheet_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    tournament_type: Mapped[str] = mapped_column(Text, nullable=False, default="custom")
+    is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
+    column_config: Mapped[str] = mapped_column(Text, default="[]")
+    header_fields: Mapped[str] = mapped_column(Text, default='["name","bow_class","start_number"]')
+
+
+class Prize(Base):
+    __tablename__ = "prizes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id", ondelete="CASCADE"))
+    bow_class_id: Mapped[int | None] = mapped_column(ForeignKey("bow_classes.id"))
+    rank: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    value: Mapped[float | None] = mapped_column(Float)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    bow_class: Mapped["BowClass | None"] = relationship()
+
+
+class CourseTarget(Base):
+    __tablename__ = "course_targets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id", ondelete="CASCADE"))
+    number: Mapped[int] = mapped_column(Integer, nullable=False)
+    animal_name: Mapped[str | None] = mapped_column(Text)
+    distance_m: Mapped[float | None] = mapped_column(Float)
+    arrow_stop_class: Mapped[str | None] = mapped_column(Text)
+    terrain_type: Mapped[str | None] = mapped_column(Text)
+    max_group_size: Mapped[int | None] = mapped_column(Integer)
+    helper_note: Mapped[str | None] = mapped_column(Text)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ScheduleGroup(Base):
+    __tablename__ = "schedule_groups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id", ondelete="CASCADE"))
+    group_name: Mapped[str] = mapped_column(Text, nullable=False)
+    start_time: Mapped[str | None] = mapped_column(Text)
+    estimated_duration_min: Mapped[int | None] = mapped_column(Integer)
+
+
 class PhaseTransitionLog(Base):
     __tablename__ = "phase_transition_log"
 
@@ -356,3 +414,21 @@ class PhaseTransitionLog(Base):
     transitioned_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
     forced: Mapped[bool] = mapped_column(Boolean, default=False)
     warnings_at_transition: Mapped[list | None] = mapped_column(JSON)
+
+
+class InventoryItem(Base):
+    __tablename__ = "inventory_items"
+    __table_args__ = (
+        CheckConstraint("item_type IN ('target_face', '3d_target')", name="ck_inventory_type"),
+        CheckConstraint("condition IN ('gut', 'mittel', 'schlecht') OR condition IS NULL",
+                        name="ck_inventory_condition"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_type: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    manufacturer: Mapped[str | None] = mapped_column(Text)
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+    condition: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)

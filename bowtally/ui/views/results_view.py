@@ -156,6 +156,10 @@ class ResultsView(QWidget):
                                    tooltip="Ergebnisliste an einem beliebigen Ort speichern")
         self.btn_send = button("Ergebnisse versenden", self._send_results,
                                tooltip="Ergebnisse per E-Mail an Teilnehmer versenden")
+        self.btn_certs = button("Urkunden drucken", self._create_certificates,
+                                tooltip="Urkunden für Podiumsplätze als PDF erstellen")
+        self.btn_prizes = button("Preis- und Siegerliste", self._create_prize_list,
+                                 tooltip="Preis- und Siegerliste als PDF erstellen")
         self.btn_export = export_button(self, "rangliste", lambda _f: self.sheets)
         self.info = QLabel(objectName="pageSubtitle")
         bar = QHBoxLayout()
@@ -165,6 +169,8 @@ class ResultsView(QWidget):
         bar.addStretch()
         bar.addWidget(self.btn_export)
         bar.addWidget(self.btn_save_pdf)
+        bar.addWidget(self.btn_prizes)
+        bar.addWidget(self.btn_certs)
         bar.addWidget(self.btn_send)
         bar.addWidget(self.spinner)
         bar.addWidget(self.btn_pdf)
@@ -202,6 +208,9 @@ class ResultsView(QWidget):
             "Ergebnisse per E-Mail an Teilnehmer versenden" if sendable
             else "Nur in der Phase „Auswertung“ oder „Abgeschlossen“ verfügbar"
         )
+        for b in (self.btn_certs, self.btn_prizes):
+            b.setEnabled(printable and self._worker is None)
+            b.setToolTip(b.toolTip() if printable else NOT_PRINTABLE)
         if first_time or ss.get_bool(ss.KEY_RESULT_AUTO_RANK):
             self.recalculate()
 
@@ -297,6 +306,32 @@ class ResultsView(QWidget):
             return
         dlg = _SendResultsDialog(self.tournament.id, self._pid_to_rank, self)
         dlg.exec()
+
+    def _create_certificates(self):
+        if self.tournament is None:
+            return
+        from bowtally.reports.certificates import build_certificates
+        try:
+            with busy():
+                path = build_certificates(self.tournament.id)
+        except Exception as exc:
+            show_error(self, exc)
+            return
+        Toast.show(self, "Urkunden erstellt", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
+
+    def _create_prize_list(self):
+        if self.tournament is None:
+            return
+        from bowtally.reports.prize_list import build_prize_list
+        try:
+            with busy():
+                path = build_prize_list(self.tournament.id)
+        except Exception as exc:
+            show_error(self, exc)
+            return
+        Toast.show(self, "Preis- und Siegerliste erstellt", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
 
     # global shortcuts
     def shortcut_save(self):

@@ -89,6 +89,24 @@ def bulk_confirm(participant_ids: list[int]) -> int:
     return changed
 
 
+def confirm_with_payment(participant_ids: list[int], fee_id: int | None,
+                          payment_status: str, fee_amount_paid: float | None,
+                          payment_date: date | None) -> int:
+    """Confirm registered/waitlisted participants and capture payment. Returns count confirmed."""
+    changed = 0
+    with session_scope() as s:
+        for pid in participant_ids:
+            p = _participant(s, pid)
+            if p.registration_status not in ("registered", "waitlisted"):
+                continue
+            if fee_id is not None:
+                p.entry_fee_id = fee_id or None
+            _apply_registration(p, "confirmed")
+            _apply_payment(p, payment_status, fee_amount_paid, payment_date)
+            changed += 1
+    return changed
+
+
 def bulk_mark_paid(participant_ids: list[int]) -> int:
     changed = 0
     with session_scope() as s:
