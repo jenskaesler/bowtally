@@ -6,6 +6,34 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.10.9] – 2026-10-31
+
+### Hinzugefügt
+
+- **„Über BowTally"** im neuen Sidebar-Layout: linke Navigation mit vier Punkten
+  (Über BowTally, Lizenz, Changelog, Tastenkürzel), gleiches Design wie Hilfe- und
+  Einstellungs-Dialog.
+
+### Geändert
+
+- **Backup-Format**: Backups werden jetzt als JSON-Datei gespeichert
+  (`BowTally-Backup-YYYY-MM-DD-HHMMSS.json`) statt als ZIP. Das JSON enthält Metadaten
+  (Version, Alembic-Schema) und alle Tabelleninhalte als Row-Dicts mit ISO-Datetime-Werten.
+  Wiederherstellen aus JSON baut eine frische Datenbank via Alembic-Migrationen und
+  importiert die Daten spaltenfiltriert. Alte ZIP-Backups können nicht mehr importiert werden
+  (Hinweis-Dialog). Aufbewahrung berücksichtigt sowohl neue JSON- als auch alte ZIP-Dateien.
+- **Design-Einstellungen**: Modus-Auswahl (Hell/System/Dunkel) in eigene GroupBox
+  „Darstellung" eingebettet.
+- **Wechselzeilen (Zebra-Striping)** in allen Tabellen der App: Gebührentabelle und
+  Rundentabelle im Turnier-Assistenten, Import-Vorschau, Helfer-Verlaufstabelle.
+- **Einstellungen → Navigation**: Listeneinträge erhalten abwechselnde Zeilenhintergründe
+  und 36 px Mindesthöhe.
+- **Turnier-Assistent**: Wizard-Stil auf `ModernStyle` umgestellt – keine doppelte
+  Trennlinie mehr über den Navigations-Buttons.
+- **Turnier-Assistent Seite 4**: `setVerticalSpacing(8)` gilt jetzt einheitlich für alle
+  Formular-Seiten; Zeitfelder „Einschreibung ab" und „Schießbeginn" zeigen `--:--`
+  als Leer-Zustand.
+
 ## [2026.10.7] – 2026-10-31
 
 ### Hinzugefügt
