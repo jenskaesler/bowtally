@@ -48,6 +48,8 @@ class TournamentList(ListView):
         self._show_closed.toggled.connect(self.refresh)
         self._show_closed.toggled.connect(
             lambda v: QSettings("BowTally", "BowTally").setValue("tournaments/show_closed", v))
+        self.search.setMaximumWidth(220)
+        self.header.actions.addStretch(1)
         self.header.add(button("Neues Turnier", self.new_item, "primary",
                                "Neues Turnier mit dem Assistenten anlegen (Strg+N)"))
         _footer = QWidget()
@@ -212,7 +214,7 @@ class TournamentDetail(QWidget):
                 self.tabs.setCurrentIndex(0)
 
     def _external_change(self):
-        if self.current is not None and self.isVisible():
+        if self.current is not None:
             self.reload(refresh_tab=False)
 
     def reload(self, refresh_tab: bool = True):

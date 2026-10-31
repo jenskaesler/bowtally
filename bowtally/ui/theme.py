@@ -216,6 +216,9 @@ QComboBox QAbstractItemView {{
     background: {t['surface']}; border: 1px solid {t['border']}; padding: 4px;
     selection-background-color: {t['primary_soft']}; selection-color: {t['text']};
 }}
+QComboBox::drop-down {{ border: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }}
+QSpinBox::up-button, QDoubleSpinBox::up-button {{ border: none; border-top-right-radius: 8px; }}
+QSpinBox::down-button, QDoubleSpinBox::down-button {{ border: none; border-bottom-right-radius: 8px; }}
 
 /* tables and lists */
 QTableView, QTreeView, QListView {{
