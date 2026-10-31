@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """CRUD-Service für Vereins-Inventar (Scheiben und 3D-Ziele)."""
 from bowtally.database.models import InventoryItem
-from bowtally.database.session import session_scope
+from bowtally.database.engine import session_scope
 from bowtally.services import ValidationError
 
 ITEM_TYPE_LABELS = {"target_face": "Scheibe", "3d_target": "3D-Ziel"}
