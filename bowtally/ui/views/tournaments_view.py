@@ -208,10 +208,12 @@ class TournamentDetail(QWidget):
             "prizes":   True,
             "fees":     phase in ("draft", "announcement"),
         }
+        self.tabs.blockSignals(True)
         for key, visible in rules.items():
             self.tabs.setTabVisible(TABS.index(key), visible)
             if not visible and self.tabs.currentIndex() == TABS.index(key):
                 self.tabs.setCurrentIndex(0)
+        self.tabs.blockSignals(False)
 
     def _external_change(self):
         if self.current is not None:
