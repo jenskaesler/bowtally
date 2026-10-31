@@ -78,9 +78,13 @@ class _Page(QWizardPage):
         return self._is_complete() if self._is_complete else super().isComplete()
 
     def set_action_btn(self, btn: QWidget) -> None:
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
         row = QHBoxLayout()
         row.addWidget(btn)
         row.addStretch()
+        self.layout().addWidget(sep)
         self.layout().addLayout(row)
 
 
@@ -231,6 +235,9 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Ort"), self.location)
         form.addRow(_lbl("Veranstalter"), self.organizer)
         form.addRow(_lbl("Beschreibung (intern)"), self.description)
+        self._basics_dirty: set = set()
+        self.organizer.textEdited.connect(lambda _: self._basics_dirty.add("organizer"))
+        self.location.textEdited.connect(lambda _: self._basics_dirty.add("location"))
         page.body.addLayout(form)
         page.body.addStretch()
         if club.get("club_name") or club.get("city"):
@@ -348,6 +355,8 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Startgruppen"), self.groups)
         form.addRow(_lbl(""), self._draw_cb)
         form.addRow(_lbl("Hinweise zum Parcours"), self.course_notes)
+        self._config_dirty = False
+        self.course_notes.textChanged.connect(lambda: setattr(self, '_config_dirty', True))
         page.body.addLayout(form)
         page.body.addWidget(self._round_group)
         page.body.addStretch()
@@ -364,8 +373,10 @@ class TournamentWizard(QWizard):
             if self.tournament else {}
         n = max(1, len(existing))
         self._round_table.setRowCount(n)
+        self._loading_rounds = True
         for i in range(n):
             self._init_round_row(i, tr=existing.get(i + 1))
+        self._loading_rounds = False
 
     def _init_round_row(self, i: int, tr=None):
         """Create all cell widgets for row i; skips columns that already have a widget."""
@@ -378,10 +389,15 @@ class TournamentWizard(QWizard):
             for rule in self.rules:
                 cb.addItem(rule.name, rule.id)
             pre = tr.scoring_rule_id if tr else None
+            if pre is None and self.tournament is None:
+                default_id = ss.get("default_scoring_rule_id")
+                if default_id:
+                    pre = int(default_id)
             if pre is not None:
                 idx = cb.findData(pre)
                 if idx >= 0:
                     cb.setCurrentIndex(idx)
+            cb.currentIndexChanged.connect(lambda idx, row=i: self._on_rule_changed(row))
             self._round_table.setCellWidget(i, 1, cb)
         if self._round_table.cellWidget(i, 2) is None:
             sp = QSpinBox()
@@ -412,6 +428,18 @@ class TournamentWizard(QWizard):
             btn.setToolTip("Runde entfernen")
             btn.clicked.connect(self._delete_round)
             self._round_table.setCellWidget(i, 5, btn)
+
+    def _on_rule_changed(self, row: int):
+        if getattr(self, "_loading_rounds", False):
+            return
+        cb = self._round_table.cellWidget(row, 1)
+        rule_id = cb.currentData() if cb else None
+        rule = next((r for r in self.rules if r.id == rule_id), None)
+        if rule is None:
+            return
+        sp = self._round_table.cellWidget(row, 3)
+        if sp:
+            sp.setValue(rule.max_shots_per_target or 0)
 
     def _add_round(self):
         n = self._round_table.rowCount()
@@ -581,6 +609,10 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("IBAN"), self.bank_iban)
         form.addRow(_lbl("BIC"), self.bank_bic)
         form.addRow(_lbl("Verwendungszweck"), self.bank_reference)
+        self._contact_dirty: set = set()
+        for _w in (self.contact_name, self.contact_phone, self.contact_email,
+                   self.bank_holder, self.bank_iban, self.bank_bic, self.bank_reference):
+            _w.textEdited.connect(lambda _, w=_w: self._contact_dirty.add(w))
         page.body.addLayout(form)
         page.body.addStretch()
         if any(club.get(k) for k in ("club_name", "phone", "email", "bank_iban")):
@@ -594,9 +626,9 @@ class TournamentWizard(QWizard):
         club_name = club.get("club_name", "")
         city = club.get("city", "")
         overwrite = []
-        if self.organizer.text().strip() and club_name:
+        if "organizer" in self._basics_dirty and club_name:
             overwrite.append("Veranstalter")
-        if self.location.text().strip() and city:
+        if "location" in self._basics_dirty and city:
             overwrite.append("Ort")
         if overwrite and not ConfirmDialog.ask(
                 self, "Felder überschreiben?",
@@ -607,15 +639,17 @@ class TournamentWizard(QWizard):
             self.organizer.setText(club_name)
         if city:
             self.location.setText(city)
+        self._basics_dirty.clear()
         Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
 
     def _fill_config(self, desc: str):
-        if self.course_notes.toPlainText().strip() and not ConfirmDialog.ask(
+        if self._config_dirty and not ConfirmDialog.ask(
                 self, "Felder überschreiben?",
                 "Folgende Felder sind bereits ausgefüllt und werden überschrieben:\n– Hinweise zum Parcours",
                 "Überschreiben", destructive=False):
             return
         self.course_notes.setPlainText(desc)
+        self._config_dirty = False
         Toast.show(self, "Parcours-Beschreibung übernommen.", Toast.INFO)
 
     def _fill_contact(self, club: dict, role_data: dict):
@@ -637,7 +671,7 @@ class TournamentWizard(QWizard):
             "Verwendungszweck": (self.bank_reference, club.get("bank_reference_template", "")),
         }
         overwrite = [label for label, (edit, val) in fills.items()
-                     if edit.text().strip() and val]
+                     if edit in self._contact_dirty and val]
         if overwrite and not ConfirmDialog.ask(
                 self, "Felder überschreiben?",
                 "Folgende Felder sind bereits ausgefüllt und werden überschrieben:\n– " +
@@ -646,6 +680,7 @@ class TournamentWizard(QWizard):
         for _label, (edit, val) in fills.items():
             if val:
                 edit.setText(val)
+        self._contact_dirty.clear()
         Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
 
     # ------------------------------------------------------------ 8 texts

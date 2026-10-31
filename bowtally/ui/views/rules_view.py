@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHeaderView, QHBoxL
 
 from bowtally.io.importer import RULE_IMPORT_FIELDS
 from bowtally.services import scoring_service as sc
+from bowtally.services import settings_service as ss
 from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
@@ -22,7 +23,7 @@ from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 from bowtally.ui.views.bow_classes_view import READ_ONLY_HINT, builtin_chip
 
-HEADERS = ["Bezeichnung", "Zonen", "Schüsse/Scheibe", "Nachschuss", "Typ"]
+HEADERS = ["Bezeichnung", "Zonen", "Schüsse/Scheibe", "Nachschuss", "Typ", "Standard"]
 MAX_POINTS = 30
 MAX_SHOTS = 3
 
@@ -231,11 +232,14 @@ class RulesView(ListView):
     def refresh(self):
         rules = sc.list_rules()
         self._rules = {r.id: r for r in rules}
+        default_id = ss.get("default_scoring_rule_id")
         visible = ([r for r in rules if not r.is_builtin]
                    if self._show_mine.isChecked() else rules)
         self.table.set_rows([[Cell(r.name, tooltip=READ_ONLY_HINT if r.is_builtin else ""),
                               zone_summary(r), r.max_shots_per_target, r.allow_retry_shot,
-                              builtin_chip(r.is_builtin)] for r in visible],
+                              builtin_chip(r.is_builtin),
+                              "★" if default_id and str(r.id) == default_id else ""]
+                             for r in visible],
                             [r.id for r in visible])
         custom = sum(not r.is_builtin for r in rules)
         self.header.set_subtitle(f"{len(rules)} Regelwerke | {custom} benutzerdefiniert")
@@ -255,6 +259,7 @@ class RulesView(ListView):
                    tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Regelwerk bearbeiten"),
             Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
+            Action("Als Standard setzen", self._set_default, tooltip="Als Standard für neue Runden"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
                    tooltip="Löschen (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Regelwerk löschen (mit Rückfrage)")])
@@ -265,8 +270,17 @@ class RulesView(ListView):
             return []
         return [("Bearbeiten", self.edit_item, not r.is_builtin),
                 ("Kopieren", self.clone_item),
+                ("Als Standard setzen", self._set_default),
                 None,
                 ("Löschen", self.delete_item, not r.is_builtin)]
+
+    def _set_default(self):
+        r = self._selected()
+        if r is None:
+            return
+        ss.set_value("default_scoring_rule_id", str(r.id))
+        Toast.show(self, f"'{r.name}' als Standard gesetzt", Toast.SUCCESS)
+        self.refresh()
 
     def new_item(self):
         dlg = ScoringRuleDialog(parent=self)
