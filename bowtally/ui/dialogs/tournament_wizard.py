@@ -78,13 +78,9 @@ class _Page(QWizardPage):
         return self._is_complete() if self._is_complete else super().isComplete()
 
     def set_action_btn(self, btn: QWidget) -> None:
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setFrameShadow(QFrame.Shadow.Sunken)
         row = QHBoxLayout()
         row.addWidget(btn)
         row.addStretch()
-        self.layout().addWidget(sep)
         self.layout().addLayout(row)
 
 

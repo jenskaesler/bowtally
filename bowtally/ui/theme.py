@@ -51,6 +51,25 @@ def _write_check_svg(color: str) -> str:
     return _check_svg_cache[color]
 
 
+_arrow_svg_cache: dict[str, str] = {}
+
+
+def _write_arrow_svg(color: str, d: str) -> str:
+    key = f"{color}|{d}"
+    if key in _arrow_svg_cache:
+        return _arrow_svg_cache[key]
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24">'
+        f'<path d="{d}" fill="none" stroke="{color}" stroke-width="2.5" '
+        'stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    )
+    fd, path = _tf.mkstemp(suffix=".svg", prefix="btarrow_")
+    _os.write(fd, svg.encode())
+    _os.close(fd)
+    _arrow_svg_cache[key] = path.replace("\\", "/")
+    return _arrow_svg_cache[key]
+
+
 # ---------------------------------------------------------------- color helpers
 
 def _mix(a: str, b: str, t: float) -> str:
@@ -147,6 +166,8 @@ def build_stylesheet(overrides: dict[str, str] | None = None) -> str:
 
 def _qss(t: dict[str, str]) -> str:
     _chk = _write_check_svg(t['on_primary'])
+    _arr_d = _write_arrow_svg(t['text'], "M6 9l6 6 6-6")
+    _arr_u = _write_arrow_svg(t['text'], "M18 15l-6-6-6 6")
     return f"""
 QWidget {{ color: {t['text']}; font-size: 10pt; }}
 QMainWindow, QDialog, QWizard, QWizardPage, QWidget#contentArea, QScrollArea,
@@ -216,9 +237,12 @@ QComboBox QAbstractItemView {{
     background: {t['surface']}; border: 1px solid {t['border']}; padding: 4px;
     selection-background-color: {t['primary_soft']}; selection-color: {t['text']};
 }}
-QComboBox::drop-down {{ border: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }}
-QSpinBox::up-button, QDoubleSpinBox::up-button {{ border: none; border-top-right-radius: 8px; }}
-QSpinBox::down-button, QDoubleSpinBox::down-button {{ border: none; border-bottom-right-radius: 8px; }}
+QComboBox::drop-down {{ border: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; width: 20px; }}
+QComboBox::down-arrow {{ image: url({_arr_d}); width: 10px; height: 10px; }}
+QSpinBox::up-button, QDoubleSpinBox::up-button {{ border: none; border-top-right-radius: 8px; width: 16px; }}
+QSpinBox::down-button, QDoubleSpinBox::down-button {{ border: none; border-bottom-right-radius: 8px; width: 16px; }}
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{ image: url({_arr_u}); width: 8px; height: 8px; }}
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{ image: url({_arr_d}); width: 8px; height: 8px; }}
 
 /* tables and lists */
 QTableView, QTreeView, QListView {{

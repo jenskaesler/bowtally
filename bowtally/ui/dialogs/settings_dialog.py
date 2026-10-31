@@ -442,7 +442,9 @@ class SettingsDialog(QDialog):
             "nextcloud" if ss.get("backup_nextcloud_url") else "local")
         idx = self._backup_target_combo.findData(saved)
         self._backup_target_combo.setCurrentIndex(max(0, idx))
-        target_lay.addWidget(self._backup_target_combo)
+        _combo_form = self._form()
+        _combo_form.addRow(self._flbl("Speicherart"), self._backup_target_combo)
+        target_lay.addLayout(_combo_form)
 
         self._backup_stack = QStackedWidget()
 
@@ -456,6 +458,7 @@ class SettingsDialog(QDialog):
         browse_btn = button("…", lambda: self._browse_backup_path())
         path_row = QHBoxLayout()
         path_row.setContentsMargins(0, 0, 0, 0)
+        path_row.setSpacing(8)
         path_row.addWidget(self._backup_path_edit, 1)
         path_row.addWidget(browse_btn)
         path_widget = QWidget()
@@ -691,14 +694,9 @@ class SettingsDialog(QDialog):
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
 
-        # Grid: Speicherorte + Druck side by side
-        top_grid = QGridLayout()
-        top_grid.setColumnStretch(0, 1)
-        top_grid.setColumnStretch(1, 1)
-        top_grid.addWidget(box_export, 0, 0)
+        lay.addWidget(box_export)
         if "print" in cat_boxes:
-            top_grid.addWidget(cat_boxes["print"], 0, 1)
-        lay.addLayout(top_grid)
+            lay.addWidget(cat_boxes["print"])
         if "templates" in cat_boxes:
             lay.addWidget(cat_boxes["templates"])
         lay.addStretch()
