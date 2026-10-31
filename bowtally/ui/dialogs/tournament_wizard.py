@@ -158,6 +158,7 @@ def _form() -> QFormLayout:
     f.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
     f.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
     f.setHorizontalSpacing(12)
+    f.setVerticalSpacing(8)
     return f
 
 
@@ -502,6 +503,8 @@ class TournamentWizard(QWizard):
         for w in (self.checkin_time, self.shooting_time):
             w.setDisplayFormat("HH:mm")
             w.setFixedWidth(WIZARD_COMBO_W)
+            w.setMinimumTime(QTime(0, 0))
+            w.setSpecialValueText("--:--")
         self.practice = QCheckBox("Einschießen erlaubt")
         self.practice.setChecked(self._t("practice_allowed", True))
         self.practice_location = QLineEdit(self._t("practice_location", ""))
