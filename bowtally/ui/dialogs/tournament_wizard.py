@@ -728,7 +728,14 @@ class TournamentWizard(QWizard):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(self._sum_widget)
         page.body.addWidget(scroll, 1)
-        page.body.addWidget(self.generate)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
+        page.body.addWidget(sep)
+        gen_row = QHBoxLayout()
+        gen_row.addWidget(self.generate)
+        gen_row.addStretch()
+        page.body.addLayout(gen_row)
         return page
 
     def _jump(self, link: str):

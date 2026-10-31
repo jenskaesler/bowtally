@@ -237,8 +237,10 @@ QComboBox QAbstractItemView {{
     background: {t['surface']}; border: 1px solid {t['border']}; padding: 4px;
     selection-background-color: {t['primary_soft']}; selection-color: {t['text']};
 }}
-QComboBox::drop-down {{ border: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; width: 20px; }}
-QComboBox::down-arrow {{ image: url({_arr_d}); width: 10px; height: 10px; }}
+QComboBox::drop-down, QDateEdit::drop-down, QTimeEdit::drop-down {{
+    border: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; width: 20px; }}
+QComboBox::down-arrow, QDateEdit::down-arrow, QTimeEdit::down-arrow {{
+    image: url({_arr_d}); width: 10px; height: 10px; }}
 QSpinBox::up-button, QDoubleSpinBox::up-button {{ border: none; border-top-right-radius: 8px; width: 16px; }}
 QSpinBox::down-button, QDoubleSpinBox::down-button {{ border: none; border-bottom-right-radius: 8px; width: 16px; }}
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{ image: url({_arr_u}); width: 8px; height: 8px; }}
@@ -283,6 +285,21 @@ QGroupBox::title {{ subcontrol-origin: margin; left: 12px; padding: 0 4px;
 
 QSplitter::handle {{ background: {t['border']}; }}
 QSplitter::handle:horizontal {{ width: 1px; }}
+
+/* settings / help sidebar nav */
+QListWidget#settingsNav, QListWidget#helpNav {{
+    background: transparent; border: none; outline: 0; padding: 4px 0;
+}}
+QListWidget#settingsNav::item, QListWidget#helpNav::item {{
+    padding: 6px 12px; border-radius: 6px; color: {t['text']};
+}}
+QListWidget#settingsNav::item:hover, QListWidget#helpNav::item:hover {{
+    background: {t['hover']};
+}}
+QListWidget#settingsNav::item:selected, QListWidget#helpNav::item:selected {{
+    background: {t['primary_soft']}; color: {t['primary']};
+    border-left: 3px solid {t['primary']}; padding-left: 9px;
+}}
 
 QStatusBar {{ background: {t['sidebar']}; border-top: 1px solid {t['border']}; }}
 QStatusBar QLabel {{ color: {t['text2']}; font-size: 9pt; padding: 2px 8px; }}

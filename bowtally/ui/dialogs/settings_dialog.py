@@ -3,12 +3,12 @@
 from pathlib import Path
 import json
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QColor, QFont, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
-                               QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGridLayout,
+                               QFileDialog, QFormLayout, QFrame, QGridLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTabWidget,
+                               QScrollArea, QSpinBox, QStackedWidget,
                                QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
@@ -147,52 +147,195 @@ def _with_grip(edit):
 
 
 class SettingsDialog(QDialog):
+    _NAV_GROUPS = [
+        ("VEREINSVERWALTUNG", [("club", "Vereinsprofil"),
+                                ("contacts", "Vereinsvorstand"),
+                                ("bank", "Bankdaten")]),
+        ("DARSTELLUNG",       [("design", "Design"),
+                                ("behavior", "Verhalten")]),
+        ("TURNIER",           [("print", "Druck"),
+                                ("email", "E-Mail-Vorlagen")]),
+        ("SYSTEM",            [("backup", "Backup"),
+                                ("nav", "Navigation")]),
+    ]
+
     def __init__(self, apply_theme, parent=None):
         """apply_theme(colors: dict | None) applies a (preview) theme to the app."""
         super().__init__(parent)
         self.apply_theme = apply_theme
         self.setWindowTitle("Einstellungen")
-        self.resize(860, 720)
+        self.resize(900, 640)
         restore_geom(self, "settings")
         self.finished.connect(lambda: save_geom(self, "settings"))
         self.settings = ss.all_settings()
         self.club_edits: dict = {}
         self.value_widgets: dict = {}
 
-        nav = QListWidget()
-        nav.setFixedWidth(180)
-        stack = QStackedWidget()
-        for label, widget in [
-            ("Vereinsprofil", self._club_tab()),
-            ("Vereinsvorstand", self._contacts_tab()),
-            ("Bankdaten", self._bank_tab()),
-            ("Design", self._design_tab()),
-            ("Verhalten", self._category_tab("behavior", "ui")),
-            ("Druck", self._print_tab()),
-            ("E-Mail-Vorlagen", self._email_tab()),
-            ("Backup", self._backup_tab()),
-            ("Navigation", self._nav_tab()),
-        ]:
-            nav.addItem(label)
-            stack.addWidget(widget)
-        nav.setCurrentRow(0)
-        nav.currentRowChanged.connect(stack.setCurrentIndex)
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(nav)
-        splitter.addWidget(stack)
-        splitter.setStretchFactor(1, 1)
-        splitter.setHandleWidth(1)
+        # Build all pages
+        all_pages = [
+            ("club",     self._club_tab()),
+            ("contacts", self._contacts_tab()),
+            ("bank",     self._bank_tab()),
+            ("design",   self._design_tab()),
+            ("behavior", self._category_tab("behavior", "ui")),
+            ("print",    self._print_tab()),
+            ("email",    self._email_tab()),
+            ("backup",   self._backup_tab()),
+            ("nav",      self._nav_tab()),
+        ]
+        self._stack = QStackedWidget()
+        self._page_index: dict[str, int] = {}
+        for key, widget in all_pages:
+            self._page_index[key] = self._stack.count()
+            self._stack.addWidget(widget)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
-                                   | QDialogButtonBox.StandardButton.Cancel)
-        buttons.button(QDialogButtonBox.StandardButton.Save).setText("Speichern")
-        buttons.button(QDialogButtonBox.StandardButton.Save).setProperty("primary", True)
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Abbrechen")
-        buttons.accepted.connect(self._save)
-        buttons.rejected.connect(self.reject)
+        # Sidebar
+        from bowtally.ui import theme as _th
+        t = _th.current()
+        sidebar = QWidget()
+        sidebar.setFixedWidth(220)
+        sidebar_lay = QVBoxLayout(sidebar)
+        sidebar_lay.setContentsMargins(8, 8, 8, 8)
+        sidebar_lay.setSpacing(6)
+
+        self._settings_search = QLineEdit()
+        self._settings_search.setPlaceholderText("Suchen …")
+        self._settings_search.setClearButtonEnabled(True)
+        sidebar_lay.addWidget(self._settings_search)
+
+        self._settings_nav = QListWidget()
+        self._settings_nav.setObjectName("settingsNav")
+        self._settings_nav.setSpacing(1)
+        sidebar_lay.addWidget(self._settings_nav, 1)
+
+        header_font = QFont()
+        header_font.setPointSize(8)
+        header_font.setBold(True)
+        self._nav_entries: list[tuple] = []  # (item, key_or_None)
+        for group_title, items in self._NAV_GROUPS:
+            hdr = QListWidgetItem(group_title)
+            hdr.setFlags(Qt.ItemFlag.NoItemFlags)
+            hdr.setFont(header_font)
+            hdr.setForeground(QColor(t["text2"]))
+            self._settings_nav.addItem(hdr)
+            self._nav_entries.append((hdr, None))
+            for key, label in items:
+                item = QListWidgetItem("  " + label)
+                item.setData(Qt.ItemDataRole.UserRole, key)
+                self._settings_nav.addItem(item)
+                self._nav_entries.append((item, key))
+
+        self._settings_nav.currentItemChanged.connect(self._on_settings_nav)
+        self._settings_search.textChanged.connect(self._filter_settings_nav)
+
+        # Vertical separator
+        vline = QFrame()
+        vline.setFrameShape(QFrame.Shape.VLine)
+        vline.setFrameShadow(QFrame.Shadow.Sunken)
+
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        body.addWidget(sidebar)
+        body.addWidget(vline)
+        body.addWidget(self._stack, 1)
+
+        close_btn = button("Schließen", self._close_dialog, "primary")
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+
         lay = QVBoxLayout(self)
-        lay.addWidget(splitter, 1)
-        lay.addWidget(buttons)
+        lay.addLayout(body, 1)
+        lay.addLayout(btn_row)
+
+        self._select_settings_page("club")
+        self._connect_autosave()
+
+    def _on_settings_nav(self, current, _prev):
+        if current is None:
+            return
+        key = current.data(Qt.ItemDataRole.UserRole)
+        if key and key in self._page_index:
+            self._stack.setCurrentIndex(self._page_index[key])
+
+    def _filter_settings_nav(self, text: str):
+        text = text.strip().lower()
+        last_hdr = None
+        for item, key in self._nav_entries:
+            if key is None:
+                last_hdr = item
+                item.setHidden(True)
+            else:
+                visible = not text or text in item.text().strip().lower()
+                item.setHidden(not visible)
+                if visible and last_hdr is not None:
+                    last_hdr.setHidden(False)
+
+    def _select_settings_page(self, key: str):
+        for item, k in self._nav_entries:
+            if k == key:
+                self._settings_nav.setCurrentItem(item)
+                return
+
+    def _autosave(self):
+        try:
+            values = self._colors()
+        except ValidationError:
+            values = {}
+        try:
+            values.update({k: self._value_of(w) for k, w in self.value_widgets.items()})
+            club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
+                    for k, e in self.club_edits.items()}
+            club["logo_path"] = self._logo_path
+            nav_order = json.dumps([
+                self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole)
+                for i in range(self._nav_list_widget.count())
+            ])
+            ss.set_many(values)
+            ss.set_value("nav_order", nav_order)
+            ss.save_club_profile(club)
+            self._save_backup_settings()
+        except Exception as exc:
+            show_error(self, exc, "Einstellungen konnten nicht gespeichert werden")
+
+    def _close_dialog(self):
+        self._autosave()
+        self.accept()
+
+    def reject(self):
+        self._autosave()
+        super().reject()
+
+    def _connect_autosave(self):
+        for w in self.value_widgets.values():
+            if isinstance(w, QCheckBox):
+                w.toggled.connect(self._autosave)
+            elif isinstance(w, QComboBox):
+                w.currentIndexChanged.connect(self._autosave)
+            elif isinstance(w, QSpinBox):
+                w.valueChanged.connect(self._autosave)
+            elif isinstance(w, QLineEdit):
+                w.editingFinished.connect(self._autosave)
+            elif isinstance(w, QPlainTextEdit):
+                w.textChanged.connect(self._autosave)
+            elif hasattr(w, 'edit') and isinstance(w.edit, QLineEdit):
+                w.edit.editingFinished.connect(self._autosave)
+        for e in self.club_edits.values():
+            if isinstance(e, QLineEdit):
+                e.editingFinished.connect(self._autosave)
+        if hasattr(self, 'mode'):
+            self.mode.currentIndexChanged.connect(self._autosave)
+        for f in getattr(self, 'color_fields', {}).values():
+            f.edit.editingFinished.connect(self._autosave)
+        if hasattr(self, '_backup_on_close'):
+            self._backup_on_close.toggled.connect(self._autosave)
+        if hasattr(self, '_backup_retention_days'):
+            self._backup_retention_days.valueChanged.connect(self._autosave)
+        if hasattr(self, '_backup_target_combo'):
+            self._backup_target_combo.currentIndexChanged.connect(self._autosave)
+        if hasattr(self, '_nav_list_widget'):
+            self._nav_list_widget.model().rowsMoved.connect(self._autosave)
 
     @staticmethod
     def _flbl(text: str) -> QLabel:
@@ -866,21 +1009,4 @@ class SettingsDialog(QDialog):
 
     # ------------------------------------------------------------ save
     def _save(self):
-        try:
-            values = self._colors()
-            values.update({k: self._value_of(w) for k, w in self.value_widgets.items()})
-            club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
-                    for k, e in self.club_edits.items()}
-            club["logo_path"] = self._logo_path
-            nav_order = json.dumps([
-                self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole)
-                for i in range(self._nav_list_widget.count())
-            ])
-            ss.set_many(values)
-            ss.set_value("nav_order", nav_order)
-            ss.save_club_profile(club)
-            self._save_backup_settings()
-        except Exception as exc:
-            show_error(self, exc, "Einstellungen konnten nicht gespeichert werden")
-            return
-        self.accept()
+        self._close_dialog()

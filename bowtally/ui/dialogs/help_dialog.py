@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """App-Hilfe Dialog: Inhaltsverzeichnis + HTML-Ansicht."""
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QListWidget, QSplitter,
-                                QTextBrowser, QVBoxLayout)
+from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLineEdit, QListWidget,
+                                QTextBrowser, QVBoxLayout, QWidget)
 
 from bowtally.ui import button, restore_geom, save_geom, theme
 
@@ -299,20 +299,40 @@ class HelpDialog(QDialog):
         restore_geom(self, "help")
         self.finished.connect(lambda: save_geom(self, "help"))
 
+        # Sidebar
+        sidebar = QWidget()
+        sidebar.setFixedWidth(220)
+        sidebar_lay = QVBoxLayout(sidebar)
+        sidebar_lay.setContentsMargins(8, 8, 8, 8)
+        sidebar_lay.setSpacing(6)
+
+        self._help_search = QLineEdit()
+        self._help_search.setPlaceholderText("Suchen …")
+        self._help_search.setClearButtonEnabled(True)
+        sidebar_lay.addWidget(self._help_search)
+
         self._nav = QListWidget()
-        self._nav.setFixedWidth(210)
+        self._nav.setObjectName("helpNav")
         for title, _ in _SECTIONS:
             self._nav.addItem(title)
+        sidebar_lay.addWidget(self._nav, 1)
+
+        vline = QFrame()
+        vline.setFrameShape(QFrame.Shape.VLine)
+        vline.setFrameShadow(QFrame.Shadow.Sunken)
 
         self._browser = QTextBrowser()
         self._browser.setOpenExternalLinks(True)
 
-        self._splitter = QSplitter()
-        self._splitter.addWidget(self._nav)
-        self._splitter.addWidget(self._browser)
-        self._splitter.setStretchFactor(1, 1)
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        body.addWidget(sidebar)
+        body.addWidget(vline)
+        body.addWidget(self._browser, 1)
 
         self._nav.currentRowChanged.connect(self._show_section)
+        self._help_search.textChanged.connect(self._filter_help)
         self._nav.setCurrentRow(0)
         self._apply_browser_css()
         theme.notifier.changed.connect(self._apply_browser_css)
@@ -322,12 +342,19 @@ class HelpDialog(QDialog):
         close_row.addWidget(button("Schließen", self.accept, "primary"))
 
         lay = QVBoxLayout(self)
-        lay.addWidget(self._splitter, 1)
+        lay.addLayout(body, 1)
         lay.addLayout(close_row)
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        self._splitter.setSizes([210, self._splitter.width() - 210 - self._splitter.handleWidth()])
+    def _filter_help(self, text: str):
+        text = text.strip().lower()
+        for i in range(self._nav.count()):
+            item = self._nav.item(i)
+            if not text:
+                item.setHidden(False)
+            else:
+                title, content = _SECTIONS[i]
+                visible = text in title.lower() or text in content.lower()
+                item.setHidden(not visible)
 
     def _apply_browser_css(self):
         t = theme.current()
