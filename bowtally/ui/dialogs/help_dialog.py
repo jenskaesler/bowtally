@@ -82,6 +82,47 @@ Teilnehmern direkt in der Tabelle zugewiesen werden. Zahlungsstatus
 <p>Doppelklick auf Startnummer, Bogenklasse, Startgruppe, Gebühr oder
 Startzeit bearbeitet die Felder direkt in der Tabelle.</p>
 """),
+    ("Parcours, Zeitplan & Preise", """
+<h2>Parcours, Zeitplan &amp; Preise</h2>
+<h3>Parcours-Planung</h3>
+<p>Der Tab <b>Parcours</b> (ab Phase <i>Planung</i>) enthält alle Scheiben bzw. 3D-Tiere.
+Felder: Scheiben-Nr., Tier / Bezeichnung, Distanz (m), Pfeilstoppklasse, Geländetyp,
+Max. Gruppengröße und Helfernotiz.</p>
+<p>Über <b>Aus Inventar …</b> im Bearbeitungsdialog lassen sich Bezeichnungen direkt
+aus dem Vereinsinventar übernehmen. Die Reihenfolge ist per <b>Drag-and-Drop</b>
+änderbar und wird dauerhaft gespeichert.</p>
+<p>Drucken: <b>Aufbauplan</b> (mit Helfernotizen für Helfer) und <b>Scheibenplan</b>
+(ohne Notizen für Teilnehmer) als PDF.</p>
+<h3>Zeitplan</h3>
+<p>Der Tab <b>Zeitplan</b> erscheint ab Phase <i>Planung</i>, sofern kein Lossystem
+aktiviert ist. Hier werden Startgruppen und -zeiten verwaltet.</p>
+<h3>Lossystem (Auslosung)</h3>
+<p>Wird im Turnier-Assistenten unter <i>Konfiguration</i> das <b>Lossystem</b>
+aktiviert, ersetzt die Auslosung den Zeitplan. Der Button <b>Auslosung …</b>
+im Teilnehmer-Tab verteilt Teilnehmer zufällig auf Gruppen. Die maximalen
+Gruppengrößen aus dem Parcours werden dabei berücksichtigt.</p>
+<h3>Preise</h3>
+<p>Der Tab <b>Preise</b> ist immer sichtbar und enthält die Preisgestaltung des Turniers.</p>
+<h3>Wertungsblätter</h3>
+<p>Unter <b>Wertungsblätter</b> werden Vorlagen für das Drucken von Scorebögen verwaltet.</p>
+"""),
+    ("Inventar & Kalender", """
+<h2>Inventar &amp; Kalender</h2>
+<h3>Vereinsinventar</h3>
+<p>Das Modul <b>Inventar</b> (Seitenleiste) verwaltet Scheiben (Scheibenbilder)
+und 3D-Ziele des Vereins. Felder: Bezeichnung, Hersteller, Anzahl, Zustand
+(Gut / Mittel / Schlecht) und ob der Eintrag aktiv ist.</p>
+<p>Aktive Einträge erscheinen im Parcours-Dialog unter <b>Aus Inventar …</b>,
+um Scheibenbezeichnungen schnell zu übernehmen.</p>
+<h3>Jahresansicht im Kalender</h3>
+<p>Der Kalender wechselt mit dem <b>Jahres-Button</b> in eine Übersicht
+aller zwölf Monate. Tage mit Turnieren sind farblich hervorgehoben.
+Ein Klick auf einen Monatsnamen springt direkt in die Monatsansicht.</p>
+<h3>Regelwerk-Standard</h3>
+<p>In der Liste der Regelwerke lässt sich über <b>Als Standard setzen</b>
+(Rechtsklick → Kontextmenü) ein Regelwerk als Standard markieren (⭐).
+Beim Anlegen neuer Turniere wird dieses Regelwerk automatisch vorausgewählt.</p>
+"""),
     ("Ergebnisse & Wertung", """
 <h2>Ergebnisse &amp; Wertung</h2>
 <h3>Ergebniseingabe</h3>
@@ -131,6 +172,10 @@ Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
 automatische Sicherungen. Zur Wiederherstellung: <b>Backup wiederherstellen</b>
 → ZIP-Datei wählen. <b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich
 ersetzt – App danach neu starten.</p>
+<h3>Navigation</h3>
+<p>Unter Einstellungen → <b>Navigation</b> lässt sich die Reihenfolge der
+Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
+werden nach einem <b>Neustart</b> der App wirksam.</p>
 """),
     ("Rechtsklick-Menüs", """
 <h2>Rechtsklick-Menüs</h2>

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                                QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGridLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSpinBox, QStackedWidget, QTabWidget,
+                               QScrollArea, QSpinBox, QSplitter, QStackedWidget, QTabWidget,
                                QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
@@ -159,16 +159,28 @@ class SettingsDialog(QDialog):
         self.club_edits: dict = {}
         self.value_widgets: dict = {}
 
-        tabs = QTabWidget()
-        tabs.addTab(self._club_tab(), "Vereinsprofil")
-        tabs.addTab(self._contacts_tab(), "Vereinsvorstand")
-        tabs.addTab(self._bank_tab(), "Bankdaten")
-        tabs.addTab(self._design_tab(), "Design")
-        tabs.addTab(self._category_tab("behavior", "ui"), "Verhalten")
-        tabs.addTab(self._print_tab(), "Druck")
-        tabs.addTab(self._email_tab(), "E-Mail-Vorlagen")
-        tabs.addTab(self._backup_tab(), "Backup")
-        tabs.addTab(self._nav_tab(), "Navigation")
+        nav = QListWidget()
+        nav.setFixedWidth(180)
+        stack = QStackedWidget()
+        for label, widget in [
+            ("Vereinsprofil", self._club_tab()),
+            ("Vereinsvorstand", self._contacts_tab()),
+            ("Bankdaten", self._bank_tab()),
+            ("Design", self._design_tab()),
+            ("Verhalten", self._category_tab("behavior", "ui")),
+            ("Druck", self._print_tab()),
+            ("E-Mail-Vorlagen", self._email_tab()),
+            ("Backup", self._backup_tab()),
+            ("Navigation", self._nav_tab()),
+        ]:
+            nav.addItem(label)
+            stack.addWidget(widget)
+        nav.setCurrentRow(0)
+        nav.currentRowChanged.connect(stack.setCurrentIndex)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(nav)
+        splitter.addWidget(stack)
+        splitter.setStretchFactor(1, 1)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
                                    | QDialogButtonBox.StandardButton.Cancel)
@@ -178,7 +190,7 @@ class SettingsDialog(QDialog):
         buttons.accepted.connect(self._save)
         buttons.rejected.connect(self.reject)
         lay = QVBoxLayout(self)
-        lay.addWidget(tabs)
+        lay.addWidget(splitter, 1)
         lay.addWidget(buttons)
 
     @staticmethod
@@ -466,6 +478,7 @@ class SettingsDialog(QDialog):
         local_form.addRow(self._flbl("Verzeichnispfad"), path_widget)
         local_lay.addLayout(local_form)
         local_btns = QHBoxLayout()
+        local_btns.setSpacing(8)
         local_btns.addWidget(button("Verbindung testen",
                                     lambda: self._test_backup(bs, "local"),
                                     tooltip="Schreibzugriff auf Verzeichnis prüfen"))
@@ -500,6 +513,7 @@ class SettingsDialog(QDialog):
         self._net_auth_check.toggled.connect(self._net_auth_widget.setVisible)
         net_lay.addWidget(self._net_auth_widget)
         net_btns = QHBoxLayout()
+        net_btns.setSpacing(8)
         net_btns.addWidget(button("Verbindung testen",
                                   lambda: self._test_backup(bs, "network"),
                                   tooltip="Netzwerkpfad auf Erreichbarkeit prüfen"))
@@ -528,6 +542,7 @@ class SettingsDialog(QDialog):
         nc_form.addRow(self._flbl("Zielpfad"), self._nc_path)
         nc_lay.addLayout(nc_form)
         nc_btns = QHBoxLayout()
+        nc_btns.setSpacing(8)
         nc_btns.addWidget(button("Verbindung testen",
                                  lambda: self._test_backup(bs, "nextcloud"),
                                  tooltip="WebDAV-Verbindung zu Nextcloud prüfen"))

@@ -325,14 +325,14 @@ class ParticipantsView(QWidget):
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(280)
         bar = QHBoxLayout()
-        bar.addWidget(self.btn_add)
-        bar.addWidget(self.btn_more)
-        bar.addSpacing(8)
-        bar.addWidget(self.search, 1)
+        bar.addWidget(self.search)
         bar.addWidget(self.group_filter)
         bar.addWidget(self.status_filter)
         bar.addSpacing(8)
         bar.addWidget(self.capacity)
+        bar.addStretch(1)
+        bar.addWidget(self.btn_more)
+        bar.addWidget(self.btn_add)
 
         empty = EmptyState("users", "Noch keine Teilnehmer",
                            "Weise Schützen aus den Stammdaten zu oder importiere eine "
