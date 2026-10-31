@@ -192,18 +192,32 @@ class SettingsDialog(QDialog):
         lay = QVBoxLayout(inner)
         lay.setSpacing(10)
 
-        for box_title, keys in (
-            ("Verein", ("club_name", "federation", "club_number")),
+        # "Verein" box: full width
+        verein_box = QGroupBox("Verein")
+        verein_form = self._form(verein_box)
+        for key in ("club_name", "federation", "club_number"):
+            edit = QLineEdit(club.get(key) or "")
+            self.club_edits[key] = edit
+            verein_form.addRow(self._flbl(CLUB_LABELS[key]), edit)
+        lay.addWidget(verein_box)
+
+        # 2-column grid for remaining boxes
+        club_grid = QGridLayout()
+        club_grid.setSpacing(10)
+        club_grid.setColumnStretch(0, 1)
+        club_grid.setColumnStretch(1, 1)
+
+        for col, (box_title, keys) in enumerate([
             ("Adresse", ("street", "zip_code", "city", "country")),
             ("Kontakt", ("phone", "email", "website")),
-        ):
+        ]):
             box = QGroupBox(box_title)
             form = self._form(box)
             for key in keys:
                 edit = QLineEdit(club.get(key) or "")
                 self.club_edits[key] = edit
                 form.addRow(self._flbl(CLUB_LABELS[key]), edit)
-            lay.addWidget(box)
+            club_grid.addWidget(box, 0, col)
 
         box_default_contact = QGroupBox("Standard-Kontaktperson")
         form_dc = self._form(box_default_contact)
@@ -217,7 +231,7 @@ class SettingsDialog(QDialog):
             self._default_contact_combo.setCurrentIndex(idx)
         self.value_widgets["default_contact_role"] = self._default_contact_combo
         form_dc.addRow(self._flbl("Rolle"), self._default_contact_combo)
-        lay.addWidget(box_default_contact)
+        club_grid.addWidget(box_default_contact, 1, 0)
 
         box_logo = QGroupBox("Logo")
         logo_lay = QHBoxLayout(box_logo)
@@ -226,17 +240,19 @@ class SettingsDialog(QDialog):
         self.logo_preview.setFixedSize(LOGO_PREVIEW, LOGO_PREVIEW)
         self.logo_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.logo_preview.setFrameShape(QLabel.Shape.StyledPanel)
-        col = QVBoxLayout()
+        logo_col = QVBoxLayout()
         row_btns = QHBoxLayout()
         row_btns.addWidget(button("Durchsuchen ...", self._browse_logo))
         row_btns.addWidget(button("Entfernen", self._remove_logo))
         row_btns.addStretch()
-        col.addLayout(row_btns)
-        col.addStretch()
-        logo_lay.addLayout(col, 1)
+        logo_col.addLayout(row_btns)
+        logo_col.addStretch()
+        logo_lay.addLayout(logo_col, 1)
         logo_lay.addWidget(self.logo_preview)
         self._update_logo(self._logo_path)
-        lay.addWidget(box_logo)
+        club_grid.addWidget(box_logo, 1, 1)
+
+        lay.addLayout(club_grid)
         lay.addStretch()
 
         scroll = QScrollArea()
@@ -264,9 +280,7 @@ class SettingsDialog(QDialog):
                 self.club_edits[field] = edit
                 form.addRow(self._flbl(label), edit)
             row, col = divmod(i, 2)
-            # last role (bow_ref, index 4) spans both columns if in odd position
-            span = 2 if i == len(roles) - 1 and len(roles) % 2 == 1 else 1
-            grid.addWidget(box, row, col, 1, span)
+            grid.addWidget(box, row, col)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
         scroll = QScrollArea()
@@ -446,7 +460,7 @@ class SettingsDialog(QDialog):
                                     lambda: self._do_backup_now(bs, "local"), "primary",
                                     "Datenbank als ZIP sichern"))
         local_btns.addStretch()
-        local_lay.addLayout(local_btns)
+        local_form.addRow("", local_btns)
         self._backup_stack.addWidget(local_w)
 
         # Page 1: network
@@ -480,7 +494,7 @@ class SettingsDialog(QDialog):
                                   lambda: self._do_backup_now(bs, "network"), "primary",
                                   "Datenbank als ZIP auf Netzlaufwerk sichern"))
         net_btns.addStretch()
-        net_lay.addLayout(net_btns)
+        net_form.addRow("", net_btns)
         self._backup_stack.addWidget(net_w)
 
         # Page 2: nextcloud
@@ -508,7 +522,7 @@ class SettingsDialog(QDialog):
                                  lambda: self._do_backup_now(bs, "nextcloud"), "primary",
                                  "Backup in Nextcloud hochladen"))
         nc_btns.addStretch()
-        nc_lay.addLayout(nc_btns)
+        nc_form.addRow("", nc_btns)
         self._backup_stack.addWidget(nc_w)
 
         self._backup_stack.setCurrentIndex(self._backup_target_combo.currentIndex())
@@ -640,13 +654,10 @@ class SettingsDialog(QDialog):
         path_widget = QWidget()
         path_widget.setLayout(path_row)
         form_export.addRow(self._flbl("Standard-Exportpfad"), path_widget)
-        hint = QLabel("Gilt für PDF-Exporte, Starterfeld und Kalender-ICS.\n"
-                      "Leer lassen für den Downloads-Ordner.",
-                      objectName="pageSubtitle")
-        hint.setWordWrap(True)
-        form_export.addRow("", hint)
         self.value_widgets["default_export_path"] = path_edit
-        lay.addWidget(box_export)
+
+        # Collect print/templates boxes without adding to lay yet
+        cat_boxes: dict[str, QGroupBox] = {}
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
             if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \
@@ -656,8 +667,8 @@ class SettingsDialog(QDialog):
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
+                cat_boxes[st.category] = box
                 groups[st.category] = self._form(box)
-                lay.addWidget(box)
                 if st.category == "templates":
                     lbl = self._flbl("Parcours-Beschreibung")
                     lbl.setWordWrap(True)
@@ -669,6 +680,17 @@ class SettingsDialog(QDialog):
             label.setWordWrap(True)
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
+
+        # Grid: Speicherorte + Druck side by side
+        top_grid = QGridLayout()
+        top_grid.setColumnStretch(0, 1)
+        top_grid.setColumnStretch(1, 1)
+        top_grid.addWidget(box_export, 0, 0)
+        if "print" in cat_boxes:
+            top_grid.addWidget(cat_boxes["print"], 0, 1)
+        lay.addLayout(top_grid)
+        if "templates" in cat_boxes:
+            lay.addWidget(cat_boxes["templates"])
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
