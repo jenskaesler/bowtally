@@ -365,4 +365,17 @@ class DataTable(QWidget):
         insert_at = len([i for i in ids[:target] if i not in moving])
         new_order = rest[:insert_at] + moving + rest[insert_at:]
         if new_order != ids:
+            self._rearrange_rows(new_order, ids)
             self.reordered.emit(new_order)
+
+    def _rearrange_rows(self, new_order: list, old_order: list):
+        t = self.table
+        ncols = t.columnCount()
+        id_items = {id_: [t.item(r, c).clone() if t.item(r, c) else None
+                          for c in range(ncols)]
+                    for r, id_ in enumerate(old_order)}
+        self._loading = True
+        for new_r, id_ in enumerate(new_order):
+            for c, item in enumerate(id_items.get(id_, [None] * ncols)):
+                t.setItem(new_r, c, item)
+        self._loading = False
