@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """Settings dialog: club profile, design (colors), print, export path and behavior."""
 from pathlib import Path
+import json
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGridLayout,
-                               QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+                               QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+                               QListWidgetItem, QPlainTextEdit, QPushButton,
                                QScrollArea, QSpinBox, QStackedWidget, QTabWidget,
                                QVBoxLayout, QWidget)
 
@@ -54,6 +56,13 @@ LABEL_OVERRIDES = {
     "waitlist_mode": "Warteliste bei Vollbelegung",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
+NAV_KEYS = ["dashboard", "tournaments", "calendar", "archers",
+            "helpers", "rules", "bow_classes", "inventory", "guide"]
+NAV_LABELS = {
+    "dashboard": "Dashboard", "tournaments": "Turniere", "calendar": "Kalender",
+    "archers": "Schützen", "helpers": "Helfer", "rules": "Regelwerke",
+    "bow_classes": "Bogenklassen", "inventory": "Inventar", "guide": "Leitfaden",
+}
 LOGO_PREVIEW = 120
 SETTINGS_LABEL_W = 200   # fixed label column width so all tabs align
 SETTINGS_COMBO_W = 220   # fixed width for combos / spinboxes / pickers
@@ -159,6 +168,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._print_tab(), "Druck")
         tabs.addTab(self._email_tab(), "E-Mail-Vorlagen")
         tabs.addTab(self._backup_tab(), "Backup")
+        tabs.addTab(self._nav_tab(), "Navigation")
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save
                                    | QDialogButtonBox.StandardButton.Cancel)
@@ -788,6 +798,38 @@ class SettingsDialog(QDialog):
             w = QLineEdit(value)
         return w
 
+    def _nav_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        self._nav_list_widget = QListWidget()
+        self._nav_list_widget.setDragDropMode(QListWidget.DragDropMode.InternalMove)
+        self._nav_list_widget.setDefaultDropAction(Qt.DropAction.MoveAction)
+        raw = ss.get("nav_order") or ""
+        try:
+            saved = json.loads(raw) if raw else []
+        except Exception:
+            saved = []
+        ordered = [k for k in saved if k in NAV_LABELS]
+        ordered += [k for k in NAV_KEYS if k not in ordered]
+        for key in ordered:
+            item = QListWidgetItem(NAV_LABELS[key])
+            item.setData(Qt.ItemDataRole.UserRole, key)
+            self._nav_list_widget.addItem(item)
+        reset_btn = button("Standardreihenfolge wiederherstellen", self._reset_nav_order)
+        hint = QLabel("Änderungen werden nach Neustart der App wirksam.",
+                      objectName="pageSubtitle")
+        lay.addWidget(self._nav_list_widget, 1)
+        lay.addWidget(reset_btn)
+        lay.addWidget(hint)
+        return w
+
+    def _reset_nav_order(self):
+        self._nav_list_widget.clear()
+        for key in NAV_KEYS:
+            item = QListWidgetItem(NAV_LABELS[key])
+            item.setData(Qt.ItemDataRole.UserRole, key)
+            self._nav_list_widget.addItem(item)
+
     def _browse_path(self, edit: QLineEdit):
         path, _ = QFileDialog.getOpenFileName(self, "Datei auswählen", edit.text())
         if path:
@@ -816,7 +858,12 @@ class SettingsDialog(QDialog):
             club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
                     for k, e in self.club_edits.items()}
             club["logo_path"] = self._logo_path
+            nav_order = json.dumps([
+                self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole)
+                for i in range(self._nav_list_widget.count())
+            ])
             ss.set_many(values)
+            ss.set_value("nav_order", nav_order)
             ss.save_club_profile(club)
             self._save_backup_settings()
         except Exception as exc:

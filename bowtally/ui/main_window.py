@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Main window: sidebar (tournament navigator + navigation) and content stack."""
+import json
 from PySide6.QtCore import QRectF, QSettings, QSize, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
@@ -235,17 +236,26 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.stack.setObjectName("contentArea")
 
-        entries = [
-            ("Dashboard", "dashboard", self.dashboard),
-            ("Leitfaden", "rules", self.guide),
-            ("Turniere", "target", self.tournaments),
-            ("Kalender", "calendar", self.calendar),
-            ("Schützen", "users", self.archers),
-            ("Helfer", "users", self.helpers),
-            ("Regelwerke", "file", self.rules),
-            ("Bogenklassen", "layers", self.bow_classes),
-            ("Inventar", "inbox", self.inventory),
-        ]
+        entry_map = {
+            "dashboard":   ("Dashboard", "dashboard", self.dashboard),
+            "tournaments": ("Turniere", "target", self.tournaments),
+            "calendar":    ("Kalender", "calendar", self.calendar),
+            "archers":     ("Schützen", "users", self.archers),
+            "helpers":     ("Helfer", "users", self.helpers),
+            "rules":       ("Regelwerke", "file", self.rules),
+            "bow_classes": ("Bogenklassen", "layers", self.bow_classes),
+            "inventory":   ("Inventar", "inbox", self.inventory),
+            "guide":       ("Leitfaden", "rules", self.guide),
+        }
+        raw = ss.get("nav_order") or ""
+        try:
+            saved_order = json.loads(raw) if raw else []
+        except Exception:
+            saved_order = []
+        default_keys = list(entry_map.keys())
+        ordered_keys = [k for k in saved_order if k in entry_map]
+        ordered_keys += [k for k in default_keys if k not in ordered_keys]
+        entries = [entry_map[k] for k in ordered_keys]
         self.nav = self._nav_list()
         for text, icon_name, target in entries:
             item = QListWidgetItem(text)
