@@ -148,6 +148,7 @@ class HelperDialog(RecordDialog):
                                  objectName="pageSubtitle"))
         else:
             t = QTableWidget(len(history), 5)
+            t.setAlternatingRowColors(True)
             t.setHorizontalHeaderLabels(["Turniername", "Datum", "Aufgabe",
                                          "Einsatzzeit", "Bestätigt"])
             t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

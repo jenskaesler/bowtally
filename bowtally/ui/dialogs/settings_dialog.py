@@ -2,7 +2,7 @@
 """Settings dialog: club profile, design (colors), print, export path and behavior."""
 from pathlib import Path
 import json
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QColor, QFont, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QFileDialog, QFormLayout, QFrame, QGridLayout,
@@ -966,6 +966,7 @@ class SettingsDialog(QDialog):
         self._nav_list_widget = QListWidget()
         self._nav_list_widget.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self._nav_list_widget.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self._nav_list_widget.setAlternatingRowColors(True)
         raw = ss.get("nav_order") or ""
         try:
             saved = json.loads(raw) if raw else []
@@ -976,6 +977,7 @@ class SettingsDialog(QDialog):
         for key in ordered:
             item = QListWidgetItem(NAV_LABELS[key])
             item.setData(Qt.ItemDataRole.UserRole, key)
+            item.setSizeHint(QSize(0, 36))
             self._nav_list_widget.addItem(item)
         reset_btn = button("Standardreihenfolge wiederherstellen", self._reset_nav_order)
         hint = QLabel("Änderungen werden nach Neustart der App wirksam.",
@@ -990,6 +992,7 @@ class SettingsDialog(QDialog):
         for key in NAV_KEYS:
             item = QListWidgetItem(NAV_LABELS[key])
             item.setData(Qt.ItemDataRole.UserRole, key)
+            item.setSizeHint(QSize(0, 36))
             self._nav_list_widget.addItem(item)
 
     def _browse_path(self, edit: QLineEdit):

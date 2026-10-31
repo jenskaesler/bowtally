@@ -48,6 +48,7 @@ class ImportDialog(QDialog):
 
         prev_box = QGroupBox(f"Vorschau (erste {importer.PREVIEW_ROWS} Zeilen)")
         self.preview = QTableWidget()
+        self.preview.setAlternatingRowColors(True)
         QVBoxLayout(prev_box).addWidget(self.preview)
 
         val_box = QGroupBox("Validierung")

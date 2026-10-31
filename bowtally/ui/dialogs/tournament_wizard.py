@@ -94,6 +94,7 @@ class FeeTable(QWidget):
     def __init__(self, fees: list[dict]):
         super().__init__()
         self.table = QTableWidget(0, 3)
+        self.table.setAlternatingRowColors(True)
         self.table.setHorizontalHeaderLabels(["Bezeichnung", "Betrag", ""])
         self.table.verticalHeader().hide()
         self.table.verticalHeader().setDefaultSectionSize(40)
@@ -175,7 +176,7 @@ class TournamentWizard(QWizard):
         self._start_page = start_page
         self.setWindowTitle("Turnier kopieren" if clone
                             else ("Turnier bearbeiten" if tournament else "Neues Turnier"))
-        self.setWizardStyle(QWizard.WizardStyle.ClassicStyle)
+        self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
         self.setOption(QWizard.WizardOption.NoBackButtonOnStartPage)
         self.resize(860, 680)
         restore_geom(self, "wizard")
@@ -318,6 +319,7 @@ class TournamentWizard(QWizard):
             self.scoring_mode.setCurrentIndex(idx)
 
         self._round_table = QTableWidget(0, 6)
+        self._round_table.setAlternatingRowColors(True)
         self._round_table.setHorizontalHeaderLabels(
             ["Bezeichnung", "Regelwerk", "Ziele", "Pfeile", "Entfernung", ""])
         self._round_table.verticalHeader().setDefaultSectionSize(36)
