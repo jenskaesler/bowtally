@@ -244,7 +244,7 @@ class MainWindow(QMainWindow):
             ("Helfer", "users", self.helpers),
             ("Regelwerke", "file", self.rules),
             ("Bogenklassen", "layers", self.bow_classes),
-            ("Inventar", "inventory", self.inventory),
+            ("Inventar", "inbox", self.inventory),
         ]
         self.nav = self._nav_list()
         for text, icon_name, target in entries:

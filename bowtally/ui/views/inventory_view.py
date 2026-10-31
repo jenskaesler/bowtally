@@ -80,7 +80,7 @@ class _InventoryTab(ListView):
     def __init__(self, item_type: str, parent=None):
         self._item_type = item_type
         type_label = inv.ITEM_TYPE_LABELS.get(item_type, item_type)
-        empty = EmptyState("inventory", f"Kein {type_label} vorhanden",
+        empty = EmptyState("inbox", f"Kein {type_label} vorhanden",
                            f"Lege {type_label}n an, um das Inventar zu verwalten.",
                            f"Neu")
         super().__init__(f"Inventar – {type_label}n", HEADERS, empty,
