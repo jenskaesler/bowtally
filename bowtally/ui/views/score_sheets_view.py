@@ -3,13 +3,14 @@
 import json
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogButtonBox,
                                QDoubleSpinBox, QFrame, QHBoxLayout, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
                                QSpinBox, QSplitter, QVBoxLayout, QWidget)
 
 from bowtally.services import score_sheet_service as sss
-from bowtally.ui import button, show_error
+from bowtally.ui import button, show_error, theme
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
@@ -79,10 +80,13 @@ class ColumnEditorDialog(QDialog):
         self._rebuild_list()
 
     def _rebuild_list(self):
+        muted = theme.current()["text2"]
         self._list.blockSignals(True)
         self._list.clear()
         for c in self._cols:
-            self._list.addItem(f"{c['name']}  ({c.get('width_mm', 14)} mm)")
+            item = QListWidgetItem(f"{c['name']}  ({c.get('width_mm', 14)} mm)")
+            item.setIcon(QIcon(theme.pixmap("grip", muted, 16)))
+            self._list.addItem(item)
         self._list.blockSignals(False)
         if self._cols:
             self._list.setCurrentRow(0)

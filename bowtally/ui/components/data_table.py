@@ -6,10 +6,12 @@ from datetime import date
 from typing import Callable
 
 from PySide6.QtCore import QPoint, QTime, Qt, Signal
-from PySide6.QtGui import QBrush, QColor
+from PySide6.QtGui import QBrush, QColor, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHeaderView, QStackedLayout,
                                QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTimeEdit,
                                QWidget)
+
+from bowtally.ui import theme as _theme
 
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.status_chip import CHIP_ROLE, ChipDelegate
@@ -146,8 +148,9 @@ class DataTable(QWidget):
         self._loading = False
         self._last_edit = None
         self._term = ""
-        t = self.table = ReorderTable(0, len(headers))
-        t.setHorizontalHeaderLabels(headers)
+        self._col0 = 1 if reorderable else 0
+        t = self.table = ReorderTable(0, len(headers) + self._col0)
+        t.setHorizontalHeaderLabels(([""] if self._col0 else []) + list(headers))
         t.verticalHeader().hide()
         t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
         t.setShowGrid(False)
@@ -167,6 +170,9 @@ class DataTable(QWidget):
         header.setSortIndicator(-1, Qt.SortOrder.AscendingOrder)
         self._sortable = sortable and not reorderable
         if reorderable:
+            h = t.horizontalHeader()
+            h.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+            t.setColumnWidth(0, 28)
             t.setDragEnabled(True)
             t.setAcceptDrops(True)
             t.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
@@ -189,8 +195,8 @@ class DataTable(QWidget):
     # ------------------------------------------------------------ content
     def set_headers(self, headers: list[str]) -> None:
         self.headers = headers
-        self.table.setColumnCount(len(headers))
-        self.table.setHorizontalHeaderLabels(headers)
+        self.table.setColumnCount(len(headers) + self._col0)
+        self.table.setHorizontalHeaderLabels(([""] if self._col0 else []) + list(headers))
 
     def set_rows(self, rows: list[list], ids: list) -> None:
         t = self.table
@@ -200,31 +206,41 @@ class DataTable(QWidget):
         t.setSortingEnabled(False)
         t.clearContents()
         t.setRowCount(len(rows))
+        muted = _theme.current()["text2"]
         for r, (row, row_id) in enumerate(zip(rows, ids)):
+            if self._col0:
+                grip = QTableWidgetItem()
+                grip.setIcon(QIcon(_theme.pixmap("grip", muted, 16)))
+                grip.setToolTip("Ziehen, um die Reihenfolge zu ändern")
+                grip.setData(ID_ROLE, row_id)
+                grip.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+                              | Qt.ItemFlag.ItemIsDragEnabled)
+                t.setItem(r, 0, grip)
             for c, value in enumerate(row):
                 cell = value if isinstance(value, Cell) else Cell(value)
-                t.setItem(r, c, self._make_item(cell, row_id))
+                t.setItem(r, c + self._col0, self._make_item(cell, row_id))
         for c in range(len(self.headers)):
             if any(isinstance(row[c], Cell) and row[c].chip for row in rows):
-                t.setItemDelegateForColumn(c, self._chips)
+                t.setItemDelegateForColumn(c + self._col0, self._chips)
         if rows:   # numeric columns: right aligned header like the values
             for c, value in enumerate(rows[0]):
                 raw = value.value if isinstance(value, Cell) else value
                 align = Qt.AlignmentFlag.AlignRight if _is_number(raw) \
                     else Qt.AlignmentFlag.AlignLeft
-                item = t.horizontalHeaderItem(c)
+                item = t.horizontalHeaderItem(c + self._col0)
                 if item is not None:
                     item.setTextAlignment(align | Qt.AlignmentFlag.AlignVCenter)
         t.setSortingEnabled(self._sortable)
         self._loading = False
         t.resizeColumnsToContents()
-        for c in range(t.columnCount()):
+        for c in range(self._col0, t.columnCount()):
             t.setColumnWidth(c, min(max(t.columnWidth(c) + 16, 70), 360))
         for c in range(len(self.headers)):   # chips are wider than their plain text
             chips = [row[c].chip for row in rows if isinstance(row[c], Cell) and row[c].chip]
             if chips:
                 fm = t.fontMetrics()
-                t.setColumnWidth(c, max(fm.horizontalAdvance(f"●  {text}") for text, _k in chips)
+                t.setColumnWidth(c + self._col0,
+                                 max(fm.horizontalAdvance(f"●  {text}") for text, _k in chips)
                                  + 48)
         self.select_ids(selected)
         self.apply_filter(self._term)
@@ -316,12 +332,14 @@ class DataTable(QWidget):
     def visible_rows(self) -> list[list[str]]:
         """Filtered rows in display order (exports)."""
         t = self.table
-        return [[t.item(r, c).text() if t.item(r, c) else "" for c in range(t.columnCount())]
+        return [[t.item(r, c).text() if t.item(r, c) else ""
+                 for c in range(self._col0, t.columnCount())]
                 for r in range(t.rowCount()) if not t.isRowHidden(r)]
 
     def all_rows(self) -> list[list[str]]:
         t = self.table
-        return [[t.item(r, c).text() if t.item(r, c) else "" for c in range(t.columnCount())]
+        return [[t.item(r, c).text() if t.item(r, c) else ""
+                 for c in range(self._col0, t.columnCount())]
                 for r in range(t.rowCount())]
 
     def is_filtered(self) -> bool:
@@ -351,8 +369,11 @@ class DataTable(QWidget):
     def _on_item_changed(self, item: QTableWidgetItem):
         if self._loading:
             return
+        col = item.column() - self._col0
+        if col < 0:
+            return
         value = item.data(VALUE_ROLE)
-        edit = (item.data(ID_ROLE), item.column(), value if value is not None else item.text())
+        edit = (item.data(ID_ROLE), col, value if value is not None else item.text())
         if edit == self._last_edit:     # a combo sets value + text -> two change events
             return
         self._last_edit = edit

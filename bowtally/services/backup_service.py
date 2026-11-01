@@ -100,6 +100,18 @@ def save_backup_to_file(backup_dict: dict, path) -> None:
 
 # ------------------------------------------------------------------ backup
 
+def _log_backup(file_name: str, target: str, file_size: int, success: bool,
+                error: str = None) -> None:
+    try:
+        from bowtally.database.engine import session_scope
+        from bowtally.database.models import BackupLog
+        with session_scope() as s:
+            s.add(BackupLog(file_name=file_name, target=target,
+                            file_size_bytes=file_size, success=success, error_message=error))
+    except Exception:
+        pass
+
+
 def backup_local() -> str:
     from bowtally.database.engine import session_scope
     from bowtally import __version__
@@ -113,6 +125,7 @@ def backup_local() -> str:
         backup = create_backup(session, __version__)
     save_backup_to_file(backup, file_path)
     _prune_by_days(dest, _retention_days())
+    _log_backup(file_path.name, "local", os.path.getsize(file_path), True)
     return str(file_path)
 
 
@@ -139,6 +152,7 @@ def backup_network() -> str:
         backup = create_backup(session, __version__)
     save_backup_to_file(backup, file_path)
     _prune_by_days(dest, _retention_days())
+    _log_backup(file_path.name, "network", os.path.getsize(file_path), True)
     return str(file_path)
 
 
@@ -196,6 +210,7 @@ def backup_nextcloud() -> str:
         folder_url = f"{dav_base}{remote_path}/"
         remote = f"{folder_url}{filename}"
         _nc_mkcol_recursive(dav_base, remote_path, auth)
+        tmp_size = os.path.getsize(tmp_path)
         with open(tmp_path, "rb") as f:
             urllib.request.urlopen(_nc_request(remote, "PUT", auth, f.read()))
     finally:
@@ -203,6 +218,7 @@ def backup_nextcloud() -> str:
             Path(tmp_path).unlink(missing_ok=True)
         except Exception:
             pass
+    _log_backup(filename, "nextcloud", tmp_size, True)
     return remote
 
 

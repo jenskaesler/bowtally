@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """App-Hilfe Dialog: Inhaltsverzeichnis + HTML-Ansicht."""
+import re
+
+from PySide6.QtCore import Qt, QSize, QTimer
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLineEdit, QListWidget,
-                                QTextBrowser, QVBoxLayout, QWidget)
+                                QListWidgetItem, QStackedWidget, QTextBrowser,
+                                QVBoxLayout, QWidget)
 
 from bowtally.ui import button, restore_geom, save_geom, theme
 
@@ -315,7 +320,12 @@ class HelpDialog(QDialog):
         self._nav.setObjectName("helpNav")
         for title, _ in _SECTIONS:
             self._nav.addItem(title)
-        sidebar_lay.addWidget(self._nav, 1)
+        self._help_results = QListWidget()
+        self._help_results.setSpacing(2)
+        self._nav_stack = QStackedWidget()
+        self._nav_stack.addWidget(self._nav)
+        self._nav_stack.addWidget(self._help_results)
+        sidebar_lay.addWidget(self._nav_stack, 1)
 
         vline = QFrame()
         vline.setFrameShape(QFrame.Shape.VLine)
@@ -332,7 +342,14 @@ class HelpDialog(QDialog):
         body.addWidget(self._browser, 1)
 
         self._nav.currentRowChanged.connect(self._show_section)
-        self._help_search.textChanged.connect(self._filter_help)
+        self._help_results.itemActivated.connect(self._on_help_result)
+        self._help_index = self._build_help_index()
+        self._help_search_timer = QTimer(self)
+        self._help_search_timer.setSingleShot(True)
+        self._help_search_timer.setInterval(250)
+        self._help_search_timer.timeout.connect(
+            lambda: self._do_help_search(self._help_search.text()))
+        self._help_search.textChanged.connect(lambda: self._help_search_timer.start())
         self._nav.setCurrentRow(0)
         self._apply_browser_css()
         theme.notifier.changed.connect(self._apply_browser_css)
@@ -345,16 +362,78 @@ class HelpDialog(QDialog):
         lay.addLayout(body, 1)
         lay.addLayout(close_row)
 
-    def _filter_help(self, text: str):
-        text = text.strip().lower()
-        for i in range(self._nav.count()):
-            item = self._nav.item(i)
-            if not text:
-                item.setHidden(False)
-            else:
-                title, content = _SECTIONS[i]
-                visible = text in title.lower() or text in content.lower()
-                item.setHidden(not visible)
+    def _build_help_index(self) -> list[dict]:
+        index = []
+        for section_idx, (section_label, html) in enumerate(_SECTIONS):
+            parts = re.split(r'<h3[^>]*>(.*?)</h3>', html, flags=re.IGNORECASE | re.DOTALL)
+            for i in range(1, len(parts), 2):
+                heading = re.sub(r'<[^>]+>', '', parts[i]).strip()
+                content = parts[i + 1] if i + 1 < len(parts) else ''
+                text = re.sub(r'<[^>]+>', '', content)
+                text = re.sub(r'\s+', ' ', text).strip()
+                if not text:
+                    continue
+                index.append({
+                    'section_idx': section_idx,
+                    'section_label': section_label,
+                    'heading': heading,
+                    'text': text,
+                    'searchable': f"{section_label} {heading} {text}".lower(),
+                })
+        return index
+
+    def _do_help_search(self, text: str):
+        text = text.strip()
+        if len(text) < 2:
+            for i in range(self._nav.count()):
+                self._nav.item(i).setHidden(False)
+            self._nav_stack.setCurrentWidget(self._nav)
+            return
+        needle = text.lower()
+        hits = [e for e in self._help_index if needle in e['searchable']]
+        rl = self._help_results
+        rl.clear()
+        if not hits:
+            item = QListWidgetItem("Keine Hilfe-Einträge gefunden")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            rl.addItem(item)
+        else:
+            for e in hits:
+                pos = e['text'].lower().find(needle)
+                if pos >= 0:
+                    start = max(0, pos - 30)
+                    end = min(len(e['text']), pos + 90)
+                    excerpt = ('…' if start else '') + e['text'][start:end] + \
+                              ('…' if end < len(e['text']) else '')
+                else:
+                    excerpt = e['text'][:120]
+                item = QListWidgetItem(
+                    f"{e['section_label']} › {e['heading']}\n{excerpt}")
+                item.setData(Qt.ItemDataRole.UserRole, e)
+                item.setSizeHint(QSize(0, 56))
+                rl.addItem(item)
+        self._nav_stack.setCurrentWidget(rl)
+
+    def _on_help_result(self, item: QListWidgetItem):
+        e = item.data(Qt.ItemDataRole.UserRole)
+        if e is None:
+            return
+        self._nav.setCurrentRow(e['section_idx'])
+        term = self._help_search.text().strip()
+        if term:
+            QTimer.singleShot(0, lambda: self._highlight_in_browser(term))
+
+    def _highlight_in_browser(self, term: str):
+        doc = self._browser.document()
+        cursor = doc.find(term)
+        yellow = QColor("#FFF176")
+        while not cursor.isNull():
+            fmt = cursor.charFormat()
+            fmt.setBackground(yellow)
+            cursor.mergeCharFormat(fmt)
+            cursor = doc.find(term, cursor)
+        # scroll to first occurrence
+        self._browser.find(term)
 
     def _apply_browser_css(self):
         t = theme.current()

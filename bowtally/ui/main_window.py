@@ -22,6 +22,7 @@ from bowtally.ui.dialogs.settings_dialog import SettingsDialog
 from bowtally.ui.views.archers_view import ArchersView
 from bowtally.ui.views.bow_classes_view import BowClassesView
 from bowtally.ui.views.inventory_view import InventoryView
+from bowtally.ui.views.logbuch_view import LogbuchView
 from bowtally.ui.views.dashboard import DashboardView
 from bowtally.ui.views.guide_view import GuideView, unchecked_manual_tasks
 from bowtally.ui.views.calendar_view import CalendarView
@@ -34,6 +35,7 @@ NAV_WIDTH = 240
 NAME_CHARS = 20
 ICON_ROLE = Qt.ItemDataRole.UserRole + 1
 BADGE_ROLE = Qt.ItemDataRole.UserRole + 2
+KEY_ROLE = Qt.ItemDataRole.UserRole + 3
 
 
 class _NavDelegate(QStyledItemDelegate):
@@ -230,6 +232,7 @@ class MainWindow(QMainWindow):
         self.rules = RulesView()
         self.bow_classes = BowClassesView()
         self.inventory = InventoryView()
+        self.logbuch = LogbuchView()
         self.tournaments = TournamentsView()
         self.helpers = HelpersView()
         self.calendar = CalendarView()
@@ -238,6 +241,7 @@ class MainWindow(QMainWindow):
 
         entry_map = {
             "dashboard":   ("Dashboard", "dashboard", self.dashboard),
+            "logbuch":     ("Logbuch", "list", self.logbuch),
             "tournaments": ("Turniere", "target", self.tournaments),
             "calendar":    ("Kalender", "calendar", self.calendar),
             "archers":     ("Schützen", "users", self.archers),
@@ -252,16 +256,24 @@ class MainWindow(QMainWindow):
             saved_order = json.loads(raw) if raw else []
         except Exception:
             saved_order = []
+        # handle both old string format and new dict format
+        if saved_order and isinstance(saved_order[0], str):
+            saved_order = [{"key": k, "visible": True} for k in saved_order]
+        vis_map = {e.get("key", ""): e.get("visible", True)
+                   for e in saved_order if isinstance(e, dict)}
         default_keys = list(entry_map.keys())
-        ordered_keys = [k for k in saved_order if k in entry_map]
+        ordered_keys = [e.get("key", "") for e in saved_order
+                        if isinstance(e, dict) and e.get("key") in entry_map]
         ordered_keys += [k for k in default_keys if k not in ordered_keys]
-        entries = [entry_map[k] for k in ordered_keys]
         self.nav = self._nav_list()
-        for text, icon_name, target in entries:
+        for key in ordered_keys:
+            text, icon_name, target = entry_map[key]
             item = QListWidgetItem(text)
             item.setData(ICON_ROLE, icon_name)
+            item.setData(KEY_ROLE, key)
             self.stack.addWidget(target)
             item.setData(Qt.ItemDataRole.UserRole, self.stack.indexOf(target))
+            item.setHidden(not vis_map.get(key, True))
             self.nav.addItem(item)
         self.nav.currentItemChanged.connect(self._navigate)
         self._nav_item(self.guide).setHidden(True)    # only in tournament navigator
@@ -526,7 +538,8 @@ class MainWindow(QMainWindow):
 
     def _navigate_to(self, key: str):
         targets = {"rules": self.rules, "bow_classes": self.bow_classes,
-                   "archers": self.archers, "tournaments": self.tournaments}
+                   "archers": self.archers, "tournaments": self.tournaments,
+                   "logbuch": self.logbuch}
         if key in targets:
             self.select_page(targets[key])
 
@@ -639,10 +652,32 @@ class MainWindow(QMainWindow):
         dlg = SettingsDialog(self.apply_theme, self)
         dlg.exec()
         self.apply_theme()   # saved values, or revert an unsaved preview
+        self._refresh_nav_visibility()
         self._refresh_title()
         page = self.stack.currentWidget()
         if hasattr(page, "refresh"):
             page.refresh()
+
+    def _refresh_nav_visibility(self):
+        raw = ss.get("nav_order") or ""
+        try:
+            saved = json.loads(raw) if raw else []
+        except Exception:
+            saved = []
+        if not saved or isinstance(saved[0], str):
+            return
+        vis_map = {e.get("key", ""): e.get("visible", True)
+                   for e in saved if isinstance(e, dict)}
+        current_item = self.nav.currentItem()
+        for row in range(self.nav.count()):
+            item = self.nav.item(row)
+            key = item.data(KEY_ROLE)
+            was_hidden = item.isHidden()
+            now_hidden = not vis_map.get(key, True)
+            item.setHidden(now_hidden)
+            if now_hidden and not was_hidden and item is current_item:
+                self.select_page(self.dashboard)
+                Toast.show(self, f"{item.text()} wurde ausgeblendet.", Toast.INFO)
 
     def showEvent(self, event):
         super().showEvent(event)

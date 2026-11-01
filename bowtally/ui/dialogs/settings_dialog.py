@@ -2,17 +2,17 @@
 """Settings dialog: club profile, design (colors), print, export path and behavior."""
 from pathlib import Path
 import json
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QColor, QFont, QPixmap
+from PySide6.QtCore import Qt, QSize, QTimer
+from PySide6.QtGui import QColor, QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QFileDialog, QFormLayout, QFrame, QGridLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSpinBox, QStackedWidget,
+                               QScrollArea, QSpinBox, QStackedWidget, QToolButton,
                                QVBoxLayout, QWidget)
 
 from bowtally.services import ValidationError, settings_service as ss
-from bowtally.ui import button, restore_geom, save_geom, show_error
+from bowtally.ui import button, restore_geom, save_geom, show_error, theme
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
                    "templates": "Textvorlagen"}
@@ -56,13 +56,16 @@ LABEL_OVERRIDES = {
     "waitlist_mode": "Warteliste bei Vollbelegung",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
-NAV_KEYS = ["dashboard", "tournaments", "calendar", "archers",
+NAV_KEYS = ["dashboard", "logbuch", "tournaments", "calendar", "archers",
             "helpers", "rules", "bow_classes", "inventory", "guide"]
 NAV_LABELS = {
-    "dashboard": "Dashboard", "tournaments": "Turniere", "calendar": "Kalender",
-    "archers": "Schützen", "helpers": "Helfer", "rules": "Regelwerke",
-    "bow_classes": "Bogenklassen", "inventory": "Inventar", "guide": "Leitfaden",
+    "dashboard": "Dashboard", "logbuch": "Logbuch", "tournaments": "Turniere",
+    "calendar": "Kalender", "archers": "Schützen", "helpers": "Helfer",
+    "rules": "Regelwerke", "bow_classes": "Bogenklassen", "inventory": "Inventar",
+    "guide": "Leitfaden",
 }
+NAV_LOCKED = {"dashboard"}     # cannot be hidden
+VISIBLE_ROLE = Qt.ItemDataRole.UserRole + 1
 LOGO_PREVIEW = 120
 SETTINGS_LABEL_W = 200   # fixed label column width so all tabs align
 SETTINGS_COMBO_W = 220   # fixed width for combos / spinboxes / pickers
@@ -206,7 +209,12 @@ class SettingsDialog(QDialog):
         self._settings_nav = QListWidget()
         self._settings_nav.setObjectName("settingsNav")
         self._settings_nav.setSpacing(1)
-        sidebar_lay.addWidget(self._settings_nav, 1)
+        self._results_list = QListWidget()
+        self._results_list.setSpacing(2)
+        self._nav_stack = QStackedWidget()
+        self._nav_stack.addWidget(self._settings_nav)
+        self._nav_stack.addWidget(self._results_list)
+        sidebar_lay.addWidget(self._nav_stack, 1)
 
         header_font = QFont()
         header_font.setPointSize(8)
@@ -226,7 +234,7 @@ class SettingsDialog(QDialog):
                 self._nav_entries.append((item, key))
 
         self._settings_nav.currentItemChanged.connect(self._on_settings_nav)
-        self._settings_search.textChanged.connect(self._filter_settings_nav)
+        self._results_list.itemActivated.connect(self._on_settings_result)
 
         # Vertical separator
         vline = QFrame()
@@ -249,6 +257,13 @@ class SettingsDialog(QDialog):
         lay.addLayout(body, 1)
         lay.addLayout(btn_row)
 
+        self._search_index = self._build_search_index()
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(250)
+        self._search_timer.timeout.connect(
+            lambda: self._do_settings_search(self._settings_search.text()))
+        self._settings_search.textChanged.connect(lambda: self._search_timer.start())
         self._select_settings_page("club")
         self._connect_autosave()
 
@@ -259,18 +274,75 @@ class SettingsDialog(QDialog):
         if key and key in self._page_index:
             self._stack.setCurrentIndex(self._page_index[key])
 
-    def _filter_settings_nav(self, text: str):
-        text = text.strip().lower()
-        last_hdr = None
-        for item, key in self._nav_entries:
-            if key is None:
-                last_hdr = item
-                item.setHidden(True)
-            else:
-                visible = not text or text in item.text().strip().lower()
-                item.setHidden(not visible)
-                if visible and last_hdr is not None:
-                    last_hdr.setHidden(False)
+    def _build_search_index(self) -> list[dict]:
+        index = []
+        for _group_title, items in self._NAV_GROUPS:
+            for nav_key, nav_label in items:
+                if nav_key not in self._page_index:
+                    continue
+                page = self._stack.widget(self._page_index[nav_key])
+                for group_box in page.findChildren(QGroupBox):
+                    group_label = group_box.title()
+                    for label in group_box.findChildren(QLabel):
+                        text = label.text().strip()
+                        if not text or text.startswith('<') or len(text) < 2:
+                            continue
+                        index.append({
+                            'nav_key': nav_key, 'nav_label': nav_label,
+                            'group_label': group_label, 'field_label': text,
+                            'widget': label,
+                            'searchable': f"{nav_label} {group_label} {text}".lower(),
+                        })
+                    for chk in group_box.findChildren(QCheckBox):
+                        text = chk.text().strip()
+                        if not text:
+                            continue
+                        index.append({
+                            'nav_key': nav_key, 'nav_label': nav_label,
+                            'group_label': group_label, 'field_label': text,
+                            'widget': chk,
+                            'searchable': f"{nav_label} {group_label} {text}".lower(),
+                        })
+        return index
+
+    def _do_settings_search(self, text: str):
+        text = text.strip()
+        if len(text) < 2:
+            for item, _ in self._nav_entries:
+                item.setHidden(False)
+            self._nav_stack.setCurrentWidget(self._settings_nav)
+            return
+        needle = text.lower()
+        hits = [e for e in self._search_index if needle in e['searchable']]
+        rl = self._results_list
+        rl.clear()
+        if not hits:
+            item = QListWidgetItem("Keine Einstellungen gefunden")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            rl.addItem(item)
+        else:
+            for e in hits:
+                item = QListWidgetItem(
+                    f"{e['nav_label']} › {e['group_label']}\n{e['field_label']}")
+                item.setData(Qt.ItemDataRole.UserRole, e)
+                item.setSizeHint(QSize(0, 44))
+                rl.addItem(item)
+        self._nav_stack.setCurrentWidget(rl)
+
+    def _on_settings_result(self, item: QListWidgetItem):
+        e = item.data(Qt.ItemDataRole.UserRole)
+        if e is None:
+            return
+        self._select_settings_page(e['nav_key'])
+        self._highlight_label(e['widget'])
+
+    def _highlight_label(self, widget):
+        orig = widget.styleSheet()
+        widget.setStyleSheet("background-color: #FFF176; border-radius: 3px;")
+        t = QTimer(self)
+        t.setSingleShot(True)
+        t.timeout.connect(lambda: widget.setStyleSheet(orig))
+        t.start(2000)
 
     def _select_settings_page(self, key: str):
         for item, k in self._nav_entries:
@@ -289,7 +361,8 @@ class SettingsDialog(QDialog):
                     for k, e in self.club_edits.items()}
             club["logo_path"] = self._logo_path
             nav_order = json.dumps([
-                self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole)
+                {"key": self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole),
+                 "visible": bool(self._nav_list_widget.item(i).data(VISIBLE_ROLE))}
                 for i in range(self._nav_list_widget.count())
             ])
             ss.set_many(values)
@@ -972,13 +1045,14 @@ class SettingsDialog(QDialog):
             saved = json.loads(raw) if raw else []
         except Exception:
             saved = []
-        ordered = [k for k in saved if k in NAV_LABELS]
+        # handle both old string format and new dict format
+        if saved and isinstance(saved[0], str):
+            saved = [{"key": k, "visible": True} for k in saved]
+        vis_map = {e["key"]: e.get("visible", True) for e in saved if isinstance(e, dict)}
+        ordered = [e["key"] for e in saved if isinstance(e, dict) and e["key"] in NAV_LABELS]
         ordered += [k for k in NAV_KEYS if k not in ordered]
         for key in ordered:
-            item = QListWidgetItem(NAV_LABELS[key])
-            item.setData(Qt.ItemDataRole.UserRole, key)
-            item.setSizeHint(QSize(0, 36))
-            self._nav_list_widget.addItem(item)
+            self._add_nav_item(key, vis_map.get(key, True))
         reset_btn = button("Standardreihenfolge wiederherstellen", self._reset_nav_order)
         hint = QLabel("Änderungen werden nach Neustart der App wirksam.",
                       objectName="pageSubtitle")
@@ -987,13 +1061,59 @@ class SettingsDialog(QDialog):
         lay.addWidget(hint)
         return w
 
+    def _add_nav_item(self, key: str, visible: bool) -> None:
+        t = theme.current()
+        muted = t["text2"]
+        locked = key in NAV_LOCKED
+        item = QListWidgetItem()
+        item.setData(Qt.ItemDataRole.UserRole, key)
+        item.setData(VISIBLE_ROLE, visible)
+        item.setSizeHint(QSize(0, 36))
+        self._nav_list_widget.addItem(item)
+        self._nav_list_widget.setItemWidget(item, self._make_nav_row(key, visible, locked))
+
+    def _make_nav_row(self, key: str, visible: bool, locked: bool) -> QWidget:
+        t = theme.current()
+        muted = t["text2"]
+        w = QWidget()
+        h = QHBoxLayout(w)
+        h.setContentsMargins(4, 0, 4, 0)
+        h.setSpacing(6)
+        grip = QLabel()
+        grip.setPixmap(theme.pixmap("grip", muted, 16))
+        h.addWidget(grip)
+        lbl = QLabel(NAV_LABELS[key])
+        if not visible:
+            lbl.setStyleSheet(f"color:{muted};")
+        h.addWidget(lbl, 1)
+        eye_btn = QToolButton()
+        eye_icon = "eye" if visible else "eye-off"
+        eye_color = t["primary"] if visible else muted
+        eye_btn.setIcon(QIcon(theme.pixmap(eye_icon, eye_color, 16)))
+        if locked:
+            eye_btn.setEnabled(False)
+            eye_btn.setToolTip("Dieser Eintrag kann nicht ausgeblendet werden")
+        else:
+            eye_btn.setToolTip("Ausblenden" if visible else "Einblenden")
+            eye_btn.clicked.connect(lambda _=False, k=key: self._toggle_nav_visibility(k))
+        h.addWidget(eye_btn)
+        return w
+
+    def _toggle_nav_visibility(self, key: str) -> None:
+        for i in range(self._nav_list_widget.count()):
+            item = self._nav_list_widget.item(i)
+            if item.data(Qt.ItemDataRole.UserRole) == key:
+                new_vis = not bool(item.data(VISIBLE_ROLE))
+                item.setData(VISIBLE_ROLE, new_vis)
+                locked = key in NAV_LOCKED
+                self._nav_list_widget.setItemWidget(item, self._make_nav_row(key, new_vis, locked))
+                self._autosave()
+                return
+
     def _reset_nav_order(self):
         self._nav_list_widget.clear()
         for key in NAV_KEYS:
-            item = QListWidgetItem(NAV_LABELS[key])
-            item.setData(Qt.ItemDataRole.UserRole, key)
-            item.setSizeHint(QSize(0, 36))
-            self._nav_list_widget.addItem(item)
+            self._add_nav_item(key, True)
 
     def _browse_path(self, edit: QLineEdit):
         path, _ = QFileDialog.getOpenFileName(self, "Datei auswählen", edit.text())

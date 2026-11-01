@@ -416,6 +416,30 @@ class PhaseTransitionLog(Base):
     warnings_at_transition: Mapped[list | None] = mapped_column(JSON)
 
 
+class BackupLog(Base):
+    __tablename__ = "backup_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
+    file_name: Mapped[str | None] = mapped_column(Text)
+    target: Mapped[str | None] = mapped_column(Text)
+    file_size_bytes: Mapped[int | None] = mapped_column(Integer)
+    success: Mapped[bool] = mapped_column(Boolean, default=True)
+    error_message: Mapped[str | None] = mapped_column(Text)
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    log_type: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
+    tournament_id: Mapped[int | None] = mapped_column(Integer)
+    participant_id: Mapped[int | None] = mapped_column(Integer)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    detail_json: Mapped[dict | None] = mapped_column(JSON)
+
+
 class InventoryItem(Base):
     __tablename__ = "inventory_items"
     __table_args__ = (

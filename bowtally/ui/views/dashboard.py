@@ -6,7 +6,7 @@ from datetime import date
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
-                               QSplitter, QStackedWidget, QVBoxLayout, QWidget)
+                               QStackedWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
@@ -15,7 +15,6 @@ from bowtally.services import tournament_service as ts
 from bowtally.ui import button
 from bowtally.ui.components.capacity_bar import CapacityBar, ProgressBar
 from bowtally.ui.components.data_table import Cell, DataTable
-from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.status_chip import StatusChip
 from bowtally.ui.context import context
@@ -147,41 +146,27 @@ class GlobalDashboard(QWidget):
         for col in range(3):
             grid.setColumnStretch(col, 1)
 
-        empty = EmptyState("clock", "Noch keine Ergebnisse erfasst",
-                           "Hier erscheinen die zuletzt eingegebenen Wertungen.")
-        self.activity = DataTable(["Zeit", "Turnier", "Schütze", "Scheibe", "Punkte"], empty)
-        self.activity.activated.connect(self._open_activity)
-        self.activity.setToolTip("Doppelklick öffnet die Ergebniseingabe")
-        self._act_panel = QFrame(objectName="card")
-        act_lay = QVBoxLayout(self._act_panel)
-        act_lay.setContentsMargins(18, 14, 18, 16)
-        act_lay.setSpacing(6)
-        act_lay.addWidget(QLabel("Letzte Aktivität", objectName="sectionTitle"))
-        act_lay.addWidget(self.activity, 1)
-
         self._logo_lbl = QLabel()
         self._logo_lbl.setFixedSize(56, 56)
         self._logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._logo_lbl.hide()
         self.header.add(self._logo_lbl)
 
-        top = QWidget()
-        top_lay = QVBoxLayout(top)
-        top_lay.setContentsMargins(0, 0, 0, 0)
-        top_lay.addLayout(grid)
-        top_lay.addStretch(1)
-
-        self._splitter = QSplitter(Qt.Orientation.Vertical)
-        self._splitter.setChildrenCollapsible(False)
-        self._splitter.addWidget(top)
-        self._splitter.addWidget(self._act_panel)
-        self._splitter.setSizes([320, 200])
+        self._last_label = QLabel(objectName="pageSubtitle")
+        self._logbuch_btn = QPushButton("Logbuch →", objectName="link")
+        self._logbuch_btn.clicked.connect(lambda: self.navigate.emit("logbuch"))
+        act_row = QHBoxLayout()
+        act_row.setContentsMargins(20, 4, 20, 8)
+        act_row.addWidget(self._last_label, 1)
+        act_row.addWidget(self._logbuch_btn)
 
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
         lay.addWidget(self.header)
-        lay.addWidget(self._splitter, 1)
+        lay.addLayout(grid)
+        lay.addStretch(1)
+        lay.addLayout(act_row)
 
         self._next_id = None
         self._activity = []
@@ -237,13 +222,13 @@ class GlobalDashboard(QWidget):
         self.rules_count.setText(str(len(sc.list_rules())))
         self.bow_count.setText(str(len(md.list_bow_classes())))
         self._activity = sc.recent_scores()
-        self.activity.set_rows(
-            [[Cell(a["entered_at"], text=f"{a['entered_at']:%d.%m. %H:%M}"
-                   if a["entered_at"] else "", sort=str(a["entered_at"])),
-              a["tournament"], a["archer"],
-              a["target"] if a["shot"] == 1 else f"{a['target']}.{a['shot']}",
-              Cell(a["points"], tooltip=a["zone"] or "")] for a in self._activity],
-            list(range(len(self._activity))))
+        if self._activity:
+            a = self._activity[0]
+            ts_str = f"{a['entered_at']:%H:%M}" if a.get("entered_at") else ""
+            self._last_label.setText(
+                f"Zuletzt: Score Scheibe {a['target']}, {a['archer']}  – {ts_str}")
+        else:
+            self._last_label.setText("Noch keine Aktivität.")
         self.header.set_subtitle(
             f"{WEEKDAYS[date.today().weekday()]}, {date.today():%d.%m.%Y} · "
             f"{len(tournaments)} Turniere · {len(archers)} aktive Schützen")
@@ -253,11 +238,6 @@ class GlobalDashboard(QWidget):
             self.new_tournament.emit()
         else:
             self.open_tournament.emit(self._next_id, "")
-
-    def _open_activity(self, index):
-        if index is not None and index < len(self._activity):
-            self.open_tournament.emit(self._activity[index]["tournament_id"], "scoring")
-
 
 class TournamentDashboard(QWidget):
     action = Signal(str)       # direct links, handled by the main window

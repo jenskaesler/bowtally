@@ -172,6 +172,7 @@ def _qss(t: dict[str, str]) -> str:
 QWidget {{ color: {t['text']}; font-size: 10pt; }}
 QMainWindow, QDialog, QWizard, QWizardPage, QWidget#contentArea, QScrollArea,
 QScrollArea > QWidget > QWidget {{ background: {t['bg']}; }}
+QScrollArea {{ border: none; }}
 QTabWidget > QStackedWidget > QWidget {{ background: transparent; }}
 
 /* sidebar */
@@ -281,7 +282,7 @@ QGroupBox {{
     margin-top: 16px; padding: 14px 10px 10px 10px; font-weight: 600;
 }}
 QGroupBox::title {{ subcontrol-origin: margin; left: 12px; padding: 0 4px;
-    color: {t['text2']}; }}
+    color: {t['text2']}; background-color: {t['bg']}; }}
 
 QSplitter::handle {{ background: {t['border']}; }}
 QSplitter::handle:horizontal {{ width: 1px; }}
@@ -535,6 +536,15 @@ ICONS = {
     "file": '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
     "menu": '<path d="M3 6h18M3 12h18M3 18h18"/>',
     "arrow-right": '<path d="M5 12h14M14 6l6 6-6 6"/>',
+    "eye": '<path d="M2 12c2-5 5-7 10-7s8 2 10 7c-2 5-5 7-10 7s-8-2-10-7z"/>'
+           '<circle cx="12" cy="12" r="3"/>',
+    "eye-off": '<path d="M3 3l18 18M10.6 10.6A3 3 0 0 0 14.8 14.8'
+               'M7.9 7.9A10 10 0 0 0 2 12c2 5 5 7 10 7a9.3 9.3 0 0 0 4.7-1.3'
+               'M16 16A10 10 0 0 0 22 12c-2-5-5-7-10-7a9.3 9.3 0 0 0-5 1.5"/>',
+    "list": '<path d="M9 6h12M9 12h12M9 18h12"/>'
+            '<circle cx="4" cy="6" r="1.2" fill="{c}"/>'
+            '<circle cx="4" cy="12" r="1.2" fill="{c}"/>'
+            '<circle cx="4" cy="18" r="1.2" fill="{c}"/>',
 }
 
 
