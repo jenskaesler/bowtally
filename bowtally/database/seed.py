@@ -138,6 +138,11 @@ DEFAULT_SCORING_RULES = [
         "max_shots_per_target": 1,
         "allow_retry_shot": False,
         "rules_json": {"tiebreak": "most_top_scores"},
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "x", "label": "X", "track": True, "tiebreak": False},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "ASA 3D",
@@ -152,6 +157,11 @@ DEFAULT_SCORING_RULES = [
         "max_shots_per_target": 1,
         "allow_retry_shot": False,
         "rules_json": {"tiebreak": "most_top_scores"},
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "x", "label": "12", "track": True, "tiebreak": False},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "WA 3D",
@@ -172,6 +182,10 @@ DEFAULT_SCORING_RULES = [
             "note": "1. Schuss Vital: volle Punkte. 2. Schuss nötig: reduzierte Punkte "
                     "gemäß Trefferzone.",
         },
+        "tracked_specials": [
+            {"key": "x", "label": "X", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "3D Hunter (IBO)",
@@ -186,6 +200,10 @@ DEFAULT_SCORING_RULES = [
         "allow_retry_shot": False,
         "rules_json": {"tiebreak": "most_top_scores",
                        "note": "Typische Hunterrunde: 1 Pfeil, max. 11 Punkte je Tier"},
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "3D Standard 3-Pfeil",
@@ -204,6 +222,10 @@ DEFAULT_SCORING_RULES = [
         "allow_retry_shot": True,
         "rules_json": {"tiebreak": "most_top_scores", "shot_penalty": True,
                        "note": "Volle Punkte nur für 1. Pfeil in Vitalzone."},
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "Feldbogen IFAA (bekannte Entfernung)",
@@ -218,6 +240,10 @@ DEFAULT_SCORING_RULES = [
         "allow_retry_shot": True,
         "rules_json": {"tiebreak": "most_top_scores", "distance_type": "known",
                        "note": "3 Pfeile je Scheibe. Bekannte Entfernung."},
+        "tracked_specials": [
+            {"key": "x", "label": "X", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "Feldbogen IFAA (unbekannte Entfernung)",
@@ -232,6 +258,10 @@ DEFAULT_SCORING_RULES = [
         "allow_retry_shot": True,
         "rules_json": {"tiebreak": "most_top_scores", "distance_type": "unknown",
                        "note": "3 Pfeile je Scheibe. Unbekannte Entfernung."},
+        "tracked_specials": [
+            {"key": "x", "label": "X", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "WA Halle 18m",
@@ -250,6 +280,10 @@ DEFAULT_SCORING_RULES = [
         "allow_retry_shot": False,
         "rules_json": {"tiebreak": "most_x_rings",
                        "note": "3 Pfeile je Scheibe, 10 Scheiben je Runde."},
+        "tracked_specials": [
+            {"key": "x", "label": "X", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "Blasrohr Standard",
@@ -262,6 +296,10 @@ DEFAULT_SCORING_RULES = [
         "max_shots_per_target": 1,
         "allow_retry_shot": False,
         "rules_json": {"tiebreak": "most_top_scores"},
+        "tracked_specials": [
+            {"key": "x", "label": "X", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "DBSV 3D-Waldrunde",
@@ -285,6 +323,10 @@ DEFAULT_SCORING_RULES = [
             "scoring_note": "Nur erster im Ziel platzierter Pfeil zählt.",
             "source": "DBSV WKO Teil 9, 2024-1, Abschnitt 9.5.3",
         },
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "DBSV 3D-Jagdrunde",
@@ -303,6 +345,10 @@ DEFAULT_SCORING_RULES = [
             "scoring_note": "1 Pfeil je Tier. Schießzeit 1:30 min je Paar.",
             "source": "DBSV WKO Teil 9, 2024-1, Abschnitt 9.6.3 und 9.7.4",
         },
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "IBO 3D mit 12-Ring",
@@ -320,6 +366,11 @@ DEFAULT_SCORING_RULES = [
             "tiebreak": "most_top_scores",
             "source": "TTHA Tournament Rules 2023/2024",
         },
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "x", "label": "12", "track": True, "tiebreak": False},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "NFAA 3D",
@@ -336,6 +387,10 @@ DEFAULT_SCORING_RULES = [
             "tiebreak": "most_top_scores",
             "source": "NFAA Official Rules",
         },
+        "tracked_specials": [
+            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
     {
         "name": "WA Halle 25m",
@@ -356,6 +411,10 @@ DEFAULT_SCORING_RULES = [
             "tiebreak": "most_x_rings",
             "source": "World Archery Rules",
         },
+        "tracked_specials": [
+            {"key": "x", "label": "X", "track": True, "tiebreak": True},
+            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
+        ],
     },
 ]
 

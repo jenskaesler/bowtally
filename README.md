@@ -10,7 +10,7 @@ Anwendung gepflegt.
 ![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **2026.10.7** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 ## Funktionen
 

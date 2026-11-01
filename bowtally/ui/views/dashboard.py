@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """Dashboard: global overview, or - with an active tournament - the tournament dashboard."""
+import json
 import os
 from datetime import date
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
-                               QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtCore import Qt, QMimeData, Signal
+from PySide6.QtGui import QDrag, QPixmap
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
+                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
+from bowtally.services import helper_service as hs
+from bowtally.services import inventory_service as inv_svc
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
 from bowtally.services import settings_service as svc
@@ -15,6 +18,7 @@ from bowtally.services import tournament_service as ts
 from bowtally.ui import button
 from bowtally.ui.components.capacity_bar import CapacityBar, ProgressBar
 from bowtally.ui.components.data_table import Cell, DataTable
+from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.status_chip import StatusChip
 from bowtally.ui.context import context
@@ -23,6 +27,57 @@ from bowtally.ui.views.participants_view import money
 
 WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 ACTIVE_LINKS = 3
+CARD_DEFAULT_ORDER = [
+    "active", "next", "archive",
+    "archers", "rules", "bow_classes",
+    "helpers", "inventory", "calendar",
+]
+
+
+class _DraggableCard(QFrame):
+    swap = Signal(str)   # emits source key when this card is the drop target
+
+    def __init__(self, key: str, parent=None):
+        super().__init__(parent, objectName="card")
+        self._key = key
+        self._drag_pos = None
+        self._did_drag = False
+        self.setAcceptDrops(True)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = event.pos()
+            self._did_drag = False
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if (self._drag_pos is not None
+                and (event.pos() - self._drag_pos).manhattanLength() > 8):
+            self._did_drag = True
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            drag = QDrag(self)
+            mime = QMimeData()
+            mime.setText(self._key)
+            drag.setMimeData(mime)
+            drag.exec(Qt.DropAction.MoveAction)
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+            self._drag_pos = None
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_pos = None
+        super().mouseReleaseEvent(event)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        src = event.mimeData().text()
+        if src != self._key:
+            self.swap.emit(src)
+        event.acceptProposedAction()
 
 
 def countdown(d: date) -> str:
@@ -48,10 +103,20 @@ def _card(title: str, on_click=None) -> tuple[QFrame, QVBoxLayout]:
     return frame, lay
 
 
+def _dcard(key: str, title: str) -> tuple["_DraggableCard", QVBoxLayout]:
+    frame = _DraggableCard(key)
+    lay = QVBoxLayout(frame)
+    lay.setContentsMargins(18, 14, 18, 16)
+    lay.setSpacing(6)
+    lay.addWidget(QLabel(title, objectName="sectionTitle"))
+    return frame, lay
+
+
 def _link(text: str, slot, tooltip: str) -> QPushButton:
     b = QPushButton(text, objectName="link")
     b.setToolTip(tooltip)
     b.clicked.connect(slot)
+    b.setCursor(Qt.CursorShape.PointingHandCursor)
     return b
 
 
@@ -73,78 +138,108 @@ class GlobalDashboard(QWidget):
         super().__init__(parent)
         today = date.today()
         self.header = PageHeader("Dashboard", f"{WEEKDAYS[today.weekday()]}, {today:%d.%m.%Y}")
-        grid = QGridLayout()
-        grid.setSpacing(16)
 
-        # Row 0: Aktive Turniere | Nächstes Turnier | Turnierarchiv
-        card, c = _card("Aktive Turniere")
+        self._grid = QGridLayout()
+        self._grid.setSpacing(16)
+        self._cards: dict[str, _DraggableCard] = {}
+
+        c, lay = _dcard("active", "Aktive Turniere")
         self.active_count = QLabel("0", objectName="cardValue")
         self.active_links = QVBoxLayout()
         self.active_links.setSpacing(0)
-        c.addWidget(self.active_count)
-        c.addLayout(self.active_links)
-        c.addStretch()
-        grid.addWidget(card, 0, 0)
+        lay.addWidget(self.active_count)
+        lay.addLayout(self.active_links)
+        lay.addStretch()
+        self._cards["active"] = c
 
-        card, c = _card("Nächstes Turnier")
+        c, lay = _dcard("next", "Nächstes Turnier")
         self.next_name = QLabel(objectName="emptyTitle")
         self.next_name.setWordWrap(True)
         self.next_meta = QLabel(objectName="pageSubtitle")
         self.next_chip = StatusChip()
         self.next_btn = button("Turnier öffnen", self._open_next, "primary", "Turnier öffnen")
-        row = QHBoxLayout()
-        row.addWidget(self.next_btn)
-        row.addWidget(self.next_chip)
-        row.addStretch()
-        c.addWidget(self.next_name)
-        c.addWidget(self.next_meta)
-        c.addStretch()
-        c.addLayout(row)
-        grid.addWidget(card, 0, 1)
+        btn_row = QHBoxLayout()
+        btn_row.addWidget(self.next_btn)
+        btn_row.addWidget(self.next_chip)
+        btn_row.addStretch()
+        lay.addWidget(self.next_name)
+        lay.addWidget(self.next_meta)
+        lay.addStretch()
+        lay.addLayout(btn_row)
+        self._cards["next"] = c
 
-        archive_card, c = _card("Turnierarchiv",
-                                on_click=lambda: self.navigate.emit("tournaments"))
+        c, lay = _dcard("archive", "Turnierarchiv")
         self.archive_count = QLabel("0", objectName="cardValue")
-        c.addWidget(self.archive_count)
-        c.addWidget(_link("Alle Turniere →", lambda: self.navigate.emit("tournaments"),
-                          "Turnierliste öffnen"))
-        c.addStretch()
-        grid.addWidget(archive_card, 0, 2)
+        lay.addWidget(self.archive_count)
+        lay.addWidget(_link("Alle Turniere →", lambda: self.navigate.emit("tournaments"),
+                            "Turnierliste öffnen"))
+        lay.addStretch()
+        self._cards["archive"] = c
 
-        # Row 1: Schützen | Regelwerke | Bogenklassen
-        card, c = _card("Schützen", on_click=lambda: self.navigate.emit("archers"))
+        c, lay = _dcard("archers", "Schützen")
         self.archer_count = QLabel("0", objectName="cardValue")
         self.club_count = QLabel(objectName="pageSubtitle")
         self.no_club_lbl = QLabel(objectName="pageSubtitle")
-        c.addWidget(self.archer_count)
-        c.addWidget(self.club_count)
-        c.addWidget(self.no_club_lbl)
-        c.addWidget(_link("Schützen öffnen →", lambda: self.navigate.emit("archers"),
-                          "Schützen verwalten"))
-        c.addStretch()
-        grid.addWidget(card, 1, 0)
+        lay.addWidget(self.archer_count)
+        lay.addWidget(self.club_count)
+        lay.addWidget(self.no_club_lbl)
+        lay.addWidget(_link("Schützen öffnen →", lambda: self.navigate.emit("archers"),
+                            "Schützen verwalten"))
+        lay.addStretch()
+        self._cards["archers"] = c
 
-        rules_card, c = _card("Regelwerke",
-                               on_click=lambda: self.navigate.emit("rules"))
+        c, lay = _dcard("rules", "Regelwerke")
         self.rules_count = QLabel("0", objectName="cardValue")
-        c.addWidget(self.rules_count)
-        c.addWidget(_link("Regelwerke öffnen →", lambda: self.navigate.emit("rules"),
-                          "Regelwerke verwalten"))
-        c.addStretch()
-        grid.addWidget(rules_card, 1, 1)
+        lay.addWidget(self.rules_count)
+        lay.addWidget(_link("Regelwerke öffnen →", lambda: self.navigate.emit("rules"),
+                            "Regelwerke verwalten"))
+        lay.addStretch()
+        self._cards["rules"] = c
 
-        bow_card, c = _card("Bogenklassen",
-                             on_click=lambda: self.navigate.emit("bow_classes"))
+        c, lay = _dcard("bow_classes", "Bogenklassen")
         self.bow_count = QLabel("0", objectName="cardValue")
-        c.addWidget(self.bow_count)
-        c.addWidget(_link("Bogenklassen öffnen →", lambda: self.navigate.emit("bow_classes"),
-                          "Bogenklassen verwalten"))
-        c.addStretch()
-        grid.addWidget(bow_card, 1, 2)
+        lay.addWidget(self.bow_count)
+        lay.addWidget(_link("Bogenklassen öffnen →", lambda: self.navigate.emit("bow_classes"),
+                            "Bogenklassen verwalten"))
+        lay.addStretch()
+        self._cards["bow_classes"] = c
 
-        grid.setRowStretch(0, 0)
-        for col in range(3):
-            grid.setColumnStretch(col, 1)
+        c, lay = _dcard("helpers", "Helfer")
+        self.helpers_count = QLabel("0", objectName="cardValue")
+        lay.addWidget(self.helpers_count)
+        lay.addWidget(_link("Helfer öffnen →", lambda: self.navigate.emit("helpers"),
+                            "Helfer verwalten"))
+        lay.addStretch()
+        self._cards["helpers"] = c
+
+        c, lay = _dcard("inventory", "Inventar")
+        self.inventory_count = QLabel("0", objectName="cardValue")
+        lay.addWidget(self.inventory_count)
+        lay.addWidget(_link("Inventar öffnen →", lambda: self.navigate.emit("inventory"),
+                            "Inventar verwalten"))
+        lay.addStretch()
+        self._cards["inventory"] = c
+
+        c, lay = _dcard("calendar", "Kalender")
+        self.upcoming_count = QLabel("0", objectName="cardValue")
+        self.upcoming_lbl = QLabel(objectName="pageSubtitle")
+        lay.addWidget(self.upcoming_count)
+        lay.addWidget(self.upcoming_lbl)
+        lay.addWidget(_link("Kalender öffnen →", lambda: self.navigate.emit("calendar"),
+                            "Kalender öffnen"))
+        lay.addStretch()
+        self._cards["calendar"] = c
+
+        for key, card in self._cards.items():
+            card.swap.connect(lambda src, dst=key: self._on_card_swap(src, dst))
+
+        saved = svc.get("dashboard_card_order")
+        if saved:
+            saved_order = [k for k in json.loads(saved) if k in self._cards]
+            saved_order += [k for k in CARD_DEFAULT_ORDER if k not in saved_order]
+            self._card_order = saved_order
+        else:
+            self._card_order = list(CARD_DEFAULT_ORDER)
 
         self._logo_lbl = QLabel()
         self._logo_lbl.setFixedSize(56, 56)
@@ -160,14 +255,14 @@ class GlobalDashboard(QWidget):
         act_row.addWidget(self._last_label, 1)
         act_row.addWidget(self._logbuch_btn)
 
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(0)
-        lay.addWidget(self.header)
-        lay.addLayout(grid)
-        lay.addStretch(1)
-        lay.addLayout(act_row)
+        main_lay = QVBoxLayout(self)
+        main_lay.setContentsMargins(0, 0, 0, 0)
+        main_lay.setSpacing(0)
+        main_lay.addWidget(self.header)
+        main_lay.addLayout(self._grid, 1)
+        main_lay.addLayout(act_row)
 
+        self._rebuild_grid()
         self._next_id = None
         self._activity = []
 
@@ -221,6 +316,12 @@ class GlobalDashboard(QWidget):
         self.next_chip.setVisible(nxt is not None)
         self.rules_count.setText(str(len(sc.list_rules())))
         self.bow_count.setText(str(len(md.list_bow_classes())))
+        self.helpers_count.setText(str(len(hs.list_helpers())))
+        self.inventory_count.setText(str(len(inv_svc.list_items())))
+        upcoming_cal = [t for t in tournaments if t.date >= date.today()]
+        self.upcoming_count.setText(str(len(upcoming_cal)))
+        self.upcoming_lbl.setText(upcoming_cal[0].name if upcoming_cal
+                                  else "Keine anstehenden Turniere")
         self._activity = sc.recent_scores()
         if self._activity:
             a = self._activity[0]
@@ -238,6 +339,27 @@ class GlobalDashboard(QWidget):
             self.new_tournament.emit()
         else:
             self.open_tournament.emit(self._next_id, "")
+
+    def _rebuild_grid(self):
+        while self._grid.count():
+            item = self._grid.takeAt(0)
+            if item.widget():
+                item.widget().hide()
+        for i, key in enumerate(self._card_order):
+            card = self._cards.get(key)
+            if card:
+                self._grid.addWidget(card, i // 3, i % 3)
+                card.show()
+        for col in range(3):
+            self._grid.setColumnStretch(col, 1)
+
+    def _on_card_swap(self, src_key: str, dst_key: str):
+        i = self._card_order.index(src_key)
+        j = self._card_order.index(dst_key)
+        self._card_order[i], self._card_order[j] = self._card_order[j], self._card_order[i]
+        self._rebuild_grid()
+        svc.set_value("dashboard_card_order", json.dumps(self._card_order))
+
 
 class TournamentDashboard(QWidget):
     action = Signal(str)       # direct links, handled by the main window

@@ -91,6 +91,7 @@ class ScoringRule(Base):
     max_shots_per_target: Mapped[int] = mapped_column(Integer, default=1)
     allow_retry_shot: Mapped[bool] = mapped_column(Boolean, default=False)
     rules_json: Mapped[dict | None] = mapped_column(JSON, default=dict)
+    tracked_specials: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
 
@@ -318,6 +319,7 @@ class Score(Base):
     zone_hit: Mapped[str | None] = mapped_column(Text)
     points: Mapped[int] = mapped_column(Integer, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
+    specials: Mapped[dict] = mapped_column(JSON, default=dict)
     entered_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now, onupdate=_now)
 
     participant: Mapped["TournamentParticipant"] = relationship(back_populates="scores")

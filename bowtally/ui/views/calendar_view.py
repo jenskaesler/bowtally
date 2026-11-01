@@ -185,7 +185,7 @@ class _DayCell(QFrame):
     def __init__(self, d: date, tournaments: list, is_other_month: bool = False, parent=None):
         super().__init__(parent)
         self.setObjectName("dayCell")
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setMinimumHeight(80)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(3, 2, 3, 2)
         lay.setSpacing(1)
@@ -218,12 +218,13 @@ class _DayCell(QFrame):
 # ---------------------------------------------------------------------------
 
 class _MiniMonth(QFrame):
-    monthClicked = Signal(int, int)   # year, month
-    dayClicked = Signal(object)       # date
+    monthClicked = Signal(int, int)
+    dayClicked = Signal(object)
+    badgeHovered = Signal(object, object)   # tournament, global QPoint
+    badgeUnhovered = Signal()
 
     def __init__(self, year: int, month: int, by_date: dict, parent=None):
-        super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.StyledPanel)
+        super().__init__(parent, objectName="miniMonth")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(4, 4, 4, 4)
         lay.setSpacing(2)
@@ -249,28 +250,43 @@ class _MiniMonth(QFrame):
         _, num_days = calendar.monthrange(year, month)
         t_col = theme.current()
 
+        today = date.today()
+        num_rows = (first_wd + num_days - 1) // 7 + 1
         for day in range(1, num_days + 1):
             slot = first_wd + day - 1
             d = date(year, month, day)
             lbl = QLabel(str(day))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            f3 = lbl.font(); f3.setPointSize(max(6, f3.pointSize() - 2)); lbl.setFont(f3)
-            lbl.setFixedSize(20, 16)
             tournaments = by_date.get(d, [])
             if tournaments:
                 tok = _phase_color(tournaments[0].phase)
                 color = t_col.get(tok, t_col["primary"])
                 lbl.setStyleSheet(
-                    f"background:{color};color:{t_col['bg']};border-radius:3px;")
+                    f"background:{color};color:{t_col['bg']};border-radius:4px;")
+                lbl.setCursor(Qt.CursorShape.PointingHandCursor)
                 lbl.mousePressEvent = lambda _e, d2=d: self.dayClicked.emit(d2)
+                t0 = tournaments[0]
+                lbl.enterEvent = lambda _e, t=t0, w=lbl: self.badgeHovered.emit(
+                    t, w.mapToGlobal(w.rect().center()))
+                lbl.leaveEvent = lambda _e: self.badgeUnhovered.emit()
+            elif d == today:
+                lbl.setStyleSheet(
+                    f"background:{t_col['primary']};color:{t_col['on_primary']};"
+                    f"border-radius:4px;font-weight:bold;")
             grid.addWidget(lbl, slot // 7 + 1, slot % 7)
 
-        lay.addWidget(grid_w)
+        for c in range(7):
+            grid.setColumnStretch(c, 1)
+        for r in range(1, num_rows + 1):
+            grid.setRowStretch(r, 1)
+        lay.addWidget(grid_w, 1)
 
 
 class _YearView(QWidget):
     monthClicked = Signal(int, int)
     dayClicked = Signal(object)
+    badgeHovered = Signal(object, object)
+    badgeUnhovered = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -287,9 +303,13 @@ class _YearView(QWidget):
             mm = _MiniMonth(year, i + 1, by_date)
             mm.monthClicked.connect(self.monthClicked)
             mm.dayClicked.connect(self.dayClicked)
+            mm.badgeHovered.connect(self.badgeHovered)
+            mm.badgeUnhovered.connect(self.badgeUnhovered)
             self._grid.addWidget(mm, row, col)
         for c in range(4):
             self._grid.setColumnStretch(c, 1)
+        for r in range(3):
+            self._grid.setRowStretch(r, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -439,6 +459,7 @@ class CalendarView(QWidget):
             self._build_week()
         else:
             self._build_day()
+        self._hover_card.raise_()
 
     def _build_year(self):
         year = self._anchor.year
@@ -447,8 +468,9 @@ class CalendarView(QWidget):
         view.set_year(year, self._by_date)
         view.monthClicked.connect(self._on_year_month_click)
         view.dayClicked.connect(self._on_year_day_click)
-        self._content_lay.addWidget(view)
-        self._content_lay.addStretch()
+        view.badgeHovered.connect(self._on_badge_hover)
+        view.badgeUnhovered.connect(self._on_badge_unhover)
+        self._content_lay.addWidget(view, 1)
 
     def _on_year_month_click(self, year: int, month: int):
         self._anchor = date(year, month, 1)
@@ -477,8 +499,7 @@ class CalendarView(QWidget):
         if count:
             self._title_lbl.setText(
                 f"{_MONTH_NAMES[a.month - 1]} {a.year}  ·  {count} Turnier{'e' if count != 1 else ''}")
-        self._content_lay.addWidget(self._month_panel(a.year, a.month))
-        self._content_lay.addStretch()
+        self._content_lay.addWidget(self._month_panel(a.year, a.month), 1)
 
     def _build_week(self):
         a = self._anchor
@@ -504,8 +525,7 @@ class CalendarView(QWidget):
             grid.addWidget(cell, 1, col)
             grid.setColumnStretch(col, 1)
         grid.setRowStretch(1, 1)
-        self._content_lay.addWidget(panel)
-        self._content_lay.addStretch()
+        self._content_lay.addWidget(panel, 1)
 
     def _build_day(self):
         d = self._anchor
@@ -546,11 +566,14 @@ class CalendarView(QWidget):
             grid.addWidget(cell, row, col)
         for c in range(7):
             grid.setColumnStretch(c, 1)
+        max_row = (first_wd + num_days - 1) // 7 + 1
+        for r in range(1, max_row + 1):
+            grid.setRowStretch(r, 1)
         return panel
 
     def _day_card(self, t) -> QFrame:
         """Full-width card for day-view (one per tournament)."""
-        card = QFrame(frameShape=QFrame.Shape.StyledPanel, objectName="dayCell")
+        card = QFrame(objectName="dayCell")
         lay = QVBoxLayout(card)
         lay.setContentsMargins(12, 8, 12, 8)
         name = QLabel(t.name)

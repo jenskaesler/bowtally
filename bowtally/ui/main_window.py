@@ -276,7 +276,6 @@ class MainWindow(QMainWindow):
             item.setHidden(not vis_map.get(key, True))
             self.nav.addItem(item)
         self.nav.currentItemChanged.connect(self._navigate)
-        self._nav_item(self.guide).setHidden(True)    # only in tournament navigator
         self.settings_nav = self._nav_list()
         settings_item = QListWidgetItem("Einstellungen")
         settings_item.setData(ICON_ROLE, "settings")
@@ -421,6 +420,7 @@ class MainWindow(QMainWindow):
 
     def _context_changed(self, tournament_id, initial: bool = False):
         self._nav_item(self.tournaments).setHidden(tournament_id is not None)
+        self._nav_item(self.guide).setHidden(True)
         self.navigator.refresh()
         self.update_badges()
         if tournament_id is None:
@@ -539,7 +539,8 @@ class MainWindow(QMainWindow):
     def _navigate_to(self, key: str):
         targets = {"rules": self.rules, "bow_classes": self.bow_classes,
                    "archers": self.archers, "tournaments": self.tournaments,
-                   "logbuch": self.logbuch}
+                   "logbuch": self.logbuch, "helpers": self.helpers,
+                   "inventory": self.inventory, "calendar": self.calendar}
         if key in targets:
             self.select_page(targets[key])
 
@@ -668,10 +669,13 @@ class MainWindow(QMainWindow):
             return
         vis_map = {e.get("key", ""): e.get("visible", True)
                    for e in saved if isinstance(e, dict)}
+        CONTEXT_KEYS = {"guide", "tournaments"}   # visibility driven by context, not user setting
         current_item = self.nav.currentItem()
         for row in range(self.nav.count()):
             item = self.nav.item(row)
             key = item.data(KEY_ROLE)
+            if key in CONTEXT_KEYS:
+                continue
             was_hidden = item.isHidden()
             now_hidden = not vis_map.get(key, True)
             item.setHidden(now_hidden)

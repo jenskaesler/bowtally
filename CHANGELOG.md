@@ -6,6 +6,38 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.11.1] – 2026-11-02
+
+### Hinzugefügt
+
+- **Dashboard – Draggable Tiles**: Die neun Module (Aktive Turniere, Nächstes Turnier,
+  Archiv, Schützen, Regelwerke, Bogenklassen, Helfer, Inventar, Kalender) erscheinen als
+  ziehbare Kacheln in einem 3×3-Raster. Die Reihenfolge wird per Drag & Drop verändert
+  und dauerhaft gespeichert.
+- **Dashboard – Helfer, Inventar, Kalender**: Drei neue Kacheln zeigen Gesamtanzahl und
+  Direktlink in die jeweilige Ansicht.
+- **Datenbank – Migration 0020**: Neue JSON-Spalten `tracked_specials` (in
+  `scoring_rules`) und `specials` (in `scores`) als Grundlage für Kill- und X-Ring-Zählung.
+  Alle 14 eingebauten Regelwerke erhalten beim Migrations-Lauf automatisch die passenden
+  `tracked_specials`-Definitionen (Kill, X, 12-Ring, Miss je nach Format).
+
+### Geändert
+
+- **Seitenleiste**: Hintergrundfarbe entspricht jetzt dem App-Hintergrund – nur die
+  Trennlinie grenzt Sidebar und Inhalt ab.
+- **Kalenderansicht – Styling**: Tageszellen, Mini-Monate und die Ansichts-Umschaltknöpfe
+  (Jahr/Monat/Woche) erhalten QSS-basierte Rahmenstile und Hover-Effekte statt
+  nativer Qt-Rahmen.
+- **Kalenderansicht – Layout**: Monats-, Wochen- und Jahresraster füllen jetzt die
+  verfügbare Fensterhöhe gleichmäßig aus (Row-Stretch statt trailing Spacer).
+- **Kalenderansicht – Heute-Highlight**: Der heutige Tag wird in Mini-Monaten mit
+  Primary-Farbe hervorgehoben; Turnier-Badges zeigen Pointer-Cursor und emittieren
+  Hover-Signale für die Turniervorschau.
+- **Einstellungen → Navigation**: Eintrag „Turniere" ergänzt; Auswahl-Highlight
+  in Einstellungen und Hilfe nutzt jetzt volle Primary-Füllung statt Border-only.
+- **Leitfaden**: Dauerhaft aus der Seitenleiste ausgeblendet – nur noch über den
+  Turnier-Navigator erreichbar.
+
 ## [2026.10.9] – 2026-10-31
 
 ### Hinzugefügt

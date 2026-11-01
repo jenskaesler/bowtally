@@ -138,7 +138,7 @@ def tokens(overrides: dict[str, str] | None = None) -> dict[str, str]:
         "alt_row": _mix(surface, text, 0.025),
         "grid": _mix(surface, text, 0.08),
         "disabled": _mix(surface, text, 0.35),
-        "sidebar": surface,
+        "sidebar": bg,
         "nav_hover": NAV_HOVER_LIGHT if mode == MODE_LIGHT else _mix(surface, text, 0.08),
         "success": _readable_on(surface, SUCCESS, 0.25),
         "success_soft": _mix(surface, SUCCESS, 0.20 if mode == MODE_DARK else 0.13),
@@ -178,6 +178,7 @@ QTabWidget > QStackedWidget > QWidget {{ background: transparent; }}
 /* sidebar */
 QWidget#sidebar {{ background: {t['sidebar']}; border-right: 1px solid {t['border']}; }}
 QLabel#appTitle {{ font-size: 14pt; font-weight: 700; background: transparent; }}
+QListWidget#dashChips {{ background: transparent; border: none; outline: 0; padding: 4px 20px; }}
 QListWidget#navigation {{ background: transparent; border: none; outline: 0; padding: 0 10px; }}
 QListWidget#navigation::item {{
     color: {t['text2']}; padding: 9px 10px; margin: 1px 0; border-radius: 8px;
@@ -298,8 +299,7 @@ QListWidget#settingsNav::item:hover, QListWidget#helpNav::item:hover {{
     background: {t['hover']};
 }}
 QListWidget#settingsNav::item:selected, QListWidget#helpNav::item:selected {{
-    background: {t['primary_soft']}; color: {t['primary']};
-    border-left: 3px solid {t['primary']}; padding-left: 9px;
+    background: {t['primary']}; color: {t['on_primary']}; font-weight: 600;
 }}
 
 QStatusBar {{ background: {t['sidebar']}; border-top: 1px solid {t['border']}; }}
@@ -396,6 +396,29 @@ QLabel#statusChip[kind="warning"] {{
 QLabel#statusChip[kind="danger"] {{
     background: {t['accent_soft']}; color: {t['accent']}; border-color: {t['accent']};
 }}
+
+/* calendar view */
+QFrame#dayCell {{
+    background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 6px;
+}}
+QLabel#dayNumber {{ font-weight: 600; }}
+QLabel#dayNumber[today="true"] {{
+    background: {t['primary']}; color: {t['on_primary']};
+    border-radius: 10px; padding: 1px 5px;
+}}
+QFrame#miniMonth {{
+    background: {t['surface']}; border: 1px solid {t['border']}; border-radius: 8px;
+}}
+QPushButton#calModeBtn {{
+    padding: 4px 12px; border: 1px solid {t['border']};
+    border-radius: 0; background: {t['surface']}; color: {t['text']};
+}}
+QPushButton#calModeBtn:checked {{
+    background: {t['primary']}; color: {t['on_primary']}; border-color: {t['primary']};
+}}
+QPushButton#calModeBtn:hover:!checked {{ background: {t['hover']}; }}
+QPushButton#calModeBtn:first-child {{ border-radius: 6px 0 0 6px; }}
+QPushButton#calModeBtn:last-child  {{ border-radius: 0 6px 6px 0; }}
 
 /* tournament navigator (sidebar) */
 QFrame#tournamentNav {{ background: transparent; border-bottom: 1px solid {t['border']}; }}

@@ -56,13 +56,13 @@ LABEL_OVERRIDES = {
     "waitlist_mode": "Warteliste bei Vollbelegung",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
-NAV_KEYS = ["dashboard", "logbuch", "tournaments", "calendar", "archers",
-            "helpers", "rules", "bow_classes", "inventory", "guide"]
+NAV_KEYS = ["dashboard", "logbuch", "calendar", "archers",
+            "helpers", "rules", "bow_classes", "inventory", "tournaments"]
 NAV_LABELS = {
-    "dashboard": "Dashboard", "logbuch": "Logbuch", "tournaments": "Turniere",
+    "dashboard": "Dashboard", "logbuch": "Logbuch",
     "calendar": "Kalender", "archers": "Schützen", "helpers": "Helfer",
     "rules": "Regelwerke", "bow_classes": "Bogenklassen", "inventory": "Inventar",
-    "guide": "Leitfaden",
+    "tournaments": "Turniere",
 }
 NAV_LOCKED = {"dashboard"}     # cannot be hidden
 VISIBLE_ROLE = Qt.ItemDataRole.UserRole + 1
