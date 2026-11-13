@@ -9,7 +9,7 @@ Anwendung gepflegt.
 
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **2026.11.1**, Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.11.2**, Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 BowTally arbeitet vollständig offline. Alle Turnierdaten werden lokal auf dem Gerät gespeichert.
 Es werden keine personenbezogenen Daten oder Turnierdaten an externe Server übertragen.
