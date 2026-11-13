@@ -4,7 +4,7 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QMessageBox, QProgressBar, QSplashScreen
 
@@ -123,7 +123,22 @@ def main() -> int:
         from bowtally.ui.dialogs.first_run_wizard import FirstRunWizard
         FirstRunWizard(window).exec()
         window._refresh_title()
+
+    from bowtally.updater.update_service import UpdateService
+    service = UpdateService(config.APP_DATA_DIR)
+    service.handle_startup_args(sys.argv)
+    QTimer.singleShot(2000, lambda: _check_for_updates(service, window))
     return app.exec()
+
+
+def _check_for_updates(service, parent) -> None:
+    info = service.check_for_update()
+    if info is None or not info.available:
+        return
+    if info.version == service.get_skipped_version():
+        return
+    from bowtally.updater.update_dialog import UpdateDialog
+    UpdateDialog(info, service, parent=parent).exec()
 
 
 if __name__ == "__main__":

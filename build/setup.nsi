@@ -135,6 +135,10 @@ Section "BowTally" SecMain
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
+  ; Silent install (/S) startet die App automatisch
+  IfSilent 0 +2
+  Exec '"$INSTDIR\${EXE}"'
+
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
   CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"                 "$INSTDIR\${EXE}"
   CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME} deinstallieren.lnk"  "$INSTDIR\Uninstall.exe"
