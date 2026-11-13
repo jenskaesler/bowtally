@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                                QScrollArea, QSpinBox, QStackedWidget, QToolButton,
                                QVBoxLayout, QWidget)
 
+from bowtally import config
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import button, restore_geom, save_geom, show_error, theme
 
@@ -657,6 +658,18 @@ class SettingsDialog(QDialog):
         self._update_check.toggled.connect(
             lambda v: ss.set_value("update_check_enabled", "true" if v else "false"))
         form_update.addRow("", self._update_check)
+
+        from bowtally.updater.update_service import UpdateService
+        service = UpdateService(config.APP_DATA_DIR)
+        hint = QLabel(f"Letzte Prüfung: {service.last_check_str()}")
+        hint.setObjectName("pageSubtitle")
+        form_update.addRow("", hint)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_manual = button("Jetzt prüfen", lambda: self._manual_update_check(service))
+        btn_row.addWidget(btn_manual)
+        form_update.addRow("", btn_row)
         lay.addWidget(box_update)
 
         # Speicherorte
@@ -679,6 +692,16 @@ class SettingsDialog(QDialog):
 
         lay.addStretch()
         return w
+
+    def _manual_update_check(self, service):
+        info = service.check_for_update()
+        if info is None or not info.available:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "Update-Prüfung",
+                                    "Kein Update verfügbar.")
+            return
+        from bowtally.updater.update_dialog import UpdateDialog
+        UpdateDialog(info, service, parent=self).exec()
 
     def _backup_tab(self) -> QWidget:
         from bowtally.services import backup_service as bs

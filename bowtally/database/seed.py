@@ -147,6 +147,21 @@ DEFAULT_SETTINGS = [
      "Wir freuen uns auf deine Unterstützung!\n\n"
      "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Helfer-Bestätigung"),
+    ("email_tpl_tournament_announce_subject",
+     "Turnierankündigung: {turniername} am {datum}", "email", "string",
+     "E-Mail-Vorlage: Betreff Turnierankündigung"),
+    ("email_tpl_tournament_announce_body",
+     "Hallo zusammen,\n\n"
+     "wir freuen uns, das Turnier {turniername} am {datum} in {ort} ankündigen zu können.\n\n"
+     "Turnier: {turniername}\n"
+     "Datum: {datum}\n"
+     "Ort: {ort}\n"
+     "Klassen: {klassen}\n"
+     "Startgeld: {startgeld}\n"
+     "Anmeldung bis: {anmeldefrist}\n\n"
+     "Alle weiteren Informationen findet ihr in der beigefügten Ausschreibung.\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
+     "email", "string", "E-Mail-Vorlage: Text Turnierankündigung"),
     # behavior
     ("waitlist_mode", "auto", "behavior", "string",
      "Warteliste: auto (automatisch) oder block (sperren)"),

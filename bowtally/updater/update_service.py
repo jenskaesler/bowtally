@@ -63,6 +63,7 @@ class UpdateService:
 
     # ---------------------------------------------------------------- version check
     def check_for_update(self) -> UpdateInfo | None:
+        self._set_last_check()
         try:
             res = requests.get(RELEASE_API, timeout=TIMEOUT,
                                headers={"Accept": "application/vnd.github+json"})
@@ -106,6 +107,20 @@ class UpdateService:
                                                                      encoding="utf-8")
             except OSError:
                 pass
+
+    def last_check_str(self) -> str:
+        import datetime
+        path = self.config_dir / "last_update_check.txt"
+        try:
+            ts = float(path.read_text(encoding="utf-8").strip())
+            return datetime.datetime.fromtimestamp(ts).strftime("%d.%m.%Y %H:%M")
+        except (OSError, ValueError):
+            return "nie"
+
+    def _set_last_check(self) -> None:
+        import time
+        (self.config_dir / "last_update_check.txt").write_text(str(int(time.time())),
+                                                                encoding="utf-8")
 
 
 def _arg_value(argv: list[str], flag: str) -> str | None:
