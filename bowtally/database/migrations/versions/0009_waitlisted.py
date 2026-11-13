@@ -26,7 +26,7 @@ def upgrade():
     tbl = sa.table("app_settings",
                    sa.column("key"), sa.column("value"), sa.column("category"),
                    sa.column("value_type"), sa.column("description"))
-    op.bulk_insert(tbl, [{"key": "waitlist_mode", "value": "block", "category": "behavior",
+    op.bulk_insert(tbl, [{"key": "waitlist_mode", "value": "auto", "category": "behavior",
                           "value_type": "string",
                           "description": "Warteliste: auto (automatisch) oder block (sperren)"}])
 

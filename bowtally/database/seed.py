@@ -51,47 +51,104 @@ DEFAULT_SETTINGS = [
      "Vereinslogo klein am Ende der Ausschreibung wiederholen"),
     ("last_active_tournament_id", "", "internal", "string",
      "Zuletzt geöffnetes Turnier (wird beim Start wiederhergestellt)"),
-    # email templates
-    ("email_reg_subject", "Anmeldebestätigung – {turniername}", "email", "string",
+    # E-Mail-Vorlagen. Platzhalter: {name} {first_name} {last_name} {verein} {klasse}
+    # {turniername} {datum} {ort} {startnummer} {startgruppe} {startzeit} {anmeldefrist}
+    # {platz} {punkte} {verwendungszweck} {iban} {kontakt_name} {kontakt_email}
+    # {kontakt_telefon}. Das Vereinslogo wird beim Senden automatisch unter den Text
+    # gehängt, wenn unter Einstellungen → Vereinsprofil ein Logo gesetzt ist.
+    ("email_reg_subject",
+     "Anmeldung bestätigt: {turniername} am {datum}", "email", "string",
      "E-Mail-Vorlage: Betreff Anmeldebestätigung"),
     ("email_reg_body",
-     "Hallo {name},\n\ndeine Anmeldung zum Turnier {turniername} am {datum} wurde erfolgreich "
-     "registriert.\n\nKlasse: {klasse}\nVerein: {verein}\n\nBis dahin!\nDein Team",
+     "Hallo {first_name},\n\n"
+     "vielen Dank für deine Anmeldung – der Platz ist dir sicher.\n\n"
+     "Turnier: {turniername}\n"
+     "Datum: {datum}\n"
+     "Ort: {ort}\n"
+     "Klasse: {klasse}\n"
+     "Verein: {verein}\n"
+     "Startgruppe: {startgruppe}\n"
+     "Startnummer: {startnummer}\n\n"
+     "Bitte bringe deine Startunterlagen und Schießausrüstung mit. "
+     "Die Einschreibung beginnt vor dem Schießbeginn.\n\n"
+     "Bei Fragen erreichst du uns unter {kontakt_email} oder {kontakt_telefon}.\n\n"
+     "Wir freuen uns auf dich!\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Anmeldebestätigung"),
-    ("email_payment_subject", "Zahlungserinnerung – {turniername}", "email", "string",
+    ("email_payment_subject",
+     "Zahlungserinnerung: Startgeld für {turniername}", "email", "string",
      "E-Mail-Vorlage: Betreff Zahlungserinnerung"),
     ("email_payment_body",
-     "Hallo {name},\n\nfür deine Anmeldung zum Turnier {turniername} am {datum} liegt noch "
-     "eine offene Zahlung vor. Bitte überweise das Startgeld rechtzeitig.\n\nBis dahin!\nDein Team",
+     "Hallo {first_name},\n\n"
+     "für deine Anmeldung zum Turnier {turniername} am {datum} ist der Startgeld-Eingang "
+     "noch nicht bei uns registriert.\n\n"
+     "Kontoinhaber: {bank_account_holder}\n"
+     "IBAN: {iban}\n"
+     "Verwendungszweck: {verwendungszweck}\n\n"
+     "Bitte überweise den Betrag zeitnah, damit deine Anmeldung bestätigt werden kann. "
+     "Bei Fragen erreichst du uns unter {kontakt_email} oder {kontakt_telefon}.\n\n"
+     "Vielen Dank!\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Zahlungserinnerung"),
-    ("email_docs_subject", "Startunterlagen – {turniername}", "email", "string",
+    ("email_docs_subject",
+     "Startunterlagen und Check-in: {turniername}", "email", "string",
      "E-Mail-Vorlage: Betreff Startunterlagen"),
     ("email_docs_body",
-     "Hallo {name},\n\nanbei erhältst du die Startunterlagen für das Turnier {turniername} am "
-     "{datum}.\n\nKlasse: {klasse}\nVerein: {verein}\n\nBis dahin!\nDein Team",
+     "Hallo {first_name},\n\n"
+     "hier sind die wichtigsten Infos für den Turniertag.\n\n"
+     "Turnier: {turniername}\n"
+     "Datum: {datum}\n"
+     "Treffpunkt: {ort}\n"
+     "Einschreibung: ab {checkin_start_time} Uhr\n"
+     "Schießbeginn: {shooting_start_time} Uhr\n"
+     "Klasse: {klasse}\n"
+     "Startgruppe: {startgruppe}\n"
+     "Startzeit: {startzeit}\n\n"
+     "Bitte sei rechtzeitig zur Einschreibung da und bringe deine Ausrüstung mit.\n\n"
+     "Wir freuen uns auf einen schönen Turniertag!\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Startunterlagen"),
-    ("email_results_subject", "Ergebnisse – {turniername}", "email", "string",
+    ("email_results_subject",
+     "Ergebnisse: {turniername} – Platz {platz}", "email", "string",
      "E-Mail-Vorlage: Betreff Ergebnisversand"),
     ("email_results_body",
-     "Hallo {name},\n\nhier sind deine Ergebnisse des Turniers {turniername} vom {datum}.\n\n"
-     "Klasse: {klasse}\nPlatz: {platz}\nPunkte: {punkte}\nVerein: {verein}\n\n"
-     "Bis zum nächsten Turnier!\nDein Team",
+     "Hallo {first_name},\n\n"
+     "vielen Dank für deine Teilnahme am {turniername} am {datum}.\n\n"
+     "Dein Ergebnis:\n"
+     "Klasse: {klasse}\n"
+     "Platz: {platz}\n"
+     "Punkte: {punkte}\n\n"
+     "Die vollständige Ergebnisliste findest du auf der Vereinswebsite. "
+     "Wir freuen uns auf das nächste Turnier mit dir!\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Ergebnisversand"),
-    ("email_waitlist_subject", "Nachrücken – {turniername}", "email", "string",
+    ("email_waitlist_subject",
+     "Platz frei geworden: {turniername}", "email", "string",
      "E-Mail-Vorlage: Betreff Wartelisten-Nachrücker"),
     ("email_waitlist_body",
-     "Hallo {name},\n\nes ist ein Platz frei geworden! Du kannst für das Turnier {turniername} "
-     "am {datum} nachrücken.\n\nKlasse: {klasse}\nVerein: {verein}\n\nBitte melde dich schnell "
-     "zurück!\nDein Team",
+     "Hallo {first_name},\n\n"
+     "für das Turnier {turniername} am {datum} ist ein Platz frei geworden.\n"
+     "Du stehst auf der Warteliste und kannst jetzt nachrücken.\n\n"
+     "Klasse: {klasse}\n"
+     "Verein: {verein}\n\n"
+     "Bitte bestätige kurz per E-Mail an {kontakt_email}, ob du teilnimmst – "
+     "sonst vergeben wir den Platz weiter.\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Wartelisten-Nachrücker"),
-    ("email_helper_subject", "Helfer-Bestätigung – {turniername}", "email", "string",
+    ("email_helper_subject",
+     "Helfer-Bestätigung: {turniername} am {datum}", "email", "string",
      "E-Mail-Vorlage: Betreff Helfer-Bestätigung"),
     ("email_helper_body",
-     "Hallo {name},\n\nvielen Dank, dass du beim Turnier {turniername} am {datum} als Helfer "
-     "dabei bist! Wir freuen uns auf dich.\n\nDein Team",
+     "Hallo {first_name},\n\n"
+     "vielen Dank, dass du uns beim {turniername} am {datum} in {ort} unterstützt.\n\n"
+     "Einschreibung: ab {checkin_start_time} Uhr\n"
+     "Schießbeginn: {shooting_start_time} Uhr\n\n"
+     "Bitte melde dich vor Beginn bei {kontakt_name} ({kontakt_telefon}). "
+     "Wir freuen uns auf deine Unterstützung!\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Helfer-Bestätigung"),
     # behavior
-    ("waitlist_mode", "block", "behavior", "string",
+    ("waitlist_mode", "auto", "behavior", "string",
      "Warteliste: auto (automatisch) oder block (sperren)"),
 ]
 

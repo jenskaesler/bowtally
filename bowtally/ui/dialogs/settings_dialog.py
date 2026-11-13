@@ -56,8 +56,8 @@ LABEL_OVERRIDES = {
     "waitlist_mode": "Warteliste bei Vollbelegung",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
-NAV_KEYS = ["dashboard", "logbuch", "calendar", "archers",
-            "helpers", "rules", "bow_classes", "inventory", "tournaments"]
+NAV_KEYS = ["dashboard", "tournaments", "calendar", "archers",
+            "helpers", "rules", "bow_classes", "inventory", "logbuch"]
 NAV_LABELS = {
     "dashboard": "Dashboard", "logbuch": "Logbuch",
     "calendar": "Kalender", "archers": "Schützen", "helpers": "Helfer",
