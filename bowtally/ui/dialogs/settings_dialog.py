@@ -154,14 +154,14 @@ class SettingsDialog(QDialog):
         ("VEREINSVERWALTUNG",  [("club", "Vereinsprofil"),
                                  ("contacts", "Vereinsvorstand"),
                                  ("bank", "Bankdaten")]),
-        ("DARSTELLUNG",        [("design", "Design"),
-                                 ("ui", "Oberfläche"),
-                                 ("nav", "Navigation")]),
         ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
-                                 ("print", "Druck"),
+                                 ("print", "Druck & Listen"),
                                  ("email", "E-Mail-Vorlagen")]),
         ("SYSTEM",             [("general", "Allgemein"),
                                  ("backup", "Backup")]),
+        ("DARSTELLUNG",        [("design", "Design"),
+                                 ("ui", "Oberfläche"),
+                                 ("nav", "Navigation")]),
     ]
 
     def __init__(self, apply_theme, parent=None):
@@ -649,14 +649,34 @@ class SettingsDialog(QDialog):
         w = QWidget()
         lay = QVBoxLayout(w)
 
-        box = QGroupBox("Update-Prüfung")
-        form = self._form(box)
+        # Update-Prüfung
+        box_update = QGroupBox("Update-Prüfung")
+        form_update = self._form(box_update)
         self._update_check = QCheckBox("Beim Start nach Updates suchen")
         self._update_check.setChecked(ss.get_bool("update_check_enabled"))
         self._update_check.toggled.connect(
             lambda v: ss.set_value("update_check_enabled", "true" if v else "false"))
-        form.addRow("", self._update_check)
-        lay.addWidget(box)
+        form_update.addRow("", self._update_check)
+        lay.addWidget(box_update)
+
+        # Speicherorte
+        box_export = QGroupBox("Speicherorte")
+        form_export = self._form(box_export)
+        path_row = QHBoxLayout()
+        path_row.setContentsMargins(0, 0, 0, 0)
+        path_edit = QLineEdit(ss.get("default_export_path") or "")
+        path_edit.setPlaceholderText("Leer lassen für Downloads-Ordner")
+        path_edit.setMinimumWidth(SETTINGS_COMBO_W)
+        path_btn = QPushButton("Durchsuchen …")
+        path_btn.clicked.connect(lambda: _browse_export_path(path_edit, self))
+        path_row.addWidget(path_edit, 1)
+        path_row.addWidget(path_btn)
+        path_widget = QWidget()
+        path_widget.setLayout(path_row)
+        form_export.addRow(self._flbl("Standard-Exportpfad"), path_widget)
+        self.value_widgets["default_export_path"] = path_edit
+        lay.addWidget(box_export)
+
         lay.addStretch()
         return w
 
@@ -908,22 +928,6 @@ class SettingsDialog(QDialog):
         self.club_edits["course_description"] = edit_course
         inner = QWidget()
         lay = QVBoxLayout(inner)
-        # --- export path ---
-        box_export = QGroupBox("Speicherorte")
-        form_export = self._form(box_export)
-        path_row = QHBoxLayout()
-        path_row.setContentsMargins(0, 0, 0, 0)
-        path_edit = QLineEdit(ss.get("default_export_path") or "")
-        path_edit.setPlaceholderText("Leer lassen für Downloads-Ordner")
-        path_edit.setMinimumWidth(SETTINGS_COMBO_W)
-        path_btn = QPushButton("Durchsuchen …")
-        path_btn.clicked.connect(lambda: _browse_export_path(path_edit, self))
-        path_row.addWidget(path_edit, 1)
-        path_row.addWidget(path_btn)
-        path_widget = QWidget()
-        path_widget.setLayout(path_row)
-        form_export.addRow(self._flbl("Standard-Exportpfad"), path_widget)
-        self.value_widgets["default_export_path"] = path_edit
 
         # Collect print/templates boxes without adding to lay yet
         cat_boxes: dict[str, QGroupBox] = {}
@@ -950,7 +954,6 @@ class SettingsDialog(QDialog):
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
 
-        lay.addWidget(box_export)
         if "print" in cat_boxes:
             lay.addWidget(cat_boxes["print"])
         if "templates" in cat_boxes:
