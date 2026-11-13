@@ -150,6 +150,8 @@ DEFAULT_SETTINGS = [
     # behavior
     ("waitlist_mode", "auto", "behavior", "string",
      "Warteliste: auto (automatisch) oder block (sperren)"),
+    ("update_check_enabled", "true", "system", "boolean",
+     "Automatische Update-Prüfung beim Start"),
 ]
 
 # Reference data, inserted by migration 0003 (key, label, sort_order, description)

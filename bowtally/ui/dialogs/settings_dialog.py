@@ -153,14 +153,13 @@ class SettingsDialog(QDialog):
     _NAV_GROUPS = [
         ("VEREINSVERWALTUNG",  [("club", "Vereinsprofil"),
                                  ("contacts", "Vereinsvorstand"),
-                                 ("bank", "Bankdaten")]),
-        ("DARSTELLUNG",        [("design", "Design"),
-                                 ("ui", "Oberfläche"),
-                                 ("nav", "Navigation")]),
+                                 ("bank", "Bankdaten"),
+                                 ("design", "Darstellung")]),
         ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
                                  ("print", "Druck"),
                                  ("email", "E-Mail-Vorlagen")]),
-        ("SYSTEM",             [("backup", "Backup")]),
+        ("SYSTEM",             [("general", "Allgemein"),
+                                 ("backup", "Backup")]),
     ]
 
     def __init__(self, apply_theme, parent=None):
@@ -185,6 +184,7 @@ class SettingsDialog(QDialog):
             ("behavior", self._category_tab("behavior")),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
+            ("general",  self._general_tab()),
             ("backup",   self._backup_tab()),
             ("nav",      self._nav_tab()),
         ]
@@ -639,6 +639,21 @@ class SettingsDialog(QDialog):
         hint = QLabel("Platzhalter Verwendungszweck: {name}, {bow_class}",
                       objectName="pageSubtitle")
         form.addRow("", hint)
+        lay.addWidget(box)
+        lay.addStretch()
+        return w
+
+    def _general_tab(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+
+        box = QGroupBox("Update-Prüfung")
+        form = self._form(box)
+        self._update_check = QCheckBox("Beim Start nach Updates suchen")
+        self._update_check.setChecked(ss.get_bool("update_check_enabled"))
+        self._update_check.toggled.connect(
+            lambda v: ss.set_value("update_check_enabled", "true" if v else "false"))
+        form.addRow("", self._update_check)
         lay.addWidget(box)
         lay.addStretch()
         return w

@@ -127,7 +127,8 @@ def main() -> int:
     from bowtally.updater.update_service import UpdateService
     service = UpdateService(config.APP_DATA_DIR)
     service.handle_startup_args(sys.argv)
-    QTimer.singleShot(2000, lambda: _check_for_updates(service, window))
+    if ss.get_bool("update_check_enabled"):
+        QTimer.singleShot(2000, lambda: _check_for_updates(service, window))
     return app.exec()
 
 
