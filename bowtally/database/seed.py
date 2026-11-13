@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Initial data set: settings, builtin scoring rules and bow classes."""
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from bowtally.database.models import AppSetting, BowClass, ClubProfile, EntryFee, ScoringRule
@@ -434,16 +435,25 @@ DEFAULT_BOW_CLASSES = [
 
 
 def run(session: Session) -> None:
-    """Insert the initial data set. Caller commits."""
+    """Insert the initial data set. Idempotent: skips what already exists. Caller commits."""
+    existing_settings = set(session.scalars(select(AppSetting.key)))
     for key, value, category, value_type, description in DEFAULT_SETTINGS:
-        session.add(AppSetting(key=key, value=value, category=category,
-                               value_type=value_type, description=description))
+        if key not in existing_settings:
+            session.add(AppSetting(key=key, value=value, category=category,
+                                   value_type=value_type, description=description))
     if session.get(ClubProfile, 1) is None:
         session.add(ClubProfile(id=1, country="Deutschland"))
+    existing_rules = set(session.scalars(
+        select(ScoringRule.name).where(ScoringRule.is_builtin.is_(True))))
     for rule in DEFAULT_SCORING_RULES:
-        session.add(ScoringRule(is_builtin=True, **rule))
+        if rule["name"] not in existing_rules:
+            session.add(ScoringRule(is_builtin=True, **rule))
+    existing_classes = {bc.name for bc in session.scalars(
+        select(BowClass).where(BowClass.is_builtin.is_(True)))}
     for i, (name, abbr, age) in enumerate(DEFAULT_BOW_CLASSES, start=1):
-        session.add(BowClass(name=name, abbreviation=abbr, age_group=age,
-                             is_builtin=True, sort_order=i))
-    for i, (name, amount) in enumerate(DEFAULT_ENTRY_FEES, start=1):
-        session.add(EntryFee(tournament_id=None, name=name, amount=amount, sort_order=i))
+        if name not in existing_classes:
+            session.add(BowClass(name=name, abbreviation=abbr, age_group=age,
+                                 is_builtin=True, sort_order=i))
+    if not session.scalar(select(EntryFee).where(EntryFee.tournament_id.is_(None)).limit(1)):
+        for i, (name, amount) in enumerate(DEFAULT_ENTRY_FEES, start=1):
+            session.add(EntryFee(tournament_id=None, name=name, amount=amount, sort_order=i))

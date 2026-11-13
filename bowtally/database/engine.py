@@ -34,12 +34,9 @@ def init_database(db_url: str | None = None) -> sessionmaker:
     SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 
     from bowtally.database import seed
-    from bowtally.database.models import AppSetting
     with SessionFactory() as s:
-        if s.scalar(select(AppSetting).limit(1)) is None:
-            log.info("Empty app_settings - seeding database")
-            seed.run(s)
-            s.commit()
+        seed.run(s)
+        s.commit()
     return SessionFactory
 
 
