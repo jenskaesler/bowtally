@@ -900,6 +900,15 @@ class TournamentWizard(QWizard):
                         subj = ss.get(f"{ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE}_subject") or \
                                f"Neues Turnier: {t.name}"
                         body = ss.get(f"{ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE}_body") or ""
+                        # Fill placeholders
+                        body = body.replace("{turniername}", t.name)
+                        body = body.replace("{datum}", t.date.strftime("%d.%m.%Y") if t.date else "")
+                        body = body.replace("{ort}", t.location or "")
+                        body = body.replace("{klassen}", ", ".join(bc.name for bc in t.bow_classes) if t.bow_classes else "")
+                        body = body.replace("{startgeld}", ", ".join(f"{f.name}: {f.amount:.2f} €" for f in t.fees) if t.fees else "")
+                        body = body.replace("{anmeldefrist}", t.registration_deadline.strftime("%d.%m.%Y") if t.registration_deadline else "")
+                        body = body.replace("{kontakt_name}", (t.contact_name or ""))
+                        body = body.replace("{vereinsname}", ss.get_club_profile().get("club_name") or "")
                         bcc = ",".join(emails)
                         mailto = (f"mailto:?bcc={urllib.parse.quote(bcc)}"
                                   f"&subject={urllib.parse.quote(subj)}"

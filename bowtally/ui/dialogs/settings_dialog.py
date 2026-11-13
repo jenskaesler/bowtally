@@ -665,11 +665,8 @@ class SettingsDialog(QDialog):
         hint.setObjectName("pageSubtitle")
         form_update.addRow("", hint)
 
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
         btn_manual = button("Jetzt prüfen", lambda: self._manual_update_check(service))
-        btn_row.addWidget(btn_manual)
-        form_update.addRow("", btn_row)
+        form_update.addRow("", btn_manual)
         lay.addWidget(box_update)
 
         # Speicherorte
