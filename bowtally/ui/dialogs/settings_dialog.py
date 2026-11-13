@@ -153,8 +153,10 @@ class SettingsDialog(QDialog):
     _NAV_GROUPS = [
         ("VEREINSVERWALTUNG",  [("club", "Vereinsprofil"),
                                  ("contacts", "Vereinsvorstand"),
-                                 ("bank", "Bankdaten"),
-                                 ("design", "Darstellung")]),
+                                 ("bank", "Bankdaten")]),
+        ("DARSTELLUNG",        [("design", "Design"),
+                                 ("ui", "Oberfläche"),
+                                 ("nav", "Navigation")]),
         ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
                                  ("print", "Druck"),
                                  ("email", "E-Mail-Vorlagen")]),
