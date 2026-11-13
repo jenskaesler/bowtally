@@ -1,160 +1,197 @@
-# BowTally
+# 🏹 BowTally
 
-**BowTally** ist eine Windows-Desktop-Anwendung für 3D-Bogenturniere: von der Ausschreibung über
-Anmeldung, Einschreibung und Ergebniseingabe bis zur druckfertigen Ergebnisliste.
+> Turnierverwaltung für 3D-Bogenturniere – von der Ausschreibung bis zur druckfertigen Ergebnisliste.
 
-Die Anwendung ist für Bogenvereine gedacht und ohne Anpassungen nutzbar. Regelwerke,
-Bogenklassen, Startgebühren, Texte, Farben, Druckeinstellungen und Vereinsdaten werden in der
-Anwendung gepflegt.
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
+[![Language](https://img.shields.io/badge/Language-Python%203.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-NC--Copyleft-orange)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-2026.11.1-blue)](CHANGELOG.md)
 
-<!-- Screenshot-Platzhalter: docs/screenshot.png -->
+---
 
-Aktuelle Version: **2026.11.2**, Änderungen siehe [CHANGELOG](CHANGELOG.md).
+## 🤔 Wofür?
 
-BowTally arbeitet vollständig offline. Alle Turnierdaten werden lokal auf dem Gerät gespeichert.
-Es werden keine personenbezogenen Daten oder Turnierdaten an externe Server übertragen.
-Der optionale Nextcloud-Sync überträgt Daten ausschließlich auf expliziten Nutzerwunsch an einen
-selbst betriebenen Server. Weitere Hinweise unter [docs/PRIVACY.md](docs/PRIVACY.md).
+Bogenvereine organisieren 3D-Turniere bislang mit einer Mischung aus Tabellenkalkulation, Word-Vorlagen und handgeschriebenen Listen. BowTally ersetzt das komplett: ein einziges Programm führt durch alle acht Phasen eines Turniers – von der Ausschreibung bis zur Siegerehrung.
 
-## Funktionen
+Die Anwendung läuft vollständig offline. Alle Daten bleiben lokal auf dem Gerät. Es werden keine personenbezogenen Daten oder Turnierdaten an externe Server übertragen. Der optionale Nextcloud-Sync überträgt Daten ausschließlich auf expliziten Nutzerwunsch an einen selbst betriebenen Server. Weitere Hinweise unter [docs/PRIVACY.md](docs/PRIVACY.md).
+
+---
+
+## 🔄 Turnierphasen
+
+```mermaid
+flowchart LR
+    A([🖊️ Entwurf]) --> B([📄 Ausschreibung])
+    B --> C([🔧 Vorbereitung])
+    C --> D([✅ Anmeldung])
+    D --> E([🏁 Einschreibung])
+    E --> F([🎯 Schießen])
+    F --> G([🏆 Auswertung])
+    G --> H([✔️ Abgeschlossen])
+
+    style A fill:#6c757d,color:#fff,stroke:none
+    style B fill:#0d6efd,color:#fff,stroke:none
+    style C fill:#0dcaf0,color:#000,stroke:none
+    style D fill:#198754,color:#fff,stroke:none
+    style E fill:#20c997,color:#fff,stroke:none
+    style F fill:#ffc107,color:#000,stroke:none
+    style G fill:#fd7e14,color:#fff,stroke:none
+    style H fill:#343a40,color:#fff,stroke:none
+```
+
+---
+
+## ✨ Funktionen
 
 ### Turnierablauf
 
-- **Acht Phasen** mit geführtem Ablauf: Entwurf → Ausschreibung → Vorbereitung → Anmeldung →
-  Einschreibung → Schießen → Auswertung → Abgeschlossen.
-  Im Entwurf können alle Turnierdaten frei bearbeitet werden. Ab der Einschreibungsphase sind
-  die Grunddaten gesperrt. Vor jedem Phasenwechsel prüft BowTally die Voraussetzungen. Fehlt
-  etwas Zwingendes, ist der Wechsel gesperrt. Offene Punkte werden als Warnung angezeigt und
-  können bewusst übergangen werden. Jeder Wechsel wird protokolliert.
-- **Aktives Turnier in der Seitenleiste**: Phasenübersicht mit Datum, Knopf „Nächste Phase" und
-  Phasenwechsel-Protokoll. Das zuletzt geöffnete Turnier wird beim Start wiederhergestellt.
-- **Leitfaden** je Phase: Erklärung, Aufgaben mit Direktlinks, Statusampeln für den nächsten
-  Phasenwechsel und eine abhakbare Checkliste (Parcours, Helfer, Auslosung, Einschreibetisch,
-  Siegerehrung, Aushang).
-- **Turnier-Assistent** in neun Schritten: Grunddaten, Regelwerk, Bogenklassen, Parcours,
-  Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
-- **Turnier kopieren**: Ein bestehendes Turnier als Vorlage nutzen. Der Assistent startet
-  vorausgefüllt. Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
-- **Jahreskalender**: Alle Turniere im Monatsraster nach Phase eingefärbt, ICS-Export für
-  externe Kalender-Apps.
+- 🔄 **Acht Phasen** – geführter Ablauf: Entwurf → Ausschreibung → Vorbereitung → Anmeldung → Einschreibung → Schießen → Auswertung → Abgeschlossen. Vor jedem Wechsel prüft BowTally Voraussetzungen: Blocker sperren den Wechsel, Warnungen können bewusst übergangen werden. Jeder Wechsel wird protokolliert.
+- 📋 **Leitfaden** – Erklärung, Aufgaben mit Direktlinks, Statusampeln und abhakbare Checkliste je Phase.
+- 🧙 **Turnier-Assistent** – neun Schritte: Grunddaten, Regelwerk, Bogenklassen, Parcours, Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
+- 📋 **Turnier kopieren** – bestehendes Turnier als Vorlage nutzen; Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
+- 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export.
 
 ### Ausschreibung und Anmeldung
 
-- **Ausschreibungs-PDF** aus den Turnierdaten: Termin und Ablauf, Parcours und Wertung, Klassen,
-  Startgeld, Bankverbindung mit Verwendungszweck, Kontakt und Hinweise. BowTally zeigt an, wenn
-  die Ausschreibung nach Änderungen veraltet ist.
-- **Startgebühren** je Turnier, vorbelegt aus Vorlagen.
-- **Anmeldestatus** je Teilnehmer: gemeldet, bestätigt, eingecheckt, nicht gestartet,
-  abgebrochen, disqualifiziert, zurückgezogen.
-- **Zahlungsstatus** je Teilnehmer: ausstehend, erwartet, bezahlt (mit Betrag und Datum).
-- **Maximale Teilnehmerzahl** mit Auslastungsbalken. Bei voller Belegung sind Zuweisen, Import
-  und Walk-ins gesperrt.
-- **Einnahmenübersicht**: erwartete, eingegangene und ausstehende Beträge je Gebühr.
+- 📄 **Ausschreibungs-PDF** – Termin, Ablauf, Klassen, Startgeld, Bankverbindung und Kontakt aus den Turnierdaten; BowTally zeigt an, wenn die Ausschreibung nach Änderungen veraltet ist.
+- 💶 **Startgebühren** – je Turnier, vorbelegt aus Vorlagen; Einnahmenübersicht mit erwarteten, eingegangenen und ausstehenden Beträgen.
+- ✅ **Anmelde- und Zahlungsstatus** – je Teilnehmer; Schnellaktionen per Rechtsklick und Aktionsleiste.
+- 🔢 **Maximale Teilnehmerzahl** – Auslastungsbalken; bei voller Belegung sind Zuweisen, Import und Walk-ins gesperrt.
 
 ### Turniertag
 
-- **Einschreibe-Ansicht**: Name oder Startnummer eingeben, mit Enter einchecken, Warnung bei
-  offener Zahlung, Walk-ins direkt erfassen, Einschreibeliste drucken.
-- **Ergebniseingabe** komplett per Tastatur: Zahl tippen oder Zone wählen, Enter/↓/↑ wechselt
-  den Teilnehmer, Tab die Scheibe. Name und Summe bleiben beim Scrollen sichtbar. Top-Treffer und
-  Fehlschüsse sind farbig markiert. Jede Eingabe wird sofort gespeichert.
-- **Filter** nach Klasse, Startgruppe und „nur unvollständige"; eine Scheibe lässt sich für alle
-  Teilnehmer auf einmal setzen.
-
-### Turniertag – Planung und Aushang
-
-- **Parcours-Planung**: Alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp und
-  Helferhinweis. Reihenfolge per Drag-and-Drop. PDF-Druck: Aufbauplan und Scheibenplan.
-- **Zeitplan**: Startgruppen mit Startzeit und Dauer. PDF-Druck: Zeitplan-Aushang.
-- **Auslosung**: Automatische Gruppeneinteilung mit Startnummern und Startscheiben,
-  optional getrennt nach Bogenklasse.
-- **Wertungszettel-Vorlagen**: Konfigurierbare Spalten (Name, Typ, Breite) per Editor,
-  vier eingebaute Vorlagen (3D, Feld, Halle, Blasrohr). Ausdruck direkt nach der Auslosung.
-- **Starterfeld-Liste**: Alle Teilnehmer sortiert nach Startnummer oder Gruppe als PDF.
-- **Gruppen-Aushang**: Eine Seite je Startgruppe mit Teilnehmern und Scheibenübersicht.
+- 🏁 **Einschreibe-Ansicht** – Suche nach Name oder Startnummer, Einchecken per Enter, Walk-in-Erfassung, Einschreibeliste drucken.
+- ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert.
+- 🎯 **Auslosung** – automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
+- 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang.
+- 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop; PDF-Druck Aufbauplan und Scheibenplan.
+- 📋 **Wertungszettel-Vorlagen** – konfigurierbare Spalten per Drag-and-Drop-Editor; vier eingebaute Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
 
 ### Auswertung
 
-- **Multi-Runden-Turniere**: bis zu beliebig vielen Runden, jede mit eigenem Regelwerk und
-  Scheibenzahl. Wertung wahlweise je Scheibe, je Runde oder als Gesamtwertung.
-- **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand,
-  einstellbarer Tie-Break.
-- **Druckfertige Ergebnisliste** als PDF: Deckblatt mit Vereinslogo, eine Seite je Klasse.
-- **Preis- und Siegerliste**: Rangliste mit zugewiesenen Preisen je Bogenklasse als PDF.
-- **Urkunden**: Eine Seite je Podiumsplatz mit Platzhalter-Texten als PDF.
-- **Preise**: Preise je Turnier mit Rang, Bogenklasse und Betrag, werden beim Klonen übernommen.
-- **Export** als CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
-- **Turnier-Dashboard**: Teilnehmer, Einnahmen, Ergebnisfortschritt, Klassen, Zeitplan und die
-  nächste offene Aufgabe.
+- 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand, einstellbarer Tie-Break.
+- 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse.
+- 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
+- 📜 **Urkunden** – eine Seite je Podiumsplatz mit konfigurierbaren Platzhaltern (`{name}`, `{klasse}`, `{platz}`, `{punkte}`, `{turniername}`, `{datum}`) als PDF.
+- 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
+- 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung je Scheibe, je Runde oder als Gesamtwertung.
 
 ### Stammdaten
 
-- **Schützen** mit Suche, aktiv/inaktiv, Import aus CSV/XLSX/ODS (Spalten-Zuordnung, Vorschau,
-  Validierung, Umgang mit Duplikaten) und Export.
-- **Regelwerke**: 14 eingebaute Regelwerke (IBO 3D, ASA 3D, WA 3D, DBSV Wald-/Jagdrunde,
-  Feldbogen IFAA bekannt/unbekannt, WA Halle 18 m/25 m, 3D Hunter, NFAA 3D u. a.) und eigene
-  Regelwerke durch Klonen, mit Zonen-Editor.
-- **Bogenklassen**: zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
+- 🏹 **Schützen** – Suche, aktiv/inaktiv; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
+- 📏 **Regelwerke** – 14 eingebaute Regelwerke (IBO 3D, ASA 3D, WA 3D, DBSV Wald-/Jagdrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m, 3D Hunter, NFAA 3D u. a.) plus eigene durch Klonen mit Zonen-Editor.
+- 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
 ### Einstellungen
 
-- **Vereinsvorstand**: Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle hinterlegbar.
-  Im Turnier-Assistenten übernimmt „Übernehmen" die Daten direkt als Turnierkontakt.
-- **Standard-Kontaktperson**: Legt fest, welche Vorstandsrolle bei neuen Turnieren
-  als Kontakt voreingestellt ist.
-- **Vereinsprofil**: Vereinsname, Adresse, Kontakt und Logo.
-- **Bankdaten**: IBAN, BIC und Verwendungszweck-Vorlage mit Platzhalter-Unterstützung.
-- **Design**: Helles/dunkles Theme, Primärfarbe und alle weiteren App-Farben individuell
-  anpassbar, Schriftart wählbar.
-- **Druck**: Papiergröße, Ausrichtung, Vereinslogo auf Ausdrucken, Textvorlagen
-  für Ausschreibungen.
-- **Backup**: Lokales ZIP-Backup, Nextcloud-Upload, automatisches Backup beim Beenden,
-  Wiederherstellung aus Datei.
+- 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
+- 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
+- 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar.
+- 💾 **Backup** – lokales ZIP-Backup, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung aus Datei.
 
-### Bedienung
+---
 
-- Formulare im Seitenpanel mit Prüfung direkt am Feld, Hinweise unten rechts statt
-  Meldungsfenster, Aktionsleiste für ausgewählte Zeilen, Rechtsklick-Menüs.
-- Tastenkürzel: `Strg+N` Neu, `Strg+F` Suchen, `Strg+S` Speichern, `F5` Neu laden,
-  `F1` App-Hilfe öffnen.
-- **App-Hilfe** (F1 oder Seitenleiste): neun Abschnitte mit Platzhalter-Referenz und
-  Tastenkürzel-Übersicht.
-- Darstellung hell, dunkel oder wie Windows; alle Farben und die Schriftart sind in den
-  Einstellungen änderbar.
-- **Resizable Seitenleiste** mit Burger-Button zum Einklappen (Icon-only-Modus).
-- **Datensicherung**: Lokales ZIP-Backup, Nextcloud (WebDAV), automatisches Backup beim
-  Beenden. Wiederherstellung aus einer Backup-Datei direkt in den Einstellungen.
-- **Erststart-Assistent**: Beim ersten Start ohne Vereinsprofil erscheint ein Einrichtungsdialog.
-- **Splash-Screen** beim Start mit Fortschrittsbalken, hell- und dunkelmodusfähig.
+## 📋 Anforderungen
 
-## Schnellstart
+| Komponente | Version |
+|---|---|
+| Windows | 10 oder 11 (64 Bit) |
+| Python | 3.11 oder neuer (nur für Entwicklung) |
+| NSIS | 3.x (nur für Build) |
 
-1. **Einstellungen → Vereinsprofil**: Vereinsname, Kontakt und Logo eintragen.
-2. **Turniere → Neues Turnier**: den Assistenten durchgehen und am Ende
-   „Ausschreibung jetzt generieren" angehakt lassen.
-3. Im **Leitfaden** die Aufgaben der Phase abarbeiten und über **Nächste Phase** in der
-   Seitenleiste weiterschalten.
-4. In der **Anmeldung** Schützen zuweisen oder eine Liste importieren, Anmeldungen bestätigen
-   und Zahlungen verbuchen (Rechtsklick oder Aktionsleiste).
-5. Am Turniertag in der **Einschreibung** einchecken und während des **Schießens** die
-   Ergebnisse eintragen.
-6. In der **Auswertung** die Ergebnisliste erstellen und das Turnier abschließen.
+Für Endanwender ist **keine Python-Installation nötig** – der Installer bringt alles mit.
 
-BowTally ist ein Organisations- und Auswertungswerkzeug. Die Prüfung und offizielle Freigabe
-von Turnierergebnissen obliegt dem Veranstalter.
+---
 
-## Anforderungen
+## 🏗️ Projektstruktur
 
-- Windows 10 oder 11 (64 Bit)
-- Für Endnutzer ist **keine Python-Installation nötig**, der Installer bringt alles mit.
+```
+bowtally/
+│
+├── bowtally/
+│   ├── __version__.py          – Versionsnummer (einzige Quelle der Wahrheit)
+│   ├── database/               – ORM-Modelle, Engine, Alembic-Migrationen, Seed-Daten
+│   ├── services/               – Geschäftslogik (kein UI-Code): Turniere, Teilnehmer,
+│   │                             Wertung, Rangliste, Parcours, Auslosung, Preise, Einstellungen
+│   ├── reports/                – PDF-Erzeugung: Ergebnisliste, Ausschreibung, Einschreibeliste,
+│   │                             Parcours, Zeitplan, Wertungszettel, Urkunden, Preis-/Siegerliste
+│   ├── io/                     – Import/Export CSV, XLSX, ODS
+│   └── ui/
+│       ├── components/         – Wiederverwendbare Widgets (Seitenpanel, Tabelle, Chips, …)
+│       ├── views/              – Seiten (Dashboard, Leitfaden, Turniere, Schützen, …)
+│       ├── dialogs/            – Turnier-Assistent, Auslosung, Einstellungen, Import/Export
+│       └── theme.py            – Stylesheet, Farbpalette und Icons aus den Einstellungen
+│
+├── build/
+│   ├── bowtally.spec           – PyInstaller-Spec
+│   ├── build.bat               – Baut Anwendung (PyInstaller) und Installer (NSIS) in einem Schritt
+│   ├── setup-dev.bat           – Einmaliges Dev-Setup: venv anlegen und Abhängigkeiten installieren
+│   └── setup.nsi               – NSIS-Installer-Skript
+│
+├── tests/                      – pytest
+├── CHANGELOG.md
+├── LICENSE
+└── README.md
+```
 
-## Installation
+---
 
-1. Installer `BowTally-<version>-Setup.exe` von der
-   [Releases-Seite](https://github.com/jenskaesler/bowtally/releases) herunterladen.
-2. Installer ausführen. Eine Desktop-Verknüpfung ist optional.
+## ⚡ Schnellstart
 
-Die Daten liegen im Benutzerprofil:
+### 1. Installieren
+
+Installer `BowTally-<version>-Setup.exe` von der [Releases-Seite](https://github.com/jenskaesler/bowtally/releases) herunterladen und ausführen.
+
+### 2. Einrichten
+
+Beim ersten Start erscheint der Erststart-Assistent. Anschließend unter **Einstellungen → Vereinsprofil** Vereinsname, Kontakt und Logo eintragen.
+
+### 3. Erstes Turnier anlegen
+
+**Turniere → Neues Turnier** – den Assistenten durchgehen; am Ende „Ausschreibung jetzt generieren" angehakt lassen.
+
+### 4. Phasen durchlaufen
+
+Im **Leitfaden** die Aufgaben je Phase abarbeiten und über **Nächste Phase** in der Seitenleiste weiterschalten.
+
+### 5. Turniertag
+
+In der **Einschreibung** einchecken, im **Schießen** Ergebnisse eintragen.
+
+### 6. Auswertung
+
+Ergebnisliste, Urkunden und Preis- und Siegerliste erstellen, Turnier abschließen.
+
+---
+
+## 🔧 Entwicklung
+
+```bat
+git clone https://github.com/jenskaesler/bowtally.git
+cd bowtally
+build\setup-dev.bat
+```
+
+`setup-dev.bat` legt `.venv` an und installiert alle Abhängigkeiten inkl. Dev-Tools (`pytest`, `pyinstaller`).
+
+```bat
+.venv\Scripts\activate
+python -m bowtally.main
+pytest
+```
+
+Mit der Umgebungsvariable `BOWTALLY_DATA_DIR` lässt sich das Datenverzeichnis umlenken (Tests, portable Installation).
+
+### Datenbank-Migrationen
+
+Schema-Verwaltung mit Alembic (`bowtally/database/migrations`). Beim Start wird die Datenbank automatisch migriert. Neue Migration anlegen:
+
+```bat
+cd bowtally\database
+alembic -c alembic.ini revision -m "beschreibung"
+```
+
+### Datenspeicherorte
 
 | Datei | Ort |
 |---|---|
@@ -162,89 +199,45 @@ Die Daten liegen im Benutzerprofil:
 | Log | `%APPDATA%\BowTally\app.log` |
 | Erzeugte PDFs | `%TEMP%\BowTally\` |
 
-Datenbank und Log bleiben bei Updates und bei der Deinstallation erhalten. Beim ersten Start
-einer neuen Version wird die Datenbank automatisch auf den neuen Stand gebracht. Zur
-Datensicherung genügt eine Kopie von `bowtally.db`.
+Datenbank und Log bleiben bei Updates und Deinstallation erhalten. Zur Datensicherung genügt eine Kopie von `bowtally.db`.
 
-## Entwicklung
+---
 
-Voraussetzung: Python 3.11 oder neuer.
+## 🏭 Build
 
-```bash
-git clone https://github.com/jenskaesler/bowtally.git
-cd bowtally
-python -m venv .venv
-.venv\Scripts\activate
-pip install -e .[dev]
-python -m bowtally.main        # oder: bowtally
-pytest                         # Tests
-```
-
-Mit der Umgebungsvariable `BOWTALLY_DATA_DIR` lässt sich das Datenverzeichnis umlenken, etwa für
-Tests oder eine portable Installation.
-
-### Projektstruktur
-
-```
-bowtally/
-  database/   ORM-Modelle, Engine, Alembic-Migrationen, Seed-Daten
-  services/   Geschäftslogik (kein UI-Code): Turniere, Teilnehmer, Wertung, Rangliste,
-              Parcours, Auslosung, Preise, Wertungszettel, Einstellungen
-  reports/    PDFs: Ergebnisliste, Ausschreibung, Einschreibeliste, Parcours, Zeitplan,
-              Wertungszettel, Starterfeld, Gruppen-Aushang, Urkunden, Preis- und Siegerliste
-  io/         Import/Export CSV, XLSX, ODS
-  ui/
-    components/  wiederverwendbare Widgets (Seitenpanel, Tabelle, Hinweise, Chips, …)
-    views/       Seiten (Dashboard, Leitfaden, Turniere, Teilnehmer, Parcours, Zeitplan,
-                 Kalender, Preise, Wertungszettel, Ergebnisse, …)
-    dialogs/     Turnier-Assistent, Auslosung, Einstellungen, Import/Export
-    theme.py     Stylesheet, Farbpalette und Icons aus den Einstellungen
-build/        PyInstaller-Spec, Build-Skript, NSIS-Skript
-tests/        pytest
-```
-
-### Datenbank-Migrationen
-
-Das Schema wird mit Alembic verwaltet (`bowtally/database/migrations`). Beim Start wird die
-Datenbank automatisch auf den neuesten Stand gebracht. Neue Migration anlegen:
-
-```bash
-cd bowtally/database
-alembic -c alembic.ini revision -m "beschreibung"
-```
-
-Neue Einstellungen werden per Migration in `app_settings` eingefügt und erscheinen automatisch
-im Einstellungsdialog.
-
-## Build
-
-Voraussetzungen: das Entwicklungs-venv (siehe oben) und [NSIS 3](https://nsis.sourceforge.io/).
+Voraussetzungen: Dev-venv (siehe oben) und [NSIS 3](https://nsis.sourceforge.io/).
 
 ```bat
 build\build.bat
 ```
 
-Das Skript baut die Anwendung mit PyInstaller und danach den Installer mit NSIS. Die Version
-kommt aus `bowtally/__version__.py`.
+Das Skript baut mit PyInstaller und danach den Installer mit NSIS. Die Version kommt aus `bowtally/__version__.py`.
 
 | Ergebnis | Ort |
 |---|---|
 | Anwendung | `build\dist\BowTally\BowTally.exe` |
 | Installer | `build\dist\BowTally-<version>-Setup.exe` |
 
-Nur den Installer neu bauen: `makensis /DVERSION=2026.10.7 build\setup.nsi`
+Nur den Installer neu bauen:
+
+```bat
+makensis /DVERSION=2026.11.1 build\setup.nsi
+```
 
 ### Release
 
-1. Version in `bowtally/__version__.py` anheben und `CHANGELOG.md` ergänzen.
-2. `build\build.bat` ausführen.
-3. Committen und taggen: `git tag v<version>`, dann `git push origin main --tags`.
+1. `.\bump-version.ps1` ausführen und neue Version wählen (oder `-Patch` / `-Month` / `-Version "..."` übergeben).
+2. `CHANGELOG.md` ergänzen.
+3. `build\build.bat` ausführen.
+4. Committen und taggen: `git tag v<version>`, dann `git push origin main --tags`.
 
-## Lizenz
+---
 
-BowTally steht unter einer eigenen **Nicht-Kommerziellen Copyleft-Lizenz**, siehe
-[LICENSE](LICENSE).
+## 📜 Lizenz
+
+BowTally steht unter einer eigenen **Nicht-Kommerziellen Copyleft-Lizenz**, siehe [LICENSE](LICENSE).
 
 - **Keine kommerzielle Nutzung** ohne ausdrückliche schriftliche Genehmigung.
 - **Copyleft**: Änderungen am Quellcode müssen öffentlich auf GitHub veröffentlicht werden.
-- Für Lizenzanfragen: [mail@jens-kaesler.de](mailto:mail@jens-kaesler.de)
+
+Lizenzanfragen: [mail@jens-kaesler.de](mailto:mail@jens-kaesler.de)

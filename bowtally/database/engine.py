@@ -29,7 +29,7 @@ def init_database(db_url: str | None = None) -> sessionmaker:
 
     engine = create_engine(db_url, future=True)
     event.listen(engine, "connect", _enable_sqlite_fk)
-    _upgrade_to_head(engine)
+    _prepare_schema(engine)
 
     SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 
@@ -41,6 +41,67 @@ def init_database(db_url: str | None = None) -> sessionmaker:
             seed.run(s)
             s.commit()
     return SessionFactory
+
+
+def _has_tables(engine) -> bool:
+    from sqlalchemy import inspect
+    return bool(inspect(engine).get_table_names())
+
+
+def _stamped_revision(engine) -> str | None:
+    from sqlalchemy import inspect, text
+    if "alembic_version" not in inspect(engine).get_table_names():
+        return None
+    with engine.connect() as conn:
+        return conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
+
+
+def _prepare_schema(engine) -> None:
+    """Bring an existing but unversioned schema to head instead of crashing on migration 0001."""
+    from alembic import command
+    from alembic.config import Config
+
+    from bowtally.database.models import Base
+
+    if _has_tables(engine) and not _stamped_revision(engine):
+        # Schema exists but alembic_version is empty (crashed or interrupted first run):
+        # create any missing tables, adopt the current schema as head, then backfill seed data.
+        log.warning("Existing schema without alembic_version - stamping head")
+        Base.metadata.create_all(engine)
+        cfg = Config(str(config.ALEMBIC_INI))
+        cfg.set_main_option("script_location", str(config.MIGRATIONS_DIR))
+        with engine.begin() as conn:
+            cfg.attributes["connection"] = conn
+            command.stamp(cfg, "head")
+        _backfill_missing_seed_data(engine)
+        return
+    _upgrade_to_head(engine)
+
+
+def _backfill_missing_seed_data(engine) -> None:
+    """Insert reference data that normally lives in migrations 0003/0006/0016."""
+    from sqlalchemy import inspect, text
+    from bowtally.database.seed import TOURNAMENT_PHASES
+
+    insp = inspect(engine)
+    tables = set(insp.get_table_names())
+    with engine.begin() as conn:
+        if "tournament_phases" in tables and not conn.execute(
+                text("SELECT 1 FROM tournament_phases LIMIT 1")).scalar():
+            for key, label, order, desc in TOURNAMENT_PHASES:
+                conn.execute(text(
+                    "INSERT INTO tournament_phases (key, label, sort_order, description) "
+                    "VALUES (:k, :l, :o, :d)"),
+                    {"k": key, "l": label, "o": order, "d": desc})
+        if "score_sheet_templates" in tables and not conn.execute(
+                text("SELECT 1 FROM score_sheet_templates LIMIT 1")).scalar():
+            import importlib
+            m16 = importlib.import_module('bowtally.database.migrations.versions.0016_score_sheets_prizes')
+            for tpl in m16._BUILTIN_TEMPLATES:
+                conn.execute(text(
+                    "INSERT INTO score_sheet_templates "
+                    "(name, tournament_type, is_builtin, column_config, header_fields) "
+                    "VALUES (:name, :tournament_type, 1, :column_config, :header_fields)"), tpl)
 
 
 def _upgrade_to_head(engine) -> None:
