@@ -491,6 +491,8 @@ class MainWindow(QMainWindow):
             return
         Toast.show(self, f"Phase zurückgesetzt: {label}", Toast.WARNING)
         context.notify()
+        if self.tournaments.detail.current is not None:
+            self.tournaments.detail.reload()
         current = self.stack.currentWidget()
         if hasattr(current, "refresh"):
             current.refresh()
@@ -532,6 +534,8 @@ class MainWindow(QMainWindow):
             return
         Toast.show(self, f"Phase geändert: {label}", Toast.SUCCESS)
         context.notify()
+        if self.tournaments.detail.current is not None:
+            self.tournaments.detail.reload()
         current = self.stack.currentWidget()
         if hasattr(current, "refresh"):
             current.refresh()

@@ -68,6 +68,15 @@ RULE_IMPORT_FIELDS = [
                 aliases=["rules_json", "sonderregeln (json)", "sonderregeln"]),
 ]
 
+INVENTORY_IMPORT_FIELDS = [
+    ImportField("name", "Bezeichnung", True, aliases=["bezeichnung", "name"]),
+    ImportField("manufacturer", "Hersteller", aliases=["hersteller", "manufacturer"]),
+    ImportField("quantity", "Anzahl", type="int", aliases=["anzahl", "quantity", "menge"]),
+    ImportField("condition", "Zustand", aliases=["zustand", "condition"]),
+    ImportField("notes", "Notizen", aliases=["notizen", "bemerkung", "notes"]),
+    ImportField("active", "Aktiv", type="bool", aliases=["aktiv", "active"]),
+]
+
 DUPLICATE_STRATEGIES = {"skip": "Überspringen", "update": "Aktualisieren", "new": "Immer neu"}
 
 

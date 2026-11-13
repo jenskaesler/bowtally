@@ -4,7 +4,7 @@ import json
 
 from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHeaderView, QHBoxLayout,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QHeaderView, QHBoxLayout,
                                QLineEdit, QPlainTextEdit, QSpinBox, QTableWidgetItem,
                                QToolButton, QVBoxLayout, QWidget)
 
@@ -26,6 +26,15 @@ from bowtally.ui.views.bow_classes_view import READ_ONLY_HINT, builtin_chip
 HEADERS = ["Bezeichnung", "Zonen", "Schüsse/Scheibe", "Nachschuss", "Typ", "Standard"]
 MAX_POINTS = 30
 MAX_SHOTS = 3
+ZONE_TYPES = [
+    ("", "(kein)"),
+    ("kill", "Kill"),
+    ("x", "X-Ring"),
+    ("12", "12-Ring"),
+    ("body", "Body/Vital"),
+    ("hit", "Treffer"),
+    ("miss", "Miss"),
+]
 
 
 def zone_summary(rule) -> str:
@@ -40,8 +49,8 @@ class ZoneEditor(QWidget):
         super().__init__(parent)
         self._zones: list[dict] = []
         self._read_only = False
-        t = self.table = ReorderTable(0, 4)
-        t.setHorizontalHeaderLabels(["", "Zone", "Punkte", ""])
+        t = self.table = ReorderTable(0, 5)
+        t.setHorizontalHeaderLabels(["", "Zone", "Punkte", "Typ", ""])
         t.verticalHeader().hide()
         t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT + 6)
         t.setShowGrid(False)
@@ -53,7 +62,7 @@ class ZoneEditor(QWidget):
         t.setDropIndicatorShown(True)
         h = t.horizontalHeader()
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        for c, w in ((0, 30), (2, 80), (3, 40)):
+        for c, w in ((0, 30), (2, 80), (3, 110), (4, 40)):
             h.setSectionResizeMode(c, QHeaderView.ResizeMode.Fixed)
             t.setColumnWidth(c, w)
         t.setMinimumHeight(240)
@@ -100,19 +109,29 @@ class ZoneEditor(QWidget):
             pts.setEnabled(not self._read_only)
             pts.valueChanged.connect(lambda v, i=r: self._set(i, "points", v))
             t.setCellWidget(r, 2, pts)
+            zone_type = QComboBox()
+            for val, lbl in ZONE_TYPES:
+                zone_type.addItem(lbl, val)
+            cur_zt = z.get("type") or ""
+            zone_type.setCurrentIndex(
+                next((i for i, (v, _) in enumerate(ZONE_TYPES) if v == cur_zt), 0))
+            zone_type.setEnabled(not self._read_only)
+            zone_type.currentIndexChanged.connect(
+                lambda _, i=r, cb=zone_type: self._set(i, "type", cb.currentData()))
+            t.setCellWidget(r, 3, zone_type)
             delete = QToolButton(objectName="iconButton")
             delete.setIcon(QIcon(theme.pixmap("trash", theme.current()["accent"], 16)))
             delete.setToolTip("Zone löschen")
             delete.setEnabled(not self._read_only)
             delete.clicked.connect(lambda _=False, i=r: self._remove(i))
-            t.setCellWidget(r, 3, delete)
+            t.setCellWidget(r, 4, delete)
 
     def _set(self, i, key, value):
         self._zones[i][key] = value.strip() if isinstance(value, str) else value
         self.changed.emit()
 
     def _add(self):
-        self._zones.append({"zone": "", "points": 0})
+        self._zones.append({"zone": "", "points": 0, "type": ""})
         self._rebuild()
         self.table.cellWidget(len(self._zones) - 1, 1).setFocus()
         self.changed.emit()

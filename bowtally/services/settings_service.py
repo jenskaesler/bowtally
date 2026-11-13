@@ -36,6 +36,7 @@ KEY_EMAIL_TPL_DOCS = "email_docs"
 KEY_EMAIL_TPL_RESULTS = "email_results"
 KEY_EMAIL_TPL_WAITLIST = "email_waitlist"
 KEY_EMAIL_TPL_HELPER = "email_helper"
+KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE = "email_tpl_tournament_announce"
 
 COLOR_PREFIX = "color_"
 

@@ -118,6 +118,8 @@ def create_helper(data: dict) -> Helper:
         h = Helper()
         for k in ("first_name", "last_name", "phone", "email", "notes"):
             setattr(h, k, (data.get(k) or "").strip() or None)
+        if "active" in data:
+            h.active = bool(data["active"])
         s.add(h)
         s.flush()
         _ = h.first_name
@@ -130,6 +132,8 @@ def update_helper(helper_id: int, data: dict) -> Helper:
         h = s.get(Helper, helper_id)
         for k in ("first_name", "last_name", "phone", "email", "notes"):
             setattr(h, k, (data.get(k) or "").strip() or None)
+        if "active" in data:
+            h.active = bool(data["active"])
         s.flush()
         _ = h.first_name
         return h

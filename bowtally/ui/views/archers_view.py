@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 """Archer master data: search, modal CRUD, import / export, soft and hard delete."""
-from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QCheckBox, QComboBox, QCompleter, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
+from PySide6.QtCore import QSettings, Qt
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QCompleter, QHBoxLayout,
+                               QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QScrollArea,
+                               QTabWidget, QTableWidget, QTableWidgetItem, QWidget)
 
 from bowtally.io.importer import ARCHER_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
-from bowtally.ui.components.data_table import Cell
+from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import DateField, email_validator
 from bowtally.ui.components.toast import Toast
@@ -30,6 +32,17 @@ class ArcherDialog(RecordDialog):
         super().__init__(
             "Neuer Schütze" if record is None else
             f"{record.first_name} {record.last_name}", parent=parent)
+        if record is not None:
+            main_lay = self.layout()
+            for i in range(main_lay.count()):
+                w = main_lay.itemAt(i).widget() if main_lay.itemAt(i) else None
+                if isinstance(w, QScrollArea):
+                    main_lay.removeWidget(w)
+                    tabs = QTabWidget()
+                    tabs.addTab(w, "Stammdaten")
+                    tabs.addTab(self._build_history(record.id), "Turnierhistorie")
+                    main_lay.insertWidget(i, tabs, 1)
+                    break
         values: dict = {"active": True}
         if record:
             values = {k: getattr(record, k) for k in self.form.fields}
@@ -55,10 +68,60 @@ class ArcherDialog(RecordDialog):
         self.form.add("club", "Verein", club)
         self.form.add("member_number", "Mitgliedsnummer", QLineEdit())
         self.form.add("default_bow_class_id", "Standardklasse", bow_class)
-        self.form.add("email", "E-Mail", QLineEdit(), validator=email_validator)
+        email_field = QLineEdit()
+        self.form.add("email", "E-Mail", email_field, validator=email_validator)
         self.form.add("phone", "Telefon", QLineEdit())
         self.form.add("notes", "Notizen", notes)
         self.form.add("active", "Aktiv", QCheckBox("Aktiv (in Auswahllisten sichtbar)"))
+        notify_cb = QCheckBox("Bei neuen Turnieren per E-Mail benachrichtigen")
+        self.form.add("notify_new_tournament", "Benachrichtigung", notify_cb)
+        # disable notify checkbox when no e-mail address is set
+        def _update_notify(*_):
+            has_email = bool(email_field.text().strip())
+            if not has_email:
+                notify_cb.setChecked(False)
+            notify_cb.setEnabled(has_email)
+        email_field.textChanged.connect(_update_notify)
+        _update_notify()
+
+    def _build_history(self, archer_id: int) -> QWidget:
+        history = md.get_archer_history(archer_id)
+        w = QWidget()
+        lay = QHBoxLayout(w)
+        lay.setContentsMargins(0, 0, 0, 0)
+        if not history:
+            lay.addWidget(QLabel("Noch an keinem Turnier teilgenommen.",
+                                 objectName="pageSubtitle"))
+        else:
+            t = QTableWidget(len(history), 7)
+            t.setHorizontalHeaderLabels(["Turniername", "Datum", "Bogenklasse",
+                                         "Anmeldestatus", "Zahlungsstatus", "Rang", "Punkte"])
+            t.verticalHeader().hide()
+            t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+            t.setShowGrid(False)
+            t.setAlternatingRowColors(True)
+            t.setWordWrap(False)
+            t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+            t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            h = t.horizontalHeader()
+            h.setHighlightSections(False)
+            h.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+            h.setStretchLastSection(True)
+            h.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            for r, row in enumerate(history):
+                date_str = f"{row['date']:%d.%m.%Y}" if row.get('date') else "–"
+                t.setItem(r, 0, QTableWidgetItem(row.get('name') or "–"))
+                t.setItem(r, 1, QTableWidgetItem(date_str))
+                t.setItem(r, 2, QTableWidgetItem(row.get('bow_class') or "–"))
+                t.setItem(r, 3, QTableWidgetItem(row.get('registration_status') or "–"))
+                t.setItem(r, 4, QTableWidgetItem(row.get('payment_status') or "–"))
+                rank = row.get('rank')
+                t.setItem(r, 5, QTableWidgetItem(f"{rank}." if rank else "–"))
+                total = row.get('total')
+                t.setItem(r, 6, QTableWidgetItem(str(total) if total is not None else "–"))
+            lay.addWidget(t)
+        return w
 
     def _do_save(self) -> bool:
         try:

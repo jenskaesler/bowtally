@@ -7,7 +7,7 @@ from bowtally.database.models import Score, ScoringRule, Tournament, TournamentP
 from bowtally.services import ValidationError
 
 RULE_FIELDS = ["name", "description", "ring_values", "max_shots_per_target",
-               "allow_retry_shot", "rules_json"]
+               "allow_retry_shot", "rules_json", "tracked_specials"]
 
 
 # ---------------------------------------------------------------- rules
@@ -41,7 +41,21 @@ def _validate_rule(data: dict) -> dict:
         if not isinstance(z.get("points"), int) or z["points"] < 0:
             raise ValidationError(f"Ungültiger Punktwert für Zone '{name}'.")
         seen.add(name)
-    data["ring_values"] = [{"zone": z["zone"].strip(), "points": z["points"]} for z in zones]
+    data["ring_values"] = [{"zone": z["zone"].strip(), "points": z["points"],
+                            **({} if not z.get("type")
+                               else {"type": z["type"].strip()})}
+                           for z in zones]
+    # auto-derive tracked_specials from zone types if not provided
+    if not data.get("tracked_specials"):
+        _tb = {"kill", "x", "12"}
+        seen: dict[str, str] = {}
+        for z in data["ring_values"]:
+            zt = (z.get("type") or "").strip()
+            if zt and zt not in seen:
+                seen[zt] = z["zone"]
+        data["tracked_specials"] = [{"key": k, "label": lbl, "track": True,
+                                     "tiebreak": k in _tb}
+                                    for k, lbl in seen.items()]
     if int(data.get("max_shots_per_target") or 1) < 1:
         raise ValidationError("Mindestens ein Schuss je Scheibe.")
     return data
@@ -230,3 +244,10 @@ def set_score(participant_id: int, target: int, shot: int,
             s.add(sc)
         sc.points = points
         sc.zone_hit = zone
+        rule = s.get(ScoringRule, t.scoring_rule_id) if t.scoring_rule_id else None
+        sc.specials = {}
+        if rule and zone and rule.tracked_specials:
+            zone_map = {z["zone"]: (z.get("type") or "") for z in rule.ring_values}
+            zt = zone_map.get(zone, "")
+            if zt and any(sp["key"] == zt and sp.get("track") for sp in rule.tracked_specials):
+                sc.specials = {zt: 1}

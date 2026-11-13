@@ -23,23 +23,30 @@ class RankRow:
     shot_points: list[int] = field(default_factory=list)
     total: int = 0
     rank: int = 0
+    specials: dict = field(default_factory=dict)  # {zone_type_key: count}
 
 
-def tiebreak_key(row: RankRow, mode: str, point_levels: list[int]) -> tuple:
+def tiebreak_key(row: RankRow, mode: str, point_levels: list[int],
+                 tiebreak_specials: list[str] = ()) -> tuple:
     """Higher key = better. most_top_scores compares hit counts from the top zone down."""
     if mode == TIEBREAK_MOST_TOP:
-        return (row.total,) + tuple(row.shot_points.count(v) for v in point_levels)
-    return (row.total,)
+        base = (row.total,) + tuple(row.shot_points.count(v) for v in point_levels)
+    else:
+        base = (row.total,)
+    if tiebreak_specials:
+        return base + tuple(row.specials.get(k, 0) for k in tiebreak_specials)
+    return base
 
 
-def rank_rows(rows: list[RankRow], mode: str, point_levels: list[int]) -> list[RankRow]:
+def rank_rows(rows: list[RankRow], mode: str, point_levels: list[int],
+              tiebreak_specials: list[str] = ()) -> list[RankRow]:
     """Sort descending and assign competition ranks (1, 1, 3). Mutates and returns rows."""
     point_levels = sorted({p for p in point_levels if p > 0}, reverse=True)
-    rows.sort(key=lambda r: (tiebreak_key(r, mode, point_levels),
+    rows.sort(key=lambda r: (tiebreak_key(r, mode, point_levels, tiebreak_specials),
                              -(r.start_number or 0)), reverse=True)
     prev = None
     for i, r in enumerate(rows, start=1):
-        key = tiebreak_key(r, mode, point_levels)
+        key = tiebreak_key(r, mode, point_levels, tiebreak_specials)
         r.rank = prev[1] if prev and prev[0] == key else i
         prev = (key, r.rank)
     return rows
@@ -61,6 +68,8 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
     scoring_mode = getattr(t, "scoring_mode", "per_target") or "per_target"
     num_rounds = getattr(t, "num_rounds", 1) or 1
     levels = [z["points"] for z in (t.scoring_rule.ring_values if t.scoring_rule else [])]
+    _tracked = (t.scoring_rule.tracked_specials or []) if t.scoring_rule else []
+    tiebreak_specials = [sp["key"] for sp in _tracked if sp.get("tiebreak")]
 
     by_class: dict[int | None, list[RankRow]] = {bc.id: [] for bc in t.bow_classes}
 
@@ -98,6 +107,7 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
         all_scores = get_all_scores(tournament_id)
         for p in t.participants:
             totals, shots = [], []
+            spec_total: dict[str, int] = {}
             for rn in range(1, num_rounds + 1):
                 for target in range(1, t.num_targets + 1):
                     pts = [all_scores[(p.id, rn, target, s)].points
@@ -105,13 +115,20 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
                            if (p.id, rn, target, s) in all_scores]
                     shots += pts
                     totals.append(sum(pts) if pts else None)
+                    for s in range(1, t.shots_per_target + 1):
+                        sc_obj = all_scores.get((p.id, rn, target, s))
+                        if sc_obj and sc_obj.specials:
+                            for k, v in sc_obj.specials.items():
+                                spec_total[k] = spec_total.get(k, 0) + v
             row = RankRow(participant_id=p.id, start_number=p.start_number,
                           name=f"{p.archer.last_name}, {p.archer.first_name}",
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
-                          target_totals=totals, shot_points=shots, total=sum(shots))
+                          target_totals=totals, shot_points=shots, total=sum(shots),
+                          specials=spec_total)
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     if overall:
-        return {OVERALL: rank_rows(by_class.get(OVERALL, []), mode, levels)}
-    return {cid: rank_rows(rows, mode, levels) for cid, rows in by_class.items()}
+        return {OVERALL: rank_rows(by_class.get(OVERALL, []), mode, levels, tiebreak_specials)}
+    return {cid: rank_rows(rows, mode, levels, tiebreak_specials)
+            for cid, rows in by_class.items()}

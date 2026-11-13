@@ -1,28 +1,70 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyc
-*.egg-info/
-.eggs/
-dist/
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
+*.pyo
+*.pyd
+*.so
 
-# Environments
+# Virtuelle Umgebungen
 .venv/
 venv/
 env/
+.env
 
-# Build
-build/dist/
-build/work/
+# Distribution / Build
+dist/
+build/
+*.egg-info/
+*.egg
+*.whl
 
-# Runtime data
+# PyInstaller
+# .spec beibehalten (wird benoetigt fuer Builds), aber Build-Artefakte ignorieren
+*.manifest
+*.res
+
+# SQLite / Datenbank
 *.db
+*.sqlite
+*.sqlite3
+
+# Alembic
+# alembic.ini beibehalten, aber __pycache__ innerhalb von alembic wird oben abgedeckt
+
+# Logs
 *.log
+app.log
+logs/
+
+# Laufzeit-Daten und nutzerspezifische Konfig
+*.cfg
+!pyproject.toml
+!setup.cfg
+!alembic.ini
 
 # IDE
 .idea/
 .vscode/
+*.suo
+*.user
+.vs/
+
+# Windows
+Thumbs.db
+desktop.ini
+*.lnk
+
+# macOS
+.DS_Store
+
+# Testabdeckung
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Temporaere Dateien
+*.tmp
+*.bak
+*.swp
+*~

@@ -31,6 +31,7 @@ FIXED = 3                                 # start number, name, class
 CELL_ROLE = Qt.ItemDataRole.UserRole + 1  # (participant_id, target, shot)
 CLASS_ROLE = Qt.ItemDataRole.UserRole + 2
 GROUP_ROLE = Qt.ItemDataRole.UserRole + 3
+ZONE_ROLE  = Qt.ItemDataRole.UserRole + 4  # zone_hit string for specials aggregation
 ALL = "__all__"
 HIDDEN_BAR_QSS = ("QScrollBar { background: transparent; } "
                   "QScrollBar::handle { background: transparent; }")
@@ -147,6 +148,9 @@ class ScoringView(QWidget):
         self._stay = None
         self._current_round = 1
         self.cols: list[tuple[int, int]] = []
+        self._tracked_keys: list[str] = []
+        self._spec_labels: list[str] = []
+        self._zone_type_map: dict[str, str] = {}
         self.model = QStandardItemModel(self)
         self.model.itemChanged.connect(self._on_changed)
 
@@ -297,8 +301,14 @@ class ScoringView(QWidget):
         self.mid.setItemDelegate(self.delegate)
         shots = t.shots_per_target
         self.cols = [(tg, s) for tg in range(1, t.num_targets + 1) for s in range(1, shots + 1)]
+        _rule = t.scoring_rule
+        _tracked = [sp for sp in (_rule.tracked_specials or []) if sp.get("track")] if _rule else []
+        self._tracked_keys = [sp["key"] for sp in _tracked]
+        self._spec_labels = [sp["label"] for sp in _tracked]
+        self._zone_type_map = {z["zone"]: (z.get("type") or "") for z in self.zones}
         headers = ["Nr.", "Name", "Klasse"] + [
-            str(tg) if shots == 1 else f"{tg}.{s}" for tg, s in self.cols] + ["Gesamt"]
+            str(tg) if shots == 1 else f"{tg}.{s}" for tg, s in self.cols
+        ] + self._spec_labels + ["Gesamt"]
         with busy():
             scores = sc.get_scores(t.id, self._current_round)
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
@@ -324,9 +334,16 @@ class ScoringView(QWidget):
                 it.setTextAlignment(right_align)
                 it.setData((p.id, tg, s), CELL_ROLE)
                 it.setEditable(not locked)
-                if score is not None and score.zone_hit:
-                    it.setToolTip(score.zone_hit)
+                zone_hit = score.zone_hit if score else None
+                if zone_hit:
+                    it.setToolTip(zone_hit)
+                it.setData(zone_hit, ZONE_ROLE)
                 row.append(it)
+            for _ in self._tracked_keys:
+                spec_it = QStandardItem()
+                spec_it.setEditable(False)
+                spec_it.setTextAlignment(right_align)
+                row.append(spec_it)
             total = QStandardItem()
             total.setEditable(False)
             total.setTextAlignment(right_align)
@@ -335,20 +352,25 @@ class ScoringView(QWidget):
             total.setFont(f)
             row.append(total)
             self.model.appendRow(row)
-            self._update_total(self.model.rowCount() - 1)
+            self._update_right_cols(self.model.rowCount() - 1)
         self._loading = False
         self._recolor_all()
 
+        spec_start = FIXED + len(self.cols)
         last = len(headers) - 1
         for c in range(len(headers)):
             self.left.setColumnHidden(c, c >= FIXED)
-            self.mid.setColumnHidden(c, c < FIXED or c == last)
-            self.right.setColumnHidden(c, c != last)
+            self.mid.setColumnHidden(c, c < FIXED or c >= spec_start)
+            self.right.setColumnHidden(c, c < spec_start)
         self.left.resizeColumnsToContents()
         self.left.setColumnWidth(1, max(self.left.columnWidth(1), 160))
         self.left.setFixedWidth(sum(self.left.columnWidth(c) for c in range(FIXED)) + 2)
+        _spec_w = 48
+        _sb_w = self.right.verticalScrollBar().sizeHint().width()
+        for i in range(len(self._tracked_keys)):
+            self.right.setColumnWidth(spec_start + i, _spec_w)
         self.right.setColumnWidth(last, 76)
-        self.right.setFixedWidth(76 + self.right.verticalScrollBar().sizeHint().width() + 2)
+        self.right.setFixedWidth(len(self._tracked_keys) * _spec_w + 76 + _sb_w + 2)
         for c in range(FIXED, last):
             self.mid.setColumnWidth(c, 52)
         self.mid.setEditTriggers(
@@ -415,10 +437,24 @@ class ScoringView(QWidget):
                 self._recolor(self.model.item(r, c))
         self._loading = was
 
-    def _update_total(self, row: int):
-        total = sum(int(self.model.item(row, c).text()) for c in self._score_columns()
+    def _update_right_cols(self, row: int):
+        score_cols = self._score_columns()
+        total = sum(int(self.model.item(row, c).text()) for c in score_cols
                     if self.model.item(row, c).text().lstrip("-").isdigit())
-        self.model.item(row, FIXED + len(self.cols)).setText(str(total))
+        spec_start = FIXED + len(self.cols)
+        last = spec_start + len(self._tracked_keys)
+        self.model.item(row, last).setText(str(total))
+        if self._tracked_keys:
+            counts = {k: 0 for k in self._tracked_keys}
+            for c in score_cols:
+                zone = self.model.item(row, c).data(ZONE_ROLE)
+                if zone:
+                    zt = self._zone_type_map.get(zone, "")
+                    if zt in counts:
+                        counts[zt] += 1
+            for i, k in enumerate(self._tracked_keys):
+                v = counts[k]
+                self.model.item(row, spec_start + i).setText(str(v) if v else "")
 
     def _on_changed(self, item: QStandardItem):
         if self._loading or item.data(CELL_ROLE) is None:
@@ -430,7 +466,9 @@ class ScoringView(QWidget):
             entry = sc.parse_entry(item.text(), self.zones)
             sc.set_score(pid, target, shot, entry, round_number=rnd)
             item.setText("" if entry is None else str(entry[0]))
-            item.setToolTip(entry[1] or "" if entry else "")
+            zone_hit = entry[1] if entry else None
+            item.setToolTip(zone_hit or "")
+            item.setData(zone_hit, ZONE_ROLE)
             self._mark_saved()
         except Exception as exc:
             show_error(self, exc)
@@ -439,7 +477,7 @@ class ScoringView(QWidget):
             self._stay = QPersistentModelIndex(item.index())
         finally:
             self._recolor(item)
-            self._update_total(item.row())
+            self._update_right_cols(item.row())
             self._loading = False
 
     # ---- per_round / total_only simple table ----------------------------

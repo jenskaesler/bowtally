@@ -46,6 +46,17 @@ def upgrade():
                   sa.Column("specials", sa.JSON(), server_default="'{}'"))
 
     conn = op.get_bind()
+    # Ensure existing rows get a valid JSON default (server_default may store literal "'[]'")
+    conn.execute(sa.text(
+        "UPDATE scoring_rules SET tracked_specials = '[]' "
+        "WHERE tracked_specials IS NULL OR tracked_specials = '' "
+        "OR (tracked_specials NOT LIKE '[%' AND tracked_specials NOT LIKE 'n%')"
+    ))
+    conn.execute(sa.text(
+        "UPDATE scores SET specials = '{}' "
+        "WHERE specials IS NULL OR specials = '' "
+        "OR (specials NOT LIKE '{%' AND specials NOT LIKE 'n%')"
+    ))
     for name, specials in _BACKFILL.items():
         conn.execute(
             sa.text("UPDATE scoring_rules SET tracked_specials = :val WHERE name = :name"),

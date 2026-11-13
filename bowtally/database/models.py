@@ -121,6 +121,7 @@ class Archer(Base):
     default_bow_class_id: Mapped[int | None] = mapped_column(ForeignKey("bow_classes.id"))
     notes: Mapped[str | None] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    notify_new_tournament: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
     default_bow_class: Mapped["BowClass | None"] = relationship()

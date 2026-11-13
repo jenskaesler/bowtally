@@ -151,15 +151,16 @@ def _with_grip(edit):
 
 class SettingsDialog(QDialog):
     _NAV_GROUPS = [
-        ("VEREINSVERWALTUNG", [("club", "Vereinsprofil"),
-                                ("contacts", "Vereinsvorstand"),
-                                ("bank", "Bankdaten")]),
-        ("DARSTELLUNG",       [("design", "Design"),
-                                ("behavior", "Verhalten")]),
-        ("TURNIER",           [("print", "Druck"),
-                                ("email", "E-Mail-Vorlagen")]),
-        ("SYSTEM",            [("backup", "Backup"),
-                                ("nav", "Navigation")]),
+        ("VEREINSVERWALTUNG",  [("club", "Vereinsprofil"),
+                                 ("contacts", "Vereinsvorstand"),
+                                 ("bank", "Bankdaten")]),
+        ("DARSTELLUNG",        [("design", "Design"),
+                                 ("ui", "Oberfläche"),
+                                 ("nav", "Navigation")]),
+        ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
+                                 ("print", "Druck"),
+                                 ("email", "E-Mail-Vorlagen")]),
+        ("SYSTEM",             [("backup", "Backup")]),
     ]
 
     def __init__(self, apply_theme, parent=None):
@@ -180,7 +181,8 @@ class SettingsDialog(QDialog):
             ("contacts", self._contacts_tab()),
             ("bank",     self._bank_tab()),
             ("design",   self._design_tab()),
-            ("behavior", self._category_tab("behavior", "ui")),
+            ("ui",       self._category_tab("ui")),
+            ("behavior", self._category_tab("behavior")),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
             ("backup",   self._backup_tab()),
@@ -958,6 +960,8 @@ class SettingsDialog(QDialog):
             ("Ergebnisversand", "email_results_subject", "email_results_body"),
             ("Wartelisten-Nachrücker", "email_waitlist_subject", "email_waitlist_body"),
             ("Helfer-Bestätigung", "email_helper_subject", "email_helper_body"),
+            ("Turnier-Ankündigung", "email_tpl_tournament_announce_subject",
+             "email_tpl_tournament_announce_body"),
         ):
             box = QGroupBox(title)
             form = self._form(box)

@@ -23,7 +23,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
-- **Seitenleiste**: Hintergrundfarbe entspricht jetzt dem App-Hintergrund – nur die
+- **Seitenleiste**: Hintergrundfarbe entspricht jetzt dem App-Hintergrund. Nur die
   Trennlinie grenzt Sidebar und Inhalt ab.
 - **Kalenderansicht – Styling**: Tageszellen, Mini-Monate und die Ansichts-Umschaltknöpfe
   (Jahr/Monat/Woche) erhalten QSS-basierte Rahmenstile und Hover-Effekte statt
@@ -31,11 +31,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **Kalenderansicht – Layout**: Monats-, Wochen- und Jahresraster füllen jetzt die
   verfügbare Fensterhöhe gleichmäßig aus (Row-Stretch statt trailing Spacer).
 - **Kalenderansicht – Heute-Highlight**: Der heutige Tag wird in Mini-Monaten mit
-  Primary-Farbe hervorgehoben; Turnier-Badges zeigen Pointer-Cursor und emittieren
+  Primary-Farbe hervorgehoben. Turnier-Badges zeigen Pointer-Cursor und emittieren
   Hover-Signale für die Turniervorschau.
-- **Einstellungen → Navigation**: Eintrag „Turniere" ergänzt; Auswahl-Highlight
+- **Einstellungen → Navigation**: Eintrag „Turniere" ergänzt. Auswahl-Highlight
   in Einstellungen und Hilfe nutzt jetzt volle Primary-Füllung statt Border-only.
-- **Leitfaden**: Dauerhaft aus der Seitenleiste ausgeblendet – nur noch über den
+- **Leitfaden**: Dauerhaft aus der Seitenleiste ausgeblendet. Nur noch über den
   Turnier-Navigator erreichbar.
 
 ## [2026.10.9] – 2026-10-31
@@ -60,10 +60,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Rundentabelle im Turnier-Assistenten, Import-Vorschau, Helfer-Verlaufstabelle.
 - **Einstellungen → Navigation**: Listeneinträge erhalten abwechselnde Zeilenhintergründe
   und 36 px Mindesthöhe.
-- **Turnier-Assistent**: Wizard-Stil auf `ModernStyle` umgestellt – keine doppelte
+- **Turnier-Assistent**: Wizard-Stil auf `ModernStyle` umgestellt. Keine doppelte
   Trennlinie mehr über den Navigations-Buttons.
 - **Turnier-Assistent Seite 4**: `setVerticalSpacing(8)` gilt jetzt einheitlich für alle
-  Formular-Seiten; Zeitfelder „Einschreibung ab" und „Schießbeginn" zeigen `--:--`
+  Formular-Seiten. Zeitfelder „Einschreibung ab" und „Schießbeginn" zeigen `--:--`
   als Leer-Zustand.
 
 ## [2026.10.7] – 2026-10-31
@@ -71,7 +71,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 ### Hinzugefügt
 
 - **Parcours-Tab**: Im Turnier-Detail (ab Phase Vorbereitung) können alle Scheiben/Ziele des
-  Parcours gepflegt werden – Nummer, Tier/Scheibe, Distanz, Pfeilstopp-Klasse, Geländetyp,
+  Parcours gepflegt werden: Nummer, Tier/Scheibe, Distanz, Pfeilstopp-Klasse, Geländetyp,
   maximale Gruppengröße und Helferhinweis. Die Reihenfolge ist per Drag-and-Drop änderbar.
   Zwei Druckfunktionen: **Aufbauplan** (alle Scheiben mit Helferhinweis) und **Scheibenplan**
   (kompaktes Layout ohne Notizen) als PDF.
@@ -83,7 +83,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **Wertungszettel-Vorlagen**: Globale Verwaltung von Wertungszettel-Vorlagen mit
   konfigurierbaren Spalten (Name, Typ, Breite) per Drag-and-Drop-Editor. Vier eingebaute
   Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
-- **Auslosung**: Dialog zur automatischen Gruppeneinteilung – Gruppengröße, Rotation
+- **Auslosung**: Dialog zur automatischen Gruppeneinteilung: Gruppengröße, Rotation
   (sequenziell/zufällig), optional getrennt nach Bogenklasse. Weist Startgruppe, Startnummer
   und Startscheibe zu. Optional direkt im Anschluss Wertungszettel drucken.
 - **Preise-Tab**: Preise je Turnier mit Rang, Name, Bogenklasse (optional), Beschreibung und
@@ -131,7 +131,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 ### Behoben
 
 - **X-Button der Dialoge**: Das Setzen von `setWindowFlags()` nach der Konstruktion hat auf
-  Windows den nativen Schließen-Button deaktiviert; der Aufruf wurde entfernt.
+  Windows den nativen Schließen-Button deaktiviert. Der Aufruf wurde entfernt.
 
 ## [2026.10.4] – 2026-10-25
 
@@ -162,8 +162,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 - **UX: Checkbox-Labels** präziser: „Abgeschlossene Turniere anzeigen" und „Inaktive Schützen anzeigen"
 - **Leitfaden → Einnahmen**: Navigiert jetzt direkt zum Turnier-Dashboard statt zur globalen Übersicht
-- **Rechtsklick-Menüs**: Tooltips entfernt; Bedingungen im Teilnehmer-Menü präzisiert (Bestätigen nur für Gemeldet/Warteliste, Zahlung nur bei hinterlegter Gebühr, DNS/Zurückziehen nur für aktive Teilnehmer)
-- **App-Hilfe**: Umbau von Tab-Widget auf geteilte Ansicht (Liste links, Inhalt rechts); 9 Abschnitte auf 7 zusammengeführt; neuer Abschnitt „Rechtsklick-Menüs"
+- **Rechtsklick-Menüs**: Tooltips entfernt. Bedingungen im Teilnehmer-Menü präzisiert (Bestätigen nur für Gemeldet/Warteliste, Zahlung nur bei hinterlegter Gebühr, DNS/Zurückziehen nur für aktive Teilnehmer)
+- **App-Hilfe**: Umbau von Tab-Widget auf geteilte Ansicht (Liste links, Inhalt rechts). 9 Abschnitte auf 7 zusammengeführt. Neuer Abschnitt „Rechtsklick-Menüs"
 
 ## [2026.10.0] – 2026-10-24
 
@@ -176,25 +176,25 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   „Übernehmen" Name, Telefon und E-Mail der gewählten Vorstandsrolle direkt in das Formular.
 - **Standard-Kontaktperson**: Im Vereinsprofil-Tab wählbar, welche Vorstandsrolle beim Erstellen
   neuer Turniere als Kontakt vorbelegt wird.
-- **App-Hilfe** (F1): Dialog mit Inhaltsverzeichnis und neun Abschnitten – Übersicht, Turniere,
+- **App-Hilfe** (F1): Dialog mit Inhaltsverzeichnis und neun Abschnitten: Übersicht, Turniere,
   Schützen, Ergebnisse, Regelwerke, Einstellungen, Platzhalter-Referenz, Tastenkürzel,
   Backup. Enthält alle bisherigen Tastenkürzel-Informationen.
-- **Splash-Screen** beim Start mit Vereinslogo, App-Name, Version und Fortschrittsbalken; passt
+- **Splash-Screen** beim Start mit Vereinslogo, App-Name, Version und Fortschrittsbalken. Passt
   sich dem hellen und dunklen Systemthema an.
 - **Hilfe-Eintrag** in der Seitenleisten-Navigation (neben Einstellungen und Über BowTally).
 
 ### Geändert
 
 - **Turnier kopieren** (vorher „Klonen"): Aktion und Tooltip umbenannt.
-- **Einstellungsbeschriftungen vereinheitlicht**: Verweisung auf kurze, einheitliche Labels für
+- **Einstellungsbeschriftungen vereinheitlicht**: Kurze, einheitliche Labels für
   Sprache, Schriftart, Papiergröße, Format, Tie-Break-Logik, Verwendungszweck und die
   Textvorlagen-Gruppe. Alle Formular-Labels auf einheitliche Breite (130 px) ausgerichtet.
 - **Wizard Nächste-Phase-Button**: Pfeilzeichen (›) aus dem Label entfernt.
 - **Regeldetails-Überschrift** im Turnier-Assistenten wieder sichtbar über der Regelwerksbeschreibung.
 - **Hilfe-Symbol in der Statusleiste** öffnet jetzt die App-Hilfe statt das Tastenkürzel-Formular.
-- **Theme-Umschalter** aus der Seitenleiste entfernt – Darstellung weiterhin in
+- **Theme-Umschalter** aus der Seitenleiste entfernt. Darstellung weiterhin in
   Einstellungen → Design änderbar.
-- **Oberes Hilfe-Menü** entfernt; Hilfe ist über F1, Statusleiste und Seitenleiste erreichbar.
+- **Oberes Hilfe-Menü** entfernt. Hilfe ist über F1, Statusleiste und Seitenleiste erreichbar.
 - **`<code>`-Hintergrund und Tabellenzeilen** in der App-Hilfe passen sich jetzt dem
   Dark Mode an.
 
@@ -213,7 +213,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Einschreibungsphase ist der Turnier-Assistent gesperrt (Button ausgeblendet).
   Datenbank-Migration 0006 fügt die Phase in bestehende Datenbanken ein.
 - **Turnier klonen**: Aus dem Aktionsmenü der Turnierliste lässt sich ein bestehendes Turnier als
-  Vorlage klonen. Der Assistent startet mit vorausgefüllten Daten; Teilnehmer und Ergebnisse
+  Vorlage klonen. Der Assistent startet mit vorausgefüllten Daten. Teilnehmer und Ergebnisse
   werden nicht übernommen.
 - **Dashboard-Kachel „Turnierarchiv"**: Neue Kachel in Zeile 1 zeigt die Anzahl
   abgeschlossener Turniere und führt per Klick zur Turnierliste.
@@ -222,12 +222,12 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **About-Dialog**: Neuer Eintrag „Über BowTally" in der Seitenleiste mit Versionsnummer,
   Kurzbeschreibung, GitHub-Link, Entwicklerinfo und Lizenzhinweis.
 - **Lizenz**: Eigene Nicht-Kommerzielle-Copyleft-Lizenz. Kommerzielle Nutzung erfordert
-  schriftliche Genehmigung; Änderungen müssen auf GitHub veröffentlicht werden.
+  schriftliche Genehmigung. Änderungen müssen auf GitHub veröffentlicht werden.
 
 ### Geändert
 
 - **Dashboard Kacheln neu geordnet**: Zeile 1 zeigt Aktive Turniere, Nächstes Turnier und
-  Turnierarchiv; Zeile 2 zeigt Schützen, Regelwerke und Bogenklassen.
+  Turnierarchiv. Zeile 2 zeigt Schützen, Regelwerke und Bogenklassen.
 - **Aktivitätspanel unter Kacheln**: Das „Letzte Aktivität"-Panel ist zurück unter den
   Dashboard-Kacheln und per vertikalem QSplitter in der Höhe veränderbar.
 - **Einstellungen/Druck-Labels**: „Vereinslogo einfügen" (vorher „Vereinslogo einfügen in")
@@ -245,11 +245,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Behoben
 
-- **Sidebar-Burger**: Icon fehlte → Burger-Button nutzt jetzt `QToolButton` mit Theme-Icon.
-- **Sidebar-Einklappen**: Logo und App-Titel wurden nicht ausgeblendet; beim Aufklappen wurde
+- **Sidebar-Burger**: Icon fehlte. Burger-Button nutzt jetzt `QToolButton` mit Theme-Icon.
+- **Sidebar-Einklappen**: Logo und App-Titel wurden nicht ausgeblendet. Beim Aufklappen wurde
   fälschlicherweise in ein Turnier navigiert (nav-Signale nicht geblockt).
 - **Textboxen Beschreibung/Notizen**: Mehrzeilige Eingabefelder im Vereinsprofil zeigten nur
-  eine Zeile; fixe Höhe (90 px) wie die Textvorlagen-Boxen im Druck-Tab.
+  eine Zeile. Fixe Höhe (90 px) wie die Textvorlagen-Boxen im Druck-Tab.
 
 ## [0.6.0] – 2026-10-20
 
@@ -263,7 +263,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **Backup-Tab in Einstellungen**: Lokales ZIP-Backup (NAS/USB) mit konfigurierbarer
   Aufbewahrungsanzahl, Nextcloud-Upload per WebDAV sowie Wiederherstellung aus einer ZIP-Datei.
 - **Dashboard-Kacheln Regelwerke und Bogenklassen**: Zwei neue klickbare Kacheln auf dem
-  Haupt-Dashboard; ein Klick navigiert direkt zur jeweiligen Ansicht.
+  Haupt-Dashboard. Ein Klick navigiert direkt zur jeweiligen Ansicht.
 - **Aktivitäts-Panel rechts**: Das „Letzte Aktivität"-Panel wurde auf die rechte Seite des
   Haupt-Dashboards verschoben und ist über eine ◀/▶-Schaltfläche ein-/ausblendbar.
 - **Turnier-Dashboard-Kacheln klickbar**: Teilnehmer-, Einnahmen-, Fortschritts- und Phasen-Kachel
@@ -280,7 +280,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   veränderbar und über einen Burger-Button in einen Icon-Only-Modus kollabierbar.
 - **App-Logo klickbar**: Ein Klick auf das Logo oben links navigiert immer zum Haupt-Dashboard.
 - **Check-in-Verbesserungen**: Die Schaltfläche „Als Walk-in erfassen" wurde neben
-  „Einchecken" verschoben (rot), die Enter-Taste löst das Einchecken nicht mehr automatisch aus.
+  „Einchecken" verschoben (rot). Die Enter-Taste löst das Einchecken nicht mehr automatisch aus.
 - **Gebühren-Tab ausgeblendet**: In den Phasen Schießen, Wertung und Abgeschlossen wird der
   Gebühren-Tab im Turnier-Detail ausgeblendet.
 - **Einstellungen-Beschriftungen**: Einheitliche Label-Breite (130 px) und mehrzeilige
@@ -299,7 +299,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 - **Vereinsprofil erweitert**: Bankdaten (Kontoinhaber, IBAN, BIC, Verwendungszweck-Vorlage) und
   Parcour-Beschreibung als neue Felder im Vereinsprofil hinterlegbar.
-- **Einstellungen neu strukturiert**: Fünf Tabs – Vereinsprofil (mit gruppierten Abschnitten),
+- **Einstellungen neu strukturiert**: Fünf Tabs: Vereinsprofil (mit gruppierten Abschnitten),
   Bankdaten, Design, Verhalten, Druck. Das Vereinsprofil ist in Gruppen (Verein, Adresse, Kontakt,
   Parcour-Beschreibung, Notizen, Logo) mit Scroll-Bereich gegliedert.
 - **Vereinsname im Fenstertitel**: Die Titelleiste zeigt „BowTally – [Vereinsname]", sofern ein
@@ -311,7 +311,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **Turnier-Assistent verbessert**:
   - Reiter 1 (Stammdaten): Veranstalter und Ort per Knopf aus dem Vereinsprofil übernehmen.
   - Reiter 2 (Regelwerk): Redesign mit formatierter Regelwerksbeschreibung als Karte rechts.
-  - Reiter 3 (Bogenklassen): Standardmäßig keine Klasse vorausgewählt; neuer „Eigene"-Knopf
+  - Reiter 3 (Bogenklassen): Standardmäßig keine Klasse vorausgewählt. Neuer „Eigene"-Knopf
     wählt alle benutzerdefinierten Bogenklassen aus.
   - Reiter 4 (Konfiguration): Parcour-Beschreibung per Knopf aus den Stammdaten übernehmen.
   - Reiter 7 (Kontakt & Bank): Alle Bankdaten (IBAN, BIC, Kontoinhaber, Verwendungszweck) aus
@@ -331,17 +331,17 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   den Wechsel, Warnungen können bewusst übergangen werden. Jeder Wechsel landet im
   Phasenwechsel-Protokoll.
 - **Turnier-Kontext**: Ein geöffnetes Turnier erscheint oben in der Seitenleiste mit Phasenliste,
-  Knopf „Nächste Phase“ und Protokoll. Es wird beim nächsten Start wiederhergestellt.
+  Knopf „Nächste Phase" und Protokoll. Es wird beim nächsten Start wiederhergestellt.
 - **Leitfaden** je Phase mit Erklärung, Aufgaben und Direktlinks, Statusampeln und abhakbarer
   Checkliste (inklusive Notizen zur Helfereinteilung und Nachbesprechung).
 - **Ausschreibungs-PDF** aus den Turnierdaten und Textvorlagen der Einstellungen. BowTally merkt
-  sich die erste und die letzte Erstellung und zeigt „Ausschreibung veraltet“, wenn sich die Daten
+  sich die erste und die letzte Erstellung und zeigt „Ausschreibung veraltet", wenn sich die Daten
   danach geändert haben.
 - **Startgebühren** je Turnier, vorbelegt aus Vorlagen. Eigene Ansicht zum Bearbeiten.
   Zugewiesene Gebühren können nicht gelöscht werden.
 - **Anmelde- und Zahlungsstatus** je Teilnehmer, mit Status-Chips, Schnellaktionen im
-  Rechtsklick-Menü und Sammelaktionen („N Anmeldungen bestätigen“, „N Zahlungen als eingegangen
-  markieren“).
+  Rechtsklick-Menü und Sammelaktionen („N Anmeldungen bestätigen", „N Zahlungen als eingegangen
+  markieren").
 - **Maximale Teilnehmerzahl** mit Auslastungsbalken. Volle Turniere sperren Zuweisen, Import und
   Walk-ins.
 - **Einschreibe-Ansicht** für den Turniertag: Suche nach Name oder Startnummer, Einchecken per
@@ -354,7 +354,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   und Bankdaten (übernehmbar aus dem Vereinsprofil), Hinweise und Texte. Optional wird die
   Ausschreibung direkt nach dem Speichern erstellt.
 - **Export aller Turnierdaten**: Teilnehmer, Ergebnisse, Rangliste und Gebühren in einer Datei.
-- Filter „Nur unvollständige“ in der Ergebniseingabe.
+- Filter „Nur unvollständige" in der Ergebniseingabe.
 - Neue Einstellungen: Textvorlagen für die Ausschreibung und das Logo am Ende der Ausschreibung.
 
 ### Geändert
@@ -362,8 +362,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - Die Phase ersetzt den bisherigen Status Entwurf/Aktiv/Abgeschlossen. Bestehende Turniere werden
   bei der Migration übernommen (Entwurf → Ausschreibung, Aktiv → Schießen, Abgeschlossen →
   Abgeschlossen).
-- Die Ergebnisliste ist ab der Phase „Schießen“ verfügbar.
-- Die Seitenleiste ist breiter, „Einstellungen“ steht unten.
+- Die Ergebnisliste ist ab der Phase „Schießen" verfügbar.
+- Die Seitenleiste ist breiter, „Einstellungen" steht unten.
 - Der Import von Teilnehmerlisten prüft vorab die freien Plätze.
 
 ### Behoben
@@ -384,9 +384,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Gruppenfilter, Scheibe für alle Teilnehmer setzen.
 - **Teilnehmerverwaltung**: Schützen-Auswahl mit Mehrfachauswahl, Bearbeitung direkt in der
   Tabelle, Sammelaktionen für Klasse und Gruppe.
-- **Auswertung**: Podium in Gold/Silber/Bronze, „ex aequo“ bei Gleichstand, PDF-Erstellung im
+- **Auswertung**: Podium in Gold/Silber/Bronze, „ex aequo" bei Gleichstand, PDF-Erstellung im
   Hintergrund, Export als Auswahlmenü.
-- **Dashboard** mit Karten und „Letzte Aktivität“.
+- **Dashboard** mit Karten und „Letzte Aktivität".
 - Turnier-Assistent mit Fortschrittsanzeige, Klassen-Chips und Bearbeiten-Sprüngen in der
   Zusammenfassung.
 - Globale Tastenkürzel (`Strg+N`, `Strg+F`, `Strg+S`, `F5`, `F1`) und Übersicht über das
@@ -400,7 +400,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Behoben
 
-- „(keine)“ als Standardklasse verhinderte das Speichern eines Schützen.
+- „(keine)" als Standardklasse verhinderte das Speichern eines Schützen.
 - Tabellen waren anfangs absteigend nach der ersten Spalte sortiert.
 - Farbige Zellen in Ergebniseingabe und Rangliste wurden vom Stylesheet überdeckt.
 - Nach Enter in der Ergebniseingabe ging das nächste getippte Zeichen verloren.
@@ -432,7 +432,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   und Farbschema.
 - SQLite-Datenbank mit Alembic-Migrationen, Build mit PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.10.7...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.11.1...HEAD
+[2026.11.1]: https://github.com/jenskaesler/bowtally/compare/v2026.10.9...v2026.11.1
+[2026.10.9]: https://github.com/jenskaesler/bowtally/compare/v2026.10.7...v2026.10.9
 [2026.10.7]: https://github.com/jenskaesler/bowtally/compare/v2026.10.6...v2026.10.7
 [2026.10.6]: https://github.com/jenskaesler/bowtally/compare/v2026.10.4...v2026.10.6
 [2026.10.4]: https://github.com/jenskaesler/bowtally/compare/v2026.10.1...v2026.10.4

@@ -92,6 +92,8 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
                             author=club.get("club_name") or "BowTally", creator="BowTally")
     ranking = ranking_service.compute_ranking(tournament_id)
     class_names = {bc.id: bc.name for bc in t.bow_classes}
+    tracked_spec = [sp for sp in ((t.scoring_rule.tracked_specials or [])
+                                  if t.scoring_rule else []) if sp.get("track")]
 
     # ---- cover page
     story = [Spacer(1, 15 * mm)]
@@ -129,7 +131,8 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
                   Paragraph(_esc(class_names.get(cid, "Ohne Klasse")), st["heading"]),
                   _class_table(ranking[cid], t.num_targets, show_targets, width, st, font,
                                bold, primary, secondary, border,
-                               scoring_mode=scoring_mode, round_labels=round_labels)]
+                               scoring_mode=scoring_mode, round_labels=round_labels,
+                               tracked_specials=tracked_spec)]
     if not classes_with_people:
         story += [PageBreak(), Paragraph("Keine Teilnehmer erfasst.", st["muted"])]
 
@@ -140,7 +143,8 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
 
 def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary, secondary,
                  border, scoring_mode: str = "per_target",
-                 round_labels: list | None = None) -> Table:
+                 round_labels: list | None = None,
+                 tracked_specials: list | None = None) -> Table:
     fixed = {"rank": 11 * mm, "no": 12 * mm, "total": 15 * mm}
     rest = width - sum(fixed.values())
 
@@ -186,15 +190,19 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
         return table
 
     # per_target (default)
+    tracked_specials = tracked_specials or []
+    spec_w_each = 12 * mm
+    total_spec_w = len(tracked_specials) * spec_w_each
+    rest_layout = rest - total_spec_w
     target_w = 0
     compact = False
     if show_targets:
-        target_w = (rest * 0.55) / num_targets
+        target_w = (rest_layout * 0.55) / num_targets
         if target_w < MIN_TARGET_COL:
             compact, target_w = True, 0
-    name_w = (rest - target_w * num_targets) * (0.35 if compact else 0.55)
-    club_w = (rest - target_w * num_targets) * (0.25 if compact else 0.45)
-    detail_w = rest - name_w - club_w if compact else 0
+    name_w = (rest_layout - target_w * num_targets) * (0.35 if compact else 0.55)
+    club_w = (rest_layout - target_w * num_targets) * (0.25 if compact else 0.45)
+    detail_w = rest_layout - name_w - club_w if compact else 0
 
     header = ["Rang", "St.-Nr.", "Name", "Verein"]
     widths = [fixed["rank"], fixed["no"], name_w, club_w]
@@ -204,8 +212,8 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
     elif show_targets:
         header += [str(i) for i in range(1, num_targets + 1)]
         widths += [target_w] * num_targets
-    header.append("Gesamt")
-    widths.append(fixed["total"])
+    header += [sp["label"] for sp in tracked_specials] + ["Gesamt"]
+    widths += [spec_w_each] * len(tracked_specials) + [fixed["total"]]
 
     data = [header]
     style = _base_style(font, bold, secondary, border)
@@ -221,6 +229,9 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
             line.append(Paragraph(" ".join(s or "–" for s in scores), cell))
         elif show_targets:
             line += scores
+        for sp in tracked_specials:
+            v = r.specials.get(sp["key"], 0)
+            line.append(str(v) if v else "")
         line.append(r.total)
         data.append(line)
         _add_podium_style(style, i, r.rank, r.total, primary, bold)

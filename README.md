@@ -7,10 +7,14 @@ Die Anwendung ist für Bogenvereine gedacht und ohne Anpassungen nutzbar. Regelw
 Bogenklassen, Startgebühren, Texte, Farben, Druckeinstellungen und Vereinsdaten werden in der
 Anwendung gepflegt.
 
-![Screenshot](docs/screenshot.png)
 <!-- Screenshot-Platzhalter: docs/screenshot.png -->
 
-Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
+Aktuelle Version: **2026.11.1**, Änderungen siehe [CHANGELOG](CHANGELOG.md).
+
+BowTally arbeitet vollständig offline. Alle Turnierdaten werden lokal auf dem Gerät gespeichert.
+Es werden keine personenbezogenen Daten oder Turnierdaten an externe Server übertragen.
+Der optionale Nextcloud-Sync überträgt Daten ausschließlich auf expliziten Nutzerwunsch an einen
+selbst betriebenen Server. Weitere Hinweise unter [docs/PRIVACY.md](docs/PRIVACY.md).
 
 ## Funktionen
 
@@ -22,14 +26,14 @@ Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
   die Grunddaten gesperrt. Vor jedem Phasenwechsel prüft BowTally die Voraussetzungen. Fehlt
   etwas Zwingendes, ist der Wechsel gesperrt. Offene Punkte werden als Warnung angezeigt und
   können bewusst übergangen werden. Jeder Wechsel wird protokolliert.
-- **Aktives Turnier in der Seitenleiste**: Phasenübersicht mit Datum, Knopf „Nächste Phase“ und
+- **Aktives Turnier in der Seitenleiste**: Phasenübersicht mit Datum, Knopf „Nächste Phase" und
   Phasenwechsel-Protokoll. Das zuletzt geöffnete Turnier wird beim Start wiederhergestellt.
 - **Leitfaden** je Phase: Erklärung, Aufgaben mit Direktlinks, Statusampeln für den nächsten
   Phasenwechsel und eine abhakbare Checkliste (Parcours, Helfer, Auslosung, Einschreibetisch,
   Siegerehrung, Aushang).
 - **Turnier-Assistent** in neun Schritten: Grunddaten, Regelwerk, Bogenklassen, Parcours,
   Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
-- **Turnier kopieren**: Ein bestehendes Turnier als Vorlage nutzen – der Assistent startet
+- **Turnier kopieren**: Ein bestehendes Turnier als Vorlage nutzen. Der Assistent startet
   vorausgefüllt. Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
 - **Jahreskalender**: Alle Turniere im Monatsraster nach Phase eingefärbt, ICS-Export für
   externe Kalender-Apps.
@@ -54,7 +58,7 @@ Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 - **Ergebniseingabe** komplett per Tastatur: Zahl tippen oder Zone wählen, Enter/↓/↑ wechselt
   den Teilnehmer, Tab die Scheibe. Name und Summe bleiben beim Scrollen sichtbar. Top-Treffer und
   Fehlschüsse sind farbig markiert. Jede Eingabe wird sofort gespeichert.
-- **Filter** nach Klasse, Startgruppe und „nur unvollständige“; eine Scheibe lässt sich für alle
+- **Filter** nach Klasse, Startgruppe und „nur unvollständige"; eine Scheibe lässt sich für alle
   Teilnehmer auf einmal setzen.
 
 ### Turniertag – Planung und Aushang
@@ -73,7 +77,7 @@ Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 - **Multi-Runden-Turniere**: bis zu beliebig vielen Runden, jede mit eigenem Regelwerk und
   Scheibenzahl. Wertung wahlweise je Scheibe, je Runde oder als Gesamtwertung.
-- **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo” bei Gleichstand,
+- **Ranglisten** je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand,
   einstellbarer Tie-Break.
 - **Druckfertige Ergebnisliste** als PDF: Deckblatt mit Vereinslogo, eine Seite je Klasse.
 - **Preis- und Siegerliste**: Rangliste mit zugewiesenen Preisen je Bogenklasse als PDF.
@@ -127,7 +131,7 @@ Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 
 1. **Einstellungen → Vereinsprofil**: Vereinsname, Kontakt und Logo eintragen.
 2. **Turniere → Neues Turnier**: den Assistenten durchgehen und am Ende
-   „Ausschreibung jetzt generieren“ angehakt lassen.
+   „Ausschreibung jetzt generieren" angehakt lassen.
 3. Im **Leitfaden** die Aufgaben der Phase abarbeiten und über **Nächste Phase** in der
    Seitenleiste weiterschalten.
 4. In der **Anmeldung** Schützen zuweisen oder eine Liste importieren, Anmeldungen bestätigen
@@ -135,6 +139,9 @@ Aktuelle Version: **2026.11.1** – Änderungen siehe [CHANGELOG](CHANGELOG.md).
 5. Am Turniertag in der **Einschreibung** einchecken und während des **Schießens** die
    Ergebnisse eintragen.
 6. In der **Auswertung** die Ergebnisliste erstellen und das Turnier abschließen.
+
+BowTally ist ein Organisations- und Auswertungswerkzeug. Die Prüfung und offizielle Freigabe
+von Turnierergebnissen obliegt dem Veranstalter.
 
 ## Anforderungen
 
@@ -232,15 +239,6 @@ Nur den Installer neu bauen: `makensis /DVERSION=2026.10.7 build\setup.nsi`
 1. Version in `bowtally/__version__.py` anheben und `CHANGELOG.md` ergänzen.
 2. `build\build.bat` ausführen.
 3. Committen und taggen: `git tag v<version>`, dann `git push origin main --tags`.
-
-## Git-Remote
-
-Das Repository wurde lokal ohne Remote angelegt. Remote hinzufügen:
-
-```bash
-git remote add origin https://github.com/jenskaesler/bowtally.git
-git push -u origin main --tags
-```
 
 ## Lizenz
 

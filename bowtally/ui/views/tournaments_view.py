@@ -270,6 +270,8 @@ class TournamentsView(QWidget):
         super().showEvent(event)
         if self.stack.currentWidget() is self.detail:
             self.detail.reload()
+        elif self.detail.current is not None:
+            self.detail.reload(refresh_tab=False)
 
     def open_tournament(self, tournament_id, tab: str | None = None):
         if tournament_id is not None and self.detail.open(tournament_id, tab):

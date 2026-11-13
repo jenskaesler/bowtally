@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """Vereinsinventar: Scheiben und 3D-Ziele verwalten."""
+from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QHBoxLayout, QLineEdit,
                                 QPlainTextEdit, QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
+from bowtally.io.importer import INVENTORY_IMPORT_FIELDS
 from bowtally.services import inventory_service as inv
-from bowtally.ui import button, show_error
+from bowtally.ui import busy, button, show_error
+from bowtally.ui.dialogs.export_helper import export_button
+from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
+from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.record_dialog import RecordDialog
@@ -89,18 +94,39 @@ class _InventoryTab(ListView):
         self.header.add(button(f"Neuer Eintrag", self.new_item, "primary"))
         self.table.activated.connect(self.edit_item)
         self._items: dict = {}
+        _settings_key = f"inventory/{item_type}/show_inactive"
+        self._show_inactive = QCheckBox("Inaktive anzeigen")
+        _s = QSettings("BowTally", "BowTally")
+        self._show_inactive.setChecked(_s.value(_settings_key, False, type=bool))
+        self._show_inactive.toggled.connect(self.refresh)
+        self._show_inactive.toggled.connect(
+            lambda v: QSettings("BowTally", "BowTally").setValue(_settings_key, v))
+        _footer = QWidget()
+        _fl = QHBoxLayout(_footer)
+        _fl.setContentsMargins(0, 4, 0, 0)
+        _fl.addWidget(self._show_inactive)
+        _fl.addStretch()
+        _fl.addWidget(export_button(self, f"inventar_{item_type}", self._export_sheets))
+        _fl.addWidget(button("Importieren", self._import,
+                             tooltip="Inventar aus CSV, Excel oder OpenDocument importieren"))
+        self.main_layout.insertWidget(2, _footer)
 
     def refresh(self):
-        items = inv.list_items(item_type=self._item_type)
+        show_inactive = self._show_inactive.isChecked()
+        items = inv.list_items(item_type=self._item_type,
+                               active_only=not show_inactive)
         self._items = {i.id: i for i in items}
         self.table.set_rows([[
             i.name,
             i.manufacturer or "",
             i.quantity,
             inv.CONDITION_LABELS.get(i.condition or "", ""),
-            "Ja" if i.active else "Nein",
+            Cell(i.active, chip=("Aktiv", "success") if i.active else ("Inaktiv", "muted")),
         ] for i in items], [i.id for i in items])
-        self.header.set_subtitle(f"{len(items)} Einträge")
+        active_count = sum(1 for i in items if i.active)
+        self.header.set_subtitle(f"{active_count} aktiv" +
+                                 (f" | {len(items) - active_count} inaktiv" if show_inactive
+                                  else ""))
         self.on_selection(self.table.selected_ids())
 
     def on_selection(self, ids):
@@ -149,6 +175,31 @@ class _InventoryTab(ListView):
         if item is None:
             return []
         return [("Bearbeiten", self.edit_item, True), None, ("Löschen", self.delete_item, True)]
+
+    def _export_sheets(self, _filtered: bool):
+        rows = [[i.name, i.manufacturer or "", i.quantity,
+                 inv.CONDITION_LABELS.get(i.condition or "", ""),
+                 i.notes or "", "Ja" if i.active else "Nein"]
+                for i in self._items.values()]
+        label = inv.ITEM_TYPE_LABELS.get(self._item_type, self._item_type) + "n"
+        return [(label, ["Bezeichnung", "Hersteller", "Anzahl", "Zustand",
+                         "Notizen", "Aktiv"], rows)]
+
+    def _import(self):
+        res = run_import(self, INVENTORY_IMPORT_FIELDS,
+                         f"{inv.ITEM_TYPE_LABELS.get(self._item_type, '')} importieren")
+        if res is None:
+            return
+        records, strategy = res
+        try:
+            with busy():
+                r = inv.import_items(records, strategy, self._item_type)
+        except Exception as exc:
+            show_error(self, exc, "Import fehlgeschlagen")
+            return
+        Toast.show(self, f"Import abgeschlossen: {r['created']} neu, {r['updated']} "
+                         f"aktualisiert, {r['skipped']} übersprungen", Toast.SUCCESS)
+        self.refresh()
 
     def showEvent(self, e):
         super().showEvent(e)

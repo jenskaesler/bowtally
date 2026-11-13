@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bow classes: modal CRUD, clone, delete; order by drag and drop (sort_order persisted)."""
+"""Bow classes: modal CRUD, clone, delete; sortable columns (sort_order kept for other contexts)."""
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QPlainTextEdit, QWidget
 
@@ -74,12 +74,11 @@ class BowClassesView(ListView):
                            "Lege eine Bogenklasse an, um Teilnehmer zuordnen zu können.",
                            "Neue Bogenklasse")
         super().__init__("Bogenklassen", HEADERS, empty,
-                         search_placeholder="Bezeichnung oder Kürzel …", reorderable=True)
+                         search_placeholder="Bezeichnung oder Kürzel …")
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neue Bogenklasse", self.new_item, "primary",
                                "Neue Bogenklasse anlegen (Strg+N)"))
         self.table.activated.connect(self.edit_item)
-        self.table.reordered.connect(self._save_order)
         self._classes = {}
         self._show_mine = QCheckBox("Meine Bogenklassen anzeigen")
         _s = QSettings("BowTally", "BowTally")
@@ -106,8 +105,7 @@ class BowClassesView(ListView):
                               bc.abbreviation, bc.age_group, builtin_chip(bc.is_builtin)]
                              for bc in visible], [bc.id for bc in visible])
         custom = sum(not bc.is_builtin for bc in classes)
-        self.header.set_subtitle(f"{len(classes)} Klassen | {custom} benutzerdefiniert | "
-                                 "Reihenfolge per Drag-and-Drop")
+        self.header.set_subtitle(f"{len(classes)} Klassen | {custom} benutzerdefiniert")
         self.on_selection(self.table.selected_ids())
 
     def _selected(self):
@@ -199,7 +197,3 @@ class BowClassesView(ListView):
                          f"aktualisiert, {r['skipped']} übersprungen", Toast.SUCCESS)
         self.refresh()
 
-    def _save_order(self, ids: list):
-        md.reorder_bow_classes(ids)
-        self.refresh()
-        Toast.show(self, "Reihenfolge gespeichert", Toast.SUCCESS)

@@ -11,7 +11,7 @@ from bowtally.database.models import (Archer, BowClass, TournamentParticipant,
 from bowtally.services import ValidationError
 
 ARCHER_FIELDS = ["first_name", "last_name", "birth_date", "club", "member_number", "email",
-                 "phone", "default_bow_class_id", "notes", "active"]
+                 "phone", "default_bow_class_id", "notes", "active", "notify_new_tournament"]
 BOW_CLASS_FIELDS = ["name", "abbreviation", "age_group", "description"]
 
 
@@ -99,6 +99,59 @@ def archer_has_tournaments(archer_id: int) -> bool:
     with session_scope() as s:
         return bool(s.scalar(select(func.count(TournamentParticipant.id))
                              .where(TournamentParticipant.archer_id == archer_id)))
+
+
+def get_archer_history(archer_id: int) -> list[dict]:
+    """Return tournament participation rows for an archer, ordered newest first."""
+    from bowtally.database.models import Tournament
+    from sqlalchemy.orm import joinedload
+    from bowtally.services import ranking_service
+    with session_scope() as s:
+        rows = list(s.scalars(
+            select(TournamentParticipant)
+            .options(joinedload(TournamentParticipant.tournament),
+                     joinedload(TournamentParticipant.bow_class))
+            .where(TournamentParticipant.archer_id == archer_id)
+            .join(TournamentParticipant.tournament)
+            .order_by(Tournament.date.desc())
+        ))
+        ranking_cache: dict[int, dict] = {}
+        result = []
+        for r in rows:
+            tid = r.tournament_id
+            if tid not in ranking_cache:
+                try:
+                    ranking_cache[tid] = {
+                        rr.participant_id: rr
+                        for class_rows in ranking_service.compute_ranking(tid).values()
+                        for rr in class_rows
+                    }
+                except Exception:
+                    ranking_cache[tid] = {}
+            rr = ranking_cache[tid].get(r.id)
+            result.append({"tournament_id": tid,
+                           "name": r.tournament.name,
+                           "date": r.tournament.date,
+                           "bow_class": r.bow_class.name if r.bow_class else "–",
+                           "registration_status": r.registration_status,
+                           "payment_status": r.payment_status,
+                           "participant_id": r.id,
+                           "rank": rr.rank if rr else None,
+                           "total": rr.total if rr else None})
+        return result
+
+
+def get_notifiable_archers() -> list[Archer]:
+    """Archers with notify_new_tournament=True and a valid e-mail address."""
+    with session_scope() as s:
+        rows = list(s.scalars(
+            select(Archer).where(Archer.active.is_(True),
+                                 Archer.notify_new_tournament.is_(True),
+                                 Archer.email.isnot(None),
+                                 Archer.email != "")
+            .order_by(Archer.last_name, Archer.first_name)
+        ))
+        return rows
 
 
 def find_archer(s, member_number: str | None, first_name: str, last_name: str,

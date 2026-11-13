@@ -880,6 +880,33 @@ class TournamentWizard(QWizard):
         parent = self.parent() or self
         Toast.show(parent, f"Turnier '{t.name}' "
                    f"{'gespeichert' if self.tournament else 'erstellt'}", Toast.SUCCESS)
+        if self.tournament is None and self._template is None:
+            try:
+                notify_archers = md.get_notifiable_archers()
+                if notify_archers:
+                    emails = [a.email for a in notify_archers if a.email]
+                    n = len(emails)
+                    if ConfirmDialog.ask(
+                        self,
+                        "Turnier-Ankündigung versenden?",
+                        f"{n} Schütze{'n' if n != 1 else ''} "
+                        f"{'haben' if n != 1 else 'hat'} E-Mail-Benachrichtigungen aktiviert.\n"
+                        f"Ankündigungs-E-Mails jetzt öffnen?",
+                        confirm_text="E-Mails öffnen",
+                    ):
+                        import urllib.parse
+                        from PySide6.QtCore import QUrl
+                        from PySide6.QtGui import QDesktopServices
+                        subj = ss.get(f"{ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE}_subject") or \
+                               f"Neues Turnier: {t.name}"
+                        body = ss.get(f"{ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE}_body") or ""
+                        bcc = ",".join(emails)
+                        mailto = (f"mailto:?bcc={urllib.parse.quote(bcc)}"
+                                  f"&subject={urllib.parse.quote(subj)}"
+                                  f"&body={urllib.parse.quote(body)}")
+                        QDesktopServices.openUrl(QUrl(mailto))
+            except Exception:
+                pass
         if self.generate.isChecked():
             try:
                 from bowtally.reports.announcement import generate_announcement_pdf

@@ -2,8 +2,9 @@
 """Volunteer management: global master data (no tournament) and per-tournament assignments."""
 from PySide6.QtCore import QSettings, Qt, QTime
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDialog, QGroupBox, QHBoxLayout,
-                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit,
-                               QTableWidget, QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
+                               QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+                               QPlainTextEdit, QScrollArea, QTabWidget, QTableWidget,
+                               QTableWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import HELPER_IMPORT_FIELDS
 from bowtally.services import helper_service as hs
@@ -12,7 +13,7 @@ from bowtally.ui import busy, button, show_error
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
-from bowtally.ui.components.data_table import Cell
+from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import email_validator
 from bowtally.ui.components.search_bar import SearchBar
@@ -37,7 +38,7 @@ class _HelperPicker(QDialog):
         self.resize(500, 480)
         self.search = SearchBar("Name suchen …")
         self.list = QListWidget()
-        helpers = hs.list_helpers()
+        helpers = hs.list_helpers(include_inactive=True)
         for h in helpers:
             text = f"{h.last_name}, {h.first_name}"
             details = " · ".join(x for x in (h.phone, h.email) if x)
@@ -45,8 +46,14 @@ class _HelperPicker(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, h.id)
             item.setData(Qt.ItemDataRole.UserRole + 1,
                          f"{text} {h.email or ''} {h.phone or ''}".lower())
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(Qt.CheckState.Unchecked)
+            if h.active:
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Unchecked)
+            else:
+                item.setFlags(Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setToolTip("Helfer ist inaktiv.")
+                item.setForeground(item.foreground().color().darker(160))
             self.list.addItem(item)
         self.search.searchChanged.connect(self._filter)
         self.list.itemActivated.connect(self._toggle)
@@ -99,11 +106,23 @@ class HelperDialog(RecordDialog):
         else:
             title = f"{record.helper.first_name} {record.helper.last_name}"
         super().__init__(title, parent=parent)
-        values: dict = {"confirmed": False}
+        if self._record is not None and not self._is_tournament:
+            main_lay = self.layout()
+            for i in range(main_lay.count()):
+                w = main_lay.itemAt(i).widget() if main_lay.itemAt(i) else None
+                if isinstance(w, QScrollArea):
+                    main_lay.removeWidget(w)
+                    tabs = QTabWidget()
+                    tabs.addTab(w, "Stammdaten")
+                    tabs.addTab(self._build_history(self._record.id), "Turnierbeteiligung")
+                    main_lay.insertWidget(i, tabs, 1)
+                    break
+        values: dict = {"confirmed": False, "active": True}
         if record is not None:
             if not self._is_tournament:
                 values = {"first_name": record.first_name, "last_name": record.last_name,
-                          "phone": record.phone, "email": record.email, "notes": record.notes}
+                          "phone": record.phone, "email": record.email, "notes": record.notes,
+                          "active": record.active}
             else:
                 values = {"first_name": record.helper.first_name,
                           "last_name": record.helper.last_name,
@@ -124,6 +143,8 @@ class HelperDialog(RecordDialog):
         self.form.add("phone", "Telefon", QLineEdit())
         self.form.add("email", "E-Mail", QLineEdit(), validator=email_validator)
         self.form.add("notes", "Notizen", notes)
+        if not self._is_tournament:
+            self.form.add("active", "Status", QCheckBox("Aktiv"))
         if self._is_tournament:
             def _te():
                 w = QTimeEdit()
@@ -136,25 +157,32 @@ class HelperDialog(RecordDialog):
             self.form.add("time_from", "Zeit von", _te())
             self.form.add("time_to", "Zeit bis", _te())
             self.form.add("confirmed", "Bestätigt", QCheckBox("Bestätigung versendet"))
-        elif self._record is not None:
-            self._body_layout.addWidget(self._build_history(self._record.id))
 
     def _build_history(self, helper_id: int) -> QWidget:
         history = hs.get_helper_history(helper_id)
-        grp = QGroupBox("Turnierbeteiligung")
-        lay = QVBoxLayout(grp)
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(0, 0, 0, 0)
         if not history:
             lay.addWidget(QLabel("Noch bei keinem Turnier eingesetzt.",
                                  objectName="pageSubtitle"))
         else:
             t = QTableWidget(len(history), 5)
-            t.setAlternatingRowColors(True)
             t.setHorizontalHeaderLabels(["Turniername", "Datum", "Aufgabe",
                                          "Einsatzzeit", "Bestätigt"])
-            t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
             t.verticalHeader().hide()
-            t.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-            t.setMaximumHeight(180)
+            t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+            t.setShowGrid(False)
+            t.setAlternatingRowColors(True)
+            t.setWordWrap(False)
+            t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+            t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+            t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+            h = t.horizontalHeader()
+            h.setHighlightSections(False)
+            h.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+            h.setStretchLastSection(True)
+            h.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             for r, row in enumerate(history):
                 date_str = f"{row['date']:%d.%m.%Y}" if row.get('date') else "–"
                 tf, tt = row.get('time_from') or "", row.get('time_to') or ""
@@ -164,9 +192,8 @@ class HelperDialog(RecordDialog):
                 t.setItem(r, 2, QTableWidgetItem(row.get('task') or "–"))
                 t.setItem(r, 3, QTableWidgetItem(time_str))
                 t.setItem(r, 4, QTableWidgetItem("Ja" if row.get('confirmed') else "Nein"))
-            t.resizeColumnsToContents()
             lay.addWidget(t)
-        return grp
+        return w
 
     def _do_save(self) -> bool:
         values = self.form.values()
