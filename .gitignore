@@ -13,7 +13,7 @@ env/
 
 # Distribution / Build
 dist/
-build/
+work/
 *.egg-info/
 *.egg
 *.whl

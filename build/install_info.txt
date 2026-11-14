@@ -1,8 +1,0 @@
-﻿BowTally wurde erfolgreich installiert.
-
-Ihre Daten (Datenbank bowtally.db und Logdatei app.log) werden im Benutzerprofil gespeichert:
-
-    %APPDATA%\BowTally
-
-Dieses Verzeichnis bleibt beim Deinstallieren und bei Updates erhalten.
-Für eine Datensicherung genügt es, die Datei bowtally.db zu kopieren.

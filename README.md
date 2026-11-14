@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![Language](https://img.shields.io/badge/Language-Python%203.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-NC--Copyleft-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2026.11.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2026.11.2-blue)](CHANGELOG.md)
 
 ---
 
@@ -21,13 +21,13 @@ Die Anwendung läuft vollständig offline. Alle Daten bleiben lokal auf dem Ger�
 
 ```mermaid
 flowchart LR
-    A([🖊️ Entwurf]) --> B([📄 Ausschreibung])
-    B --> C([🔧 Vorbereitung])
-    C --> D([✅ Anmeldung])
-    D --> E([🏁 Einschreibung])
-    E --> F([🎯 Schießen])
-    F --> G([🏆 Auswertung])
-    G --> H([✔️ Abgeschlossen])
+    A([🖊️ <br> Entwurf]) --> B([📄 <br> Ausschreibung])
+    B --> C([🔧 <br> Vorbereitung])
+    C --> D([✅ <br> Anmeldung])
+    D --> E([🏁 <br> Einschreibung])
+    E --> F([🎯 <br> Schießen])
+    F --> G([🏆 <br> Auswertung])
+    G --> H([✔️ <br> Abgeschlossen])
 
     style A fill:#6c757d,color:#fff,stroke:none
     style B fill:#0d6efd,color:#fff,stroke:none
@@ -128,6 +128,13 @@ bowtally/
 │   ├── setup-dev.bat           – Einmaliges Dev-Setup: venv anlegen und Abhängigkeiten installieren
 │   └── setup.nsi               – NSIS-Installer-Skript
 │
+├── docs/
+│   ├── BowTally_Ersteinrichtung.md – Benutzeranleitung: Installation und Ersteinrichtung
+│   ├── BowTally_Phasensystem.md    – Benutzeranleitung: Turnierphasen Schritt für Schritt
+│   ├── PRIVACY.md                  – Datenschutzhinweise
+│   ├── SECURITY.md                 – Sicherheitshinweise und Disclosure Policy
+│   └── THIRD-PARTY-NOTICES.md      – Drittanbieter-Lizenzen
+│
 ├── tests/                      – pytest
 ├── CHANGELOG.md
 ├── LICENSE
@@ -161,6 +168,18 @@ In der **Einschreibung** einchecken, im **Schießen** Ergebnisse eintragen.
 ### 6. Auswertung
 
 Ergebnisliste, Urkunden und Preis- und Siegerliste erstellen, Turnier abschließen.
+
+---
+
+## 📚 Dokumentation
+
+| Dokument | Inhalt |
+|---|---|
+| [Ersteinrichtung](docs/BowTally_Ersteinrichtung.md) | Installation, Stammdaten, erstes Turnier anlegen |
+| [Phasensystem](docs/BowTally_Phasensystem.md) | Turnierverwaltung Schritt für Schritt – alle acht Phasen erklärt |
+| [Datenschutz](docs/PRIVACY.md) | Datenverarbeitung, Speicherorte, optionaler Nextcloud-Sync |
+| [Sicherheitshinweise](docs/SECURITY.md) | Schwachstellen melden, Kontakt, Disclosure Policy |
+| [Drittanbieter-Lizenzen](docs/THIRD-PARTY-NOTICES.md) | Verwendete Open-Source-Bibliotheken und ihre Lizenzen |
 
 ---
 
@@ -221,7 +240,7 @@ Das Skript baut mit PyInstaller und danach den Installer mit NSIS. Die Version k
 Nur den Installer neu bauen:
 
 ```bat
-makensis /DVERSION=2026.11.1 build\setup.nsi
+makensis /DVERSION=2026.11.2 build\setup.nsi
 ```
 
 ### Release
