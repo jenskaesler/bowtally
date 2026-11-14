@@ -21,10 +21,17 @@ def upgrade():
     for key, value, category, value_type, description in DEFAULT_SETTINGS:
         if not key.startswith("email_"):
             continue
-        bind.execute(
+        # Update existing rows, insert keys that were added after the DB was created
+        updated = bind.execute(
             text("UPDATE app_settings SET value = :v WHERE key = :k"),
             {"v": value, "k": key},
-        )
+        ).rowcount
+        if not updated:
+            bind.execute(
+                text("INSERT INTO app_settings (key, value, category, value_type, description) "
+                     "VALUES (:k, :v, :c, :t, :d)"),
+                {"k": key, "v": value, "c": category, "t": value_type, "d": description},
+            )
 
 
 def downgrade():
