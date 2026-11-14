@@ -319,9 +319,10 @@ class ParticipantsView(QWidget):
         self._act_draw = self._more_menu.addAction("Auslosung …", self._run_draw)
         self._act_starter = self._more_menu.addAction(
             "Starterfeld drucken", self._print_starter)
-        self.btn_more = QPushButton("Weitere ▾")
+        self.btn_more = QPushButton("⋯")
         self.btn_more.setMenu(self._more_menu)
         self.btn_more.setStyleSheet("QPushButton::menu-indicator { image: none; }")
+        self.btn_more.setToolTip("Weitere Aktionen")
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(280)
         bar = QHBoxLayout()

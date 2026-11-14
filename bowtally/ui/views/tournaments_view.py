@@ -212,6 +212,12 @@ class TournamentDetail(QWidget):
             if not visible and self.tabs.currentIndex() == TABS.index(key):
                 self.tabs.setCurrentIndex(0)
         self.tabs.blockSignals(False)
+        # Wenn der aktuelle Tab versteckt wurde, auf den ersten sichtbaren wechseln
+        if not self.tabs.isTabVisible(self.tabs.currentIndex()):
+            for i in range(self.tabs.count()):
+                if self.tabs.isTabVisible(i):
+                    self.tabs.setCurrentIndex(i)
+                    break
 
     def _external_change(self):
         if self.current is not None:

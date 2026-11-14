@@ -331,15 +331,8 @@ class HelpersView(ListView):
             self.action_bar.set_actions(self.selection_info(n, "Helfer", "Helfer"), actions)
         else:
             actions = [Action("Bearbeiten", self.edit_item, tooltip="Helfereinsatz bearbeiten")]
-            if n == 1:
-                th = self._rows.get(ids[0])
-                if th and th.helper.email:
-                    actions.append(Action("Bestätigung senden", lambda: self._mailto(ids[0]),
-                                          tooltip="E-Mail mit Bestätigungs-Vorlage öffnen"))
-                actions.append(Action("Entfernen", self.delete_selected, "danger",
-                                      tooltip="Helfer aus diesem Turnier entfernen"))
-            else:
-                actions.append(Action(f"{n} Helfer entfernen", self.delete_selected, "danger"))
+            actions.append(Action(f"{n} Helfer entfernen" if n > 1 else "Entfernen",
+                                  self.delete_selected, "danger"))
             self.action_bar.set_actions(self.selection_info(n, "Helfer", "Helfer"), actions)
 
     def context_entries(self, row_id):
