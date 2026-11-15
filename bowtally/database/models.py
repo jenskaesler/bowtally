@@ -92,6 +92,8 @@ class ScoringRule(Base):
     allow_retry_shot: Mapped[bool] = mapped_column(Boolean, default=False)
     rules_json: Mapped[dict | None] = mapped_column(JSON, default=dict)
     tracked_specials: Mapped[list] = mapped_column(JSON, default=list)
+    tournament_rules: Mapped[str | None] = mapped_column(Text)
+    participation_conditions: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
 

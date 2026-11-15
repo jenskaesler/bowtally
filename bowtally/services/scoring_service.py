@@ -7,7 +7,8 @@ from bowtally.database.models import Score, ScoringRule, Tournament, TournamentP
 from bowtally.services import ValidationError
 
 RULE_FIELDS = ["name", "description", "ring_values", "max_shots_per_target",
-               "allow_retry_shot", "rules_json", "tracked_specials"]
+               "allow_retry_shot", "rules_json", "tracked_specials",
+               "tournament_rules", "participation_conditions"]
 
 
 # ---------------------------------------------------------------- rules
