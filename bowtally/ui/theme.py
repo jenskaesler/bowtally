@@ -557,6 +557,14 @@ ICONS = {
     "calendar": '<rect x="3.5" y="5" width="17" height="15" rx="2"/>'
                 '<path d="M3.5 10h17M8 3v4M16 3v4"/>',
     "file": '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+    "edit": '<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+    "copy": '<rect x="9" y="9" width="13" height="13" rx="2"/>'
+            '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    "mail": '<rect x="2" y="4" width="20" height="16" rx="2"/>'
+            '<path d="m22 7-10 6L2 7"/>',
+    "money": '<circle cx="12" cy="12" r="9"/>'
+             '<path d="M12 6.5v11M15 8.5c0-1.4-1.3-2.5-3-2.5s-3 .9-3 2.2c0 3 6 1.6 6 4.6'
+             ' 0 1.3-1.3 2.2-3 2.2s-3-1.1-3-2.5"/>',
     "menu": '<path d="M3 6h18M3 12h18M3 18h18"/>',
     "arrow-right": '<path d="M5 12h14M14 6l6 6-6 6"/>',
     "eye": '<path d="M2 12c2-5 5-7 10-7s8 2 10 7c-2 5-5 7-10 7s-8-2-10-7z"/>'

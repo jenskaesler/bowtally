@@ -13,7 +13,18 @@ from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.search_bar import SearchBar
 
-_CONTEXT_ICONS = {"Bearbeiten": "edit", "Löschen": "trash", "Entfernen": "trash"}
+_CONTEXT_ICONS = {
+    "Als Standard setzen": "check",
+    "Bearbeiten": "edit",
+    "Klasse ändern …": "edit",
+    "Kopieren": "copy",
+    "Löschen": "trash",
+    "Entfernen": "trash",
+    "Öffnen": "arrow-right",
+    "Turnier öffnen": "arrow-right",
+    "Wieder aktivieren": "check-circle",
+    "Als inaktiv markieren": "eye-off",
+}
 
 
 def menu(parent, entries) -> QMenu:
