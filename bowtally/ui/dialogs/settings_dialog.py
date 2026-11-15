@@ -662,8 +662,8 @@ class SettingsDialog(QDialog):
         service = UpdateService(config.APP_DATA_DIR)
         btn_manual = button("Jetzt prüfen", lambda: self._manual_update_check(service))
         check_row = QHBoxLayout()
+        check_row.setAlignment(Qt.AlignVCenter)
         check_row.addWidget(self._update_check)
-        check_row.addStretch()
         check_row.addWidget(btn_manual)
         form_update.addRow("", check_row)
 
