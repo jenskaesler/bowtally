@@ -237,7 +237,7 @@ class TournamentDetail(QWidget):
             f"{t.scoring_rule.name if t.scoring_rule else '–'} · "
             f"{t.num_targets} Scheiben × {t.shots_per_target} Schuss · "
             f"{len(t.participants)} Teilnehmer")
-        edit_locked = ts.phase_index(t.phase) >= ts.phase_index("checkin")
+        edit_locked = ts.phase_index(t.phase) >= ts.phase_index("preparation")
         self.btn_edit.setVisible(not edit_locked)
         if refresh_tab:
             self.tabs.currentWidget().set_tournament(t)

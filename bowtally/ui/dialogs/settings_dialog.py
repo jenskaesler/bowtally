@@ -657,16 +657,19 @@ class SettingsDialog(QDialog):
         self._update_check.setChecked(ss.get_bool("update_check_enabled"))
         self._update_check.toggled.connect(
             lambda v: ss.set_value("update_check_enabled", "true" if v else "false"))
-        form_update.addRow("", self._update_check)
 
         from bowtally.updater.update_service import UpdateService
         service = UpdateService(config.APP_DATA_DIR)
+        btn_manual = button("Jetzt prüfen", lambda: self._manual_update_check(service))
+        check_row = QHBoxLayout()
+        check_row.addWidget(self._update_check)
+        check_row.addStretch()
+        check_row.addWidget(btn_manual)
+        form_update.addRow("", check_row)
+
         hint = QLabel(f"Letzte Prüfung: {service.last_check_str()}")
         hint.setObjectName("pageSubtitle")
         form_update.addRow("", hint)
-
-        btn_manual = button("Jetzt prüfen", lambda: self._manual_update_check(service))
-        form_update.addRow("", btn_manual)
         lay.addWidget(box_update)
 
         # Speicherorte

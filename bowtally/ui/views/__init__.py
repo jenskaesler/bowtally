@@ -4,6 +4,7 @@ action bar for the selection and an optional side drawer for create/edit."""
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QHBoxLayout, QMenu, QVBoxLayout, QWidget
 
+from bowtally.ui import theme
 from bowtally.ui.components.action_bar import ActionBar
 from bowtally.ui.components.data_table import DataTable
 from bowtally.ui.components.drawer import SideDrawer
@@ -12,17 +13,34 @@ from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.search_bar import SearchBar
 
+_CONTEXT_ICONS = {"Bearbeiten": "edit", "Löschen": "trash", "Entfernen": "trash"}
+
 
 def menu(parent, entries) -> QMenu:
-    """entries: (text, callback, enabled) or None for a separator."""
+    """entries: (text, callback, enabled) or None for a separator.
+
+    Icon comes from the _CONTEXT_ICONS mapping by menu text. Destructive entries
+    (Löschen/Entfernen) are moved to the end of the menu.
+    """
     m = QMenu(parent)
+    destructive = []
+    rest = []
     for e in entries:
+        if e is None:
+            rest.append(e)
+            continue
+        text = e[0]
+        (destructive if text.split(" …")[0] in ("Löschen", "Entfernen") else rest).append(e)
+    for e in rest + destructive:
         if e is None:
             m.addSeparator()
             continue
         text, callback, enabled = (list(e) + [True])[:3]
         act = QAction(text, m)
         act.setEnabled(enabled)
+        icon_name = _CONTEXT_ICONS.get(text.split(" …")[0])
+        if icon_name:
+            act.setIcon(theme.icon(icon_name))
         act.triggered.connect(callback)
         m.addAction(act)
     return m

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Participant management of one tournament: picker, registration / payment status,
 inline editing, bulk actions, capacity limit and import."""
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QSize, Qt
 from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDateEdit, QDialog, QDoubleSpinBox,
                                QFormLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
                                QMenu, QPushButton, QRadioButton, QVBoxLayout, QWidget)
@@ -11,7 +11,7 @@ from bowtally.services import master_data_service as md
 from bowtally.services import participant_service as ps
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.ui import busy, button, restore_geom, save_geom, show_error
+from bowtally.ui import busy, button, restore_geom, save_geom, show_error, theme
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
@@ -319,8 +319,11 @@ class ParticipantsView(QWidget):
         self._act_draw = self._more_menu.addAction("Auslosung …", self._run_draw)
         self._act_starter = self._more_menu.addAction(
             "Starterfeld drucken", self._print_starter)
-        self.btn_more = QPushButton("⋯")
+        self.btn_more = QPushButton()
         self.btn_more.setMenu(self._more_menu)
+        self.btn_more.setIcon(theme.icon("menu"))
+        self.btn_more.setIconSize(QSize(16, 16))
+        self.btn_more.setFixedSize(28, 28)
         self.btn_more.setStyleSheet("QPushButton::menu-indicator { image: none; }")
         self.btn_more.setToolTip("Weitere Aktionen")
         self.capacity = CapacityBar()
