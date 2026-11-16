@@ -134,7 +134,7 @@ def test_internal_notes_shown_in_guide_when_closed_and_on_dashboard(make_tournam
     from bowtally.ui.views.guide_view import GuideView
     t = make_tournament(internal_notes="Intern: Schlüssel beim Platzwart")
     dash = TournamentDashboard()
-    card = dash._phase_card(ts.get_tournament(t.id))
+    card = dash._notes_card(ts.get_tournament(t.id))
     assert any(lbl.text() == "Intern: Schlüssel beim Platzwart" for lbl in card.findChildren(QLabel))
     with session_scope() as s:
         s.get(Tournament, t.id).phase = "closed"
@@ -155,3 +155,9 @@ def test_burger_button_with_menu_has_no_qt_menu_indicator(app):
     from bowtally.ui import burger_button
     b = burger_button("x", menu=QMenu())
     assert b.menu() is None and b.size().width() == b.size().height() == 34
+
+
+def test_mail_html_body_is_always_10pt():
+    from bowtally.ui.utils.mailto import _html_body
+    assert "font-size:10pt" in _html_body("a\nb", "") and "font-family" not in _html_body("a", "")
+    assert "font-family:'Arial';font-size:10pt" in _html_body("a", "Arial")

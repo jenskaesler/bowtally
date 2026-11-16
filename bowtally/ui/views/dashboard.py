@@ -410,6 +410,16 @@ class TournamentDashboard(QWidget):
         self.grid.addWidget(self._classes_card(t), 1, 1 if show_progress else 0,
                             1, 1 if show_progress else 2)
         self.grid.addWidget(self._schedule_card(t), 1, 2)
+        if t.internal_notes:
+            self.grid.addWidget(self._notes_card(t), 2, 0, 1, 3)
+
+    def _notes_card(self, t):
+        card, c = _card("Notizen")
+        text = QLabel(t.internal_notes)
+        text.setWordWrap(True)
+        text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        c.addWidget(text)
+        return card
 
     def _participants_card(self, t, stats):
         card, c = _card("Teilnehmer", on_click=lambda: self.action.emit("participants"))
@@ -506,11 +516,6 @@ class TournamentDashboard(QWidget):
         text = QLabel(task.text if task else "Alle Aufgaben dieser Phase sind erledigt.")
         text.setWordWrap(True)
         c.addWidget(text)
-        if t.internal_notes:
-            c.addWidget(QLabel("Notizen:", objectName="fieldLabel"))
-            n = QLabel(t.internal_notes)
-            n.setWordWrap(True)
-            c.addWidget(n)
         c.addStretch()
         row = QHBoxLayout()
         row.addWidget(button("Zum Leitfaden", lambda: self.action.emit("guide"), "primary",

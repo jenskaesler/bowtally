@@ -47,22 +47,24 @@ flowchart LR
 
 - 🔄 **Acht Phasen** – geführter Ablauf: Entwurf → Ausschreibung → Vorbereitung → Anmeldung → Einschreibung → Schießen → Auswertung → Abgeschlossen. Vor jedem Wechsel prüft BowTally Voraussetzungen: Blocker sperren den Wechsel, Warnungen können bewusst übergangen werden. Jeder Wechsel wird protokolliert.
 - 📋 **Leitfaden** – Erklärung, Aufgaben mit Direktlinks, Statusampeln und abhakbare Checkliste je Phase.
-- 🧙 **Turnier-Assistent** – neun Schritte: Grunddaten, Regelwerk, Bogenklassen, Parcours, Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Texte, Zusammenfassung.
+- 🧙 **Turnier-Assistent** – acht Schritte: Grunddaten (mit internen Notizen), Konfiguration (Regelwerk und Runden), Bogenklassen, Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Hinweise und Texte, Zusammenfassung.
 - 📋 **Turnier kopieren** – bestehendes Turnier als Vorlage nutzen; Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
+- 📝 **Notizen** – freies Textfeld je Turnier (interne Notizen aus dem Assistenten landen hier); erscheint nie in der Ausschreibung, wird auf dem Dashboard und im abgeschlossenen Leitfaden angezeigt und im Turnier-Export mitgeliefert.
 - 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export.
 
 ### Ausschreibung und Anmeldung
 
-- 📄 **Ausschreibungs-PDF** – Termin, Ablauf, Klassen, Startgeld, Bankverbindung und Kontakt aus den Turnierdaten; BowTally zeigt an, wenn die Ausschreibung nach Änderungen veraltet ist.
+- 📄 **Ausschreibungs-PDF** – Termin, Ablauf, Klassen, Startgeld, Bankverbindung und Kontakt aus den Turnierdaten; BowTally zeigt an, wenn die Ausschreibung nach Änderungen veraltet ist. Nach dem Erzeugen öffnet sich ein E-Mail-Entwurf mit dem PDF im Anhang. Allgemeine Turnierregeln und Teilnahmebedingungen (global unter Regelwerke → Turnierregeln gepflegt) werden als Zusatzseite angehängt.
 - 💶 **Startgebühren** – je Turnier, vorbelegt aus Vorlagen; Einnahmenübersicht mit erwarteten, eingegangenen und ausstehenden Beträgen.
+- ✉️ **E-Mail-Vorlagen** – Ausschreibung, Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Helfer-Bestätigung, Ergebnisversand; Platzhalter und Vereinslogo in der Signatur, Schriftart aus den Einstellungen. Schützen können einzeln für den Ergebnisversand per E-Mail vorgemerkt werden.
 - ✅ **Anmelde- und Zahlungsstatus** – je Teilnehmer; Schnellaktionen per Rechtsklick und Aktionsleiste.
-- 🔢 **Maximale Teilnehmerzahl** – Auslastungsbalken; bei voller Belegung sind Zuweisen, Import und Walk-ins gesperrt.
+- 🔢 **Maximale Teilnehmerzahl** – Auslastungsbalken; bei voller Belegung sind Zuweisen und Import gesperrt, Walk-ins bleiben möglich.
 
 ### Turniertag
 
 - 🏁 **Einschreibe-Ansicht** – Suche nach Name oder Startnummer, Einchecken per Enter, Walk-in-Erfassung, Einschreibeliste drucken.
 - ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert.
-- 🎯 **Auslosung** – automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
+- 🎯 **Auslosung** – (nur wenn im Turnier-Assistenten „Teilnehmer per Auslosung einteilen“ gewählt wurde) automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
 - 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang.
 - 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop; PDF-Druck Aufbauplan und Scheibenplan.
 - 📋 **Wertungszettel-Vorlagen** – konfigurierbare Spalten per Drag-and-Drop-Editor; vier eingebaute Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
@@ -70,9 +72,9 @@ flowchart LR
 ### Auswertung
 
 - 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand, einstellbarer Tie-Break.
-- 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse.
+- 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse; mit dem Erstellen wird die Ergebniseingabe gesperrt. Versand per E-Mail mit PDF im Anhang an die vorgemerkten Schützen.
 - 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
-- 📜 **Urkunden** – eine Seite je Podiumsplatz mit konfigurierbaren Platzhaltern (`{name}`, `{klasse}`, `{platz}`, `{punkte}`, `{turniername}`, `{datum}`) als PDF.
+- 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand) als PDF.
 - 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
 - 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung je Scheibe, je Runde oder als Gesamtwertung.
 
@@ -80,6 +82,8 @@ flowchart LR
 
 - 🏹 **Schützen** – Suche, aktiv/inaktiv; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
 - 📏 **Regelwerke** – 14 eingebaute Regelwerke (IBO 3D, ASA 3D, WA 3D, DBSV Wald-/Jagdrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m, 3D Hunter, NFAA 3D u. a.) plus eigene durch Klonen mit Zonen-Editor.
+- 🙋 **Helfer** – Stammdaten mit aktiv/inaktiv; je Turnier Einteilung mit Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung.
+- 📦 **Inventar und Logbuch** – Scheiben und 3D-Ziele verwalten; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
 ### Einstellungen
@@ -87,7 +91,9 @@ flowchart LR
 - 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
 - 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
 - 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar.
-- 💾 **Backup** – lokales ZIP-Backup, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung aus Datei.
+- 💾 **Backup** – lokales ZIP-Backup mit allen Daten (JSON), Vereinslogo und Prüfdatei `bowtally.info` (Typ, Version, Zeitstempel), Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung aus der ZIP-Datei.
+- 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
+- ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
 
 ---
 
@@ -155,7 +161,7 @@ Beim ersten Start erscheint der Erststart-Assistent. Anschließend unter **Einst
 
 ### 3. Erstes Turnier anlegen
 
-**Turniere → Neues Turnier** – den Assistenten durchgehen; am Ende „Ausschreibung jetzt generieren" angehakt lassen.
+**Turniere → Neues Turnier** – den Assistenten durchgehen; anschließend im Leitfaden das Ausschreibungs-PDF generieren.
 
 ### 4. Phasen durchlaufen
 
@@ -216,9 +222,9 @@ alembic -c alembic.ini revision -m "beschreibung"
 |---|---|
 | Datenbank | `%APPDATA%\BowTally\bowtally.db` |
 | Log | `%APPDATA%\BowTally\app.log` |
-| Erzeugte PDFs | `%TEMP%\BowTally\` |
+| Erzeugte PDFs und Exporte | Export-Ordner (Standard: Downloads, in den Einstellungen änderbar) |
 
-Datenbank und Log bleiben bei Updates und Deinstallation erhalten. Zur Datensicherung genügt eine Kopie von `bowtally.db`.
+Datenbank und Log bleiben bei Updates und Deinstallation erhalten. Zur Datensicherung das Backup in den Einstellungen nutzen (enthält auch das Vereinslogo); alternativ genügt eine Kopie von `bowtally.db`.
 
 ---
 

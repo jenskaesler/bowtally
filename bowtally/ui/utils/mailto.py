@@ -71,9 +71,14 @@ def _font_family() -> str:
     return family if family and QFontDatabase.hasFamily(family) else ""
 
 
+MAIL_FONT_SIZE_PT = 10
+
+
 def _html_body(body: str, font: str) -> str:
+    """HTML mail body: font size always 10 pt, font family only if installed."""
     inner = "<br>".join(html.escape(line) for line in body.split("\n"))
-    return f'<div style="font-family:\'{font}\'">{inner}</div>'
+    family = f"font-family:'{font}';" if font else ""
+    return f'<div style="{family}font-size:{MAIL_FONT_SIZE_PT}pt">{inner}</div>'
 
 
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
@@ -124,11 +129,7 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
         if bcc:
             msg["Bcc"] = bcc
         msg["Subject"] = subj
-        font = _font_family()
-        if font:
-            msg.set_content(_html_body(body, font), subtype="html", charset="utf-8")
-        else:
-            msg.set_content(body)  # font not installed: keep the mail client default
+        msg.set_content(_html_body(body, _font_family()), subtype="html", charset="utf-8")
         msg.add_attachment(Path(attachment).read_bytes(), maintype="application",
                            subtype="pdf", filename=Path(attachment).name)
         # shortcut: temp .eml files are not cleaned up, fine for a few KB-MB per mail

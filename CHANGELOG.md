@@ -6,6 +6,120 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **📜 Urkunden – neues Layout** — Genau eine A4-Seite je Podiumsplatz und Klasse mit
+  Doppelrahmen, Vereinslogo und -name, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten,
+  Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand). Zu lange Namen werden
+  automatisch verkleinert.
+- **💾 Backup als ZIP** — Enthält `backup.json` mit allen Tabellen (zusätzlich Aktivitätslog,
+  Backup-Log, Turnier-Bogenklassen), das Vereinslogo und die Prüfdatei `bowtally.info`
+  (Typ, App- und Schema-Version, Zeitstempel). Die Wiederherstellung validiert die Prüfdatei
+  und legt das Logo wieder im Programmverzeichnis ab. Alte JSON-Backups werden nicht mehr
+  importiert.
+- **⚙️ Einstellungen – Speichern-Button** — „Speichern" ist grau und wird rot, sobald sich
+  etwas geändert hat; beim Schließen mit ungespeicherten Änderungen erscheint eine Rückfrage.
+- **📝 Notizen im Turnierdialog** — „Notizen (intern)" auf Seite 1 wird als Turniernotiz
+  gespeichert. Im Dashboard und im Leitfaden (Phase „Abgeschlossen") erscheinen die Notizen
+  jeweils in einer eigenen Box.
+- **ℹ️ Über BowTally** — Changelog wird aus `CHANGELOG.md` geladen (Installation:
+  `docs\CHANGELOG.md`), statische Links zu Changelog und Releases auf GitHub.
+- **❓ Hilfe** — Von 8 auf 20 Abschnitte erweitert (u. a. Notizen, Backup, Updates,
+  E-Mail-Versand, Helfer, Inventar, Logbuch).
+- **✉️ E-Mail-Schriftart** — Alle E-Mail-Entwürfe mit Anhang verwenden die Schriftart aus
+  Einstellungen → Oberfläche in Schriftgröße 10 pt; ist sie nicht installiert, gilt die Schriftart
+  des Mailprogramms (die Größe bleibt 10 pt).
+
+### Geändert
+
+- **🎯 Auslosung nur bei Bedarf** — „Auslosung durchführen" im Leitfaden, in der Rückfrage
+  beim Phasenwechsel und „Auslosung …" im ⋮-Menü der Teilnehmer erscheinen nur, wenn die
+  Auslosung im Turnierdialog gewählt wurde.
+- **🙋 Helfer** — Der Eintrag „Helfer" in der Seitenleiste zeigt immer die Stammdaten, auch bei
+  geöffnetem Turnier; die erweiterte Einteilung gibt es nur im Tab „Helfer" des Turniers.
+- **📑 Turnierdetails** — Die Tabs „Preise" und „Helfer" stehen direkt hinter „Teilnehmer".
+- **🧙 Turnierdialog** — Seite 4: „Einschreibung ab", „Schießbeginn" und Einschießen stehen
+  über der maximalen Teilnehmerzahl. Die Checkbox „Ausschreibung jetzt generieren" samt
+  Footer-Rest auf Seite 8 entfällt.
+- **🏁 Einschreibung** — Der Walk-in-Button bleibt auch bei erreichter Teilnehmerzahl nutzbar.
+- **🏆 Preise** — Der Button „Preis- und Siegerliste" ist nur noch in der Auswertung zu finden.
+- **🍔 Burger-Buttons** — Einheitlich quadratisch mit zentriertem Icon; Kontextmenüs setzen
+  einen Trennstrich vor „Entfernen"/„Löschen".
+- **🧭 Seitenleiste** — Trennlinie über „Einstellungen".
+- **🚀 Erststart-Dialog** — Öffnet mittig über dem Hauptfenster, 15 % größer; „Abbrechen"
+  beendet die Anwendung.
+- **🔄 Update-Prüfung** — Netzwerk- und Serverfehler werden verständlich angezeigt.
+
+### Behoben
+
+- **⚙️ Einstellungen schließen** — „Schließen" ohne Änderungen tat nichts, und „Abbrechen" der
+  Rückfrage schloss den Dialog trotzdem.
+- **🎯 `use_draw` wurde nicht gespeichert** — Die Auslosungs-Option aus dem Turnierdialog
+  ging beim Speichern verloren.
+- **📑 Phasenwechsel** — Nach dem Ausblenden des aktiven Tabs bleibt dessen Nachfolger nicht
+  mehr leer.
+
+## [2026.11.3] – 2026-11-16
+
+### Hinzugefügt
+
+- **📜 Lizenztext** — Aus `docs/license.txt` im Erststart-Assistenten und im About-Dialog.
+- **✉️ Ausschreibung per E-Mail** — Der Entwurf öffnet sich nach der PDF-Erzeugung (nicht mehr
+  beim Anlegen des Turniers) mit dem PDF im Anhang (`.eml`).
+- **✉️ Ergebnisversand** — Ergebnisliste als PDF-Anhang; Vorlage ohne Verweis auf die Website.
+- **🏹 Schützen – „Ergebnisversand per E-Mail"** — Neues Feld `notify_results` (Migration 0025,
+  nur mit E-Mail-Adresse aktivierbar); die Schützen sind im Empfängerdialog vorausgewählt.
+- **🏆 Auswertung sperren** — Buttons erst nach dem Erstellen der Ergebnisliste aktiv, danach
+  mit Rückfrage und nur lesbar; PDF im Export-Menü, „Als PDF speichern" entfällt.
+- **📝 Tab „Notizen"** — Freitext je Turnier (Migration 0027, nach Abschluss nur lesbar), im
+  Turnier-Export zusammen mit der Nachbesprechung.
+- **📏 Turnierregeln und Teilnahmebedingungen** — Globale Texte im Tab „Turnierregeln"
+  (Migration 0028), als PDF exportierbar und als Zusatzseite in der Ausschreibung.
+- **🙋 Helfer in den Turnierdetails**, Hamburger-Menüs und Icons in allen Kontextmenüs.
+
+### Geändert
+
+- **🎯 „3D Standard 3-Pfeil"** ist das Standard-Regelwerk; „+ Runde" übernimmt die
+  Standard-Pfeile.
+- **🧙 Turnierdialog** — „Einschießen erlaubt" standardmäßig aus, Einschießbereich Pflicht,
+  Schaltflächen „Vereinsdaten übernehmen" funktionieren wieder; Startgruppen sind bei
+  Auslosung schreibgeschützt.
+- **📑 Turnierdetails** — „Turnierdaten bearbeiten" ab Vorbereitung ausgeblendet; Parcours,
+  Zeitplan und Preise in „Abgeschlossen" nur lesbar; Ergebniseingabe mit Filter links.
+- **🔄 Update-Prüfung** — Button und Datum rechtsbündig; das Datum aktualisiert sich nach
+  manueller Prüfung.
+
+### Behoben
+
+- **💾 Backup-Wiederherstellung** — FK-Fehler: Die temporäre Datenbank wird vor dem Import
+  mit den Standarddaten befüllt.
+- **📄 Ausschreibung** — Doppelter Block „Wichtige Hinweise" entfernt.
+
+## [2026.11.2] – 2026-11-13
+
+### Hinzugefügt
+
+- **🔄 Automatische Updates** — Prüfung der GitHub-Releases, Update-Dialog mit Changelog-Auszug,
+  Download mit SHA-256-Prüfsumme und stille Installation; in den Einstellungen abschaltbar,
+  mit manuellem „Jetzt prüfen" und Datum der letzten Prüfung.
+- **✉️ E-Mail-Vorlagen** — Überarbeitet mit weiteren Platzhaltern (u. a. Startgruppe, Startnummer,
+  Zeiten, Kontoinhaber, Kontakt), Signatur mit Vereinslogo und neuer Vorlage für die
+  Turnierausschreibung; Warteliste standardmäßig automatisch.
+- **🚀 Erststart-Assistent** — Zweite Seite mit Lizenz, die akzeptiert werden muss.
+- **📁 Dokumentation** — Benutzeranleitungen unter `docs/`, überarbeiteter Installer.
+
+### Geändert
+
+- **⚙️ Einstellungen** — Neue Seite „Allgemein" unter „System" (Update-Prüfung, Speicherorte),
+  „Druck" heißt „Druck & Listen"; neue Standard-Reihenfolge der Seitenleiste.
+- **📑 Phasenwechsel** — Bei ausgeblendetem Tab wird auf den ersten sichtbaren gewechselt.
+
+### Behoben
+
+- **🗄️ Migrationen** — Phase „Entwurf" (0006) und Vorlagen-Schlüssel (0023) werden idempotent
+  angelegt; Standarddaten werden bei jedem Start ergänzt, sodass der Einstellungsdialog alle
+  Felder zeigt.
+
 ## [2026.11.1] – 2026-11-02
 
 ### Hinzugefügt
