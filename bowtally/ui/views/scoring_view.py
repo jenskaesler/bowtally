@@ -198,9 +198,9 @@ class ScoringView(QWidget):
         self.round_bar.currentChanged.connect(self._on_round_changed)
 
         bar = QHBoxLayout()
-        bar.addWidget(self.class_tabs, 1)
         bar.addWidget(self.group_filter)
         bar.addWidget(self.incomplete_only)
+        bar.addWidget(self.class_tabs, 1)
         bar.addWidget(self.search)
         bar.addWidget(self.save_btn)
 

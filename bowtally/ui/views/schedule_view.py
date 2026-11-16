@@ -67,8 +67,9 @@ class ScheduleView(ListView):
         super().__init__("Zeitplan", HEADERS, empty,
                          search_placeholder="Gruppenname …", parent=parent)
         empty.actionTriggered.connect(self.new_item)
-        self.header.add(button("Neue Gruppe", self.new_item, "primary",
-                               "Neue Startgruppe anlegen (Strg+N)"),
+        self._btn_new = button("Neue Gruppe", self.new_item, "primary",
+                               "Neue Startgruppe anlegen (Strg+N)")
+        self.header.add(self._btn_new,
                         button("Zeitplan drucken", self._print_schedule,
                                tooltip="Zeitplan-Aushang als PDF"))
         self.table.activated.connect(self.edit_item)
@@ -105,7 +106,8 @@ class ScheduleView(ListView):
 
     def on_selection(self, ids):
         g = self._groups.get(self.table.selected_id())
-        closed = context.tournament() and context.tournament().phase == "closed"
+        closed = self.tournament_closed
+        self._btn_new.setEnabled(not closed)
         if g is None:
             self.action_bar.set_actions("", [])
             return
@@ -114,7 +116,7 @@ class ScheduleView(ListView):
              Action("Löschen", self.delete_item, "danger", enabled=not closed)])
 
     def new_item(self):
-        if not context.tournament_id:
+        if not context.tournament_id or self.tournament_closed:
             return
         dlg = ScheduleGroupDialog(parent=self)
         if dlg.exec():
@@ -123,7 +125,7 @@ class ScheduleView(ListView):
 
     def edit_item(self):
         g = self._groups.get(self.table.selected_id())
-        if g is None:
+        if g is None or self.tournament_closed:
             return
         dlg = ScheduleGroupDialog(g, parent=self)
         if dlg.exec():
@@ -148,7 +150,7 @@ class ScheduleView(ListView):
         g = self._groups.get(row_id)
         if g is None:
             return []
-        closed = context.tournament() and context.tournament().phase == "closed"
+        closed = self.tournament_closed
         return [("Bearbeiten", self.edit_item, not closed),
                 None,
                 ("Löschen", self.delete_item, not closed)]

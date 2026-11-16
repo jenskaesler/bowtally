@@ -2,7 +2,8 @@
 """Tournament list and tournament detail (participants, check-in, score entry, results,
 entry fees). Opening a tournament makes it the active tournament context."""
 from PySide6.QtCore import QSettings, Signal
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QStackedWidget, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QCheckBox, QHBoxLayout, QPlainTextEdit, QStackedWidget,
+                               QTabWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, show_error
@@ -15,10 +16,13 @@ from bowtally.ui.components.status_chip import StatusChip, tournament_chip
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.dialogs.tournament_wizard import TournamentWizard
+from bowtally.ui.views.helpers_view import HelperDialog
 from bowtally.ui.views import ListView
 from bowtally.ui.views.checkin_view import CHECKIN_PHASES, CheckinView
 from bowtally.ui.views.course_view import CourseView
 from bowtally.ui.views.fees_view import FeesView
+from bowtally.ui.views.helpers_view import HelpersView
+from bowtally.ui.views.notes_view import NotesView
 from bowtally.ui.views.participants_view import ParticipantsView
 from bowtally.ui.views.prizes_view import PrizesView
 from bowtally.ui.views.results_view import ResultsView
@@ -26,9 +30,9 @@ from bowtally.ui.views.schedule_view import ScheduleView
 from bowtally.ui.views.scoring_view import ScoringView
 
 HEADERS = ["Datum", "Name", "Ort", "Phase", "Teilnehmer", "Regelwerk"]
-TABS = ["participants", "course", "schedule", "checkin", "scoring", "results", "prizes", "fees"]
+TABS = ["participants", "course", "schedule", "checkin", "scoring", "results", "prizes", "fees", "helpers", "notes"]
 TAB_LABELS = ["Teilnehmer", "Parcours", "Zeitplan", "Einschreibung",
-              "Ergebniseingabe", "Auswertung", "Preise", "Startgebühren"]
+              "Ergebniseingabe", "Auswertung", "Preise", "Startgebühren", "Helfer", "Notizen"]
 CLOSED_HINT = "Abgeschlossene Turniere sind gesperrt"
 
 
@@ -169,7 +173,8 @@ class TournamentDetail(QWidget):
         self.pages = {"participants": ParticipantsView(), "course": CourseView(),
                       "schedule": ScheduleView(), "checkin": CheckinView(),
                       "scoring": ScoringView(), "results": ResultsView(),
-                      "prizes": PrizesView(), "fees": FeesView()}
+                      "prizes": PrizesView(), "fees": FeesView(), "helpers": HelpersView(),
+                      "notes": NotesView()}
         self.participants, self.scoring = self.pages["participants"], self.pages["scoring"]
         self.results = self.pages["results"]
         self.tabs = QTabWidget()
@@ -205,6 +210,7 @@ class TournamentDetail(QWidget):
             "results":  phase in ("scoring", "closed"),
             "prizes":   True,
             "fees":     phase in ("draft", "announcement"),
+            "notes":    True,
         }
         self.tabs.blockSignals(True)
         for key, visible in rules.items():

@@ -241,12 +241,14 @@ QComboBox QAbstractItemView {{
 }}
 QComboBox::drop-down, QDateEdit::drop-down, QTimeEdit::drop-down {{
     border: none; border-top-right-radius: 8px; border-bottom-right-radius: 8px; width: 20px; }}
-QComboBox::down-arrow, QDateEdit::down-arrow, QTimeEdit::down-arrow {{
+QComboBox::down-arrow {{
     image: url({_arr_d}); width: 10px; height: 10px; }}
-QSpinBox::up-button, QDoubleSpinBox::up-button {{ border: none; border-top-right-radius: 8px; width: 16px; }}
-QSpinBox::down-button, QDoubleSpinBox::down-button {{ border: none; border-bottom-right-radius: 8px; width: 16px; }}
-QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{ image: url({_arr_u}); width: 8px; height: 8px; }}
-QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{ image: url({_arr_d}); width: 8px; height: 8px; }}
+QDateEdit::down-arrow, QTimeEdit::down-arrow {{
+    image: url({_arr_d}); width: 8px; height: 8px; }}
+QSpinBox::up-button, QDoubleSpinBox::up-button, QTimeEdit::up-button {{ border: none; border-top-right-radius: 8px; width: 16px; }}
+QSpinBox::down-button, QDoubleSpinBox::down-button, QTimeEdit::down-button {{ border: none; border-bottom-right-radius: 8px; width: 16px; }}
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow, QTimeEdit::up-arrow {{ image: url({_arr_u}); width: 8px; height: 8px; }}
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow, QTimeEdit::down-arrow {{ image: url({_arr_d}); width: 8px; height: 8px; }}
 
 /* tables and lists */
 QTableView, QTreeView, QListView {{

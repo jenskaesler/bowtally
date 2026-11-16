@@ -319,6 +319,9 @@ class ParticipantsView(QWidget):
         self._act_draw = self._more_menu.addAction("Auslosung …", self._run_draw)
         self._act_starter = self._more_menu.addAction(
             "Starterfeld drucken", self._print_starter)
+        for act, icon_name in ((self._act_renumber, "list"), (self._act_import, "inbox"),
+                               (self._act_draw, "users"), (self._act_starter, "file")):
+            act.setIcon(theme.icon(icon_name))
         self.btn_more = QPushButton()
         self.btn_more.setMenu(self._more_menu)
         self.btn_more.setIcon(theme.icon("menu"))

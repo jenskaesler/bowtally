@@ -115,8 +115,9 @@ class CourseView(ListView):
                          search_placeholder="Tier, Pfeilstopp oder Gelände …",
                          reorderable=True, parent=parent)
         empty.actionTriggered.connect(self.new_item)
-        self.header.add(button("Neue Scheibe", self.new_item, "primary",
-                               "Neue Scheibe anlegen (Strg+N)"),
+        self._btn_new = button("Neue Scheibe", self.new_item, "primary",
+                               "Neue Scheibe anlegen (Strg+N)")
+        self.header.add(self._btn_new,
                         button("Aufbauplan", self._print_setup, tooltip="Aufbauplan mit Helfernotizen als PDF"),
                         button("Scheibenplan", self._print_layout, tooltip="Scheibenplan ohne Notizen als PDF"))
         self.table.activated.connect(self.edit_item)
@@ -149,7 +150,9 @@ class CourseView(ListView):
 
     def on_selection(self, ids):
         r = self._targets.get(self.table.selected_id())
-        closed = context.tournament() and context.tournament().phase == "closed"
+        closed = self.tournament_closed
+        self._btn_new.setEnabled(not closed)
+        self.table.table.setDragEnabled(not closed)
         if r is None:
             self.action_bar.set_actions("", [])
             return
@@ -159,7 +162,7 @@ class CourseView(ListView):
              Action("Löschen", self.delete_item, "danger", enabled=not closed)])
 
     def new_item(self):
-        if not context.tournament_id:
+        if not context.tournament_id or self.tournament_closed:
             return
         max_num = max((r.number for r in self._targets.values()), default=0)
         dlg = CourseTargetDialog(parent=self)
@@ -171,7 +174,7 @@ class CourseView(ListView):
 
     def edit_item(self):
         r = self._targets.get(self.table.selected_id())
-        if r is None:
+        if r is None or self.tournament_closed:
             return
         dlg = CourseTargetDialog(r, parent=self)
         if dlg.exec():
@@ -197,7 +200,7 @@ class CourseView(ListView):
         r = self._targets.get(row_id)
         if r is None:
             return []
-        closed = context.tournament() and context.tournament().phase == "closed"
+        closed = self.tournament_closed
         return [("Bearbeiten", self.edit_item, not closed),
                 None,
                 ("Löschen", self.delete_item, not closed)]

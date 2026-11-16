@@ -18,20 +18,7 @@ def upgrade():
     with op.batch_alter_table("scoring_rules") as batch_op:
         batch_op.add_column(sa.Column("tournament_rules", sa.Text(), nullable=True))
         batch_op.add_column(sa.Column("participation_conditions", sa.Text(), nullable=True))
-    # point 10: make "3D Standard 3-Pfeil" the default rule set if none is set yet
-    conn = op.get_bind()
-    set_already = conn.execute(
-        sa.text("SELECT value FROM app_settings WHERE key = 'default_scoring_rule_id'")
-    ).scalar()
-    if not set_already:
-        default_id = conn.execute(
-            sa.text("SELECT id FROM scoring_rules WHERE name = '3D Standard 3-Pfeil'")
-        ).scalar()
-        if default_id is not None:
-            conn.execute(
-                sa.text("UPDATE app_settings SET value = :v WHERE key = 'default_scoring_rule_id'"),
-                {"v": str(default_id)},
-            )
+    # Standard-Regelwerk (3D Standard 3-Pfeil) setzt seed.run beim Start.
 
 
 def downgrade():

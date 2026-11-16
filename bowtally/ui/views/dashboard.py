@@ -506,6 +506,10 @@ class TournamentDashboard(QWidget):
         text = QLabel(task.text if task else "Alle Aufgaben dieser Phase sind erledigt.")
         text.setWordWrap(True)
         c.addWidget(text)
+        if t.notes:
+            n = QLabel(t.notes)
+            n.setWordWrap(True)
+            c.addWidget(n)
         c.addStretch()
         row = QHBoxLayout()
         row.addWidget(button("Zum Leitfaden", lambda: self.action.emit("guide"), "primary",

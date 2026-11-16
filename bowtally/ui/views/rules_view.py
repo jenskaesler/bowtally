@@ -5,8 +5,8 @@ import json
 from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QHeaderView, QHBoxLayout,
-                               QLineEdit, QPlainTextEdit, QSpinBox, QTableWidgetItem,
-                               QToolButton, QVBoxLayout, QWidget)
+                               QLabel, QLineEdit, QPlainTextEdit, QSpinBox, QTabWidget,
+                               QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import RULE_IMPORT_FIELDS
 from bowtally.services import scoring_service as sc
@@ -17,7 +17,9 @@ from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT, Cell, ReorderTable
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.toast import Toast
-from bowtally.ui.dialogs.export_helper import export_button
+from bowtally.ui.context import context
+from bowtally.reports.rules_pdf import build_rules_pdf
+from bowtally.ui.dialogs.export_helper import export_button, open_path
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
@@ -187,6 +189,8 @@ class ScoringRuleDialog(RecordDialog):
             values = {k: getattr(record, k) for k in self.form.fields}
             values["rules_json"] = json.dumps(record.rules_json or {}, ensure_ascii=False, indent=2)
             self.form.set_values(values)
+            self._tab_rules.setPlainText(record.tournament_rules or "")
+            self._tab_conditions.setPlainText(record.participation_conditions or "")
         self._baseline = self.form.snapshot()
         self.saved_id: int | None = None
         self.saved_name: str = ""
@@ -207,9 +211,32 @@ class ScoringRuleDialog(RecordDialog):
                       validator=_zones_validator,
                       required_message="Mindestens eine Zone ist erforderlich")
         self.form.add("rules_json", "Sonderregeln (JSON)", rules, validator=_json_validator)
+        # Tab 2: turnierbezogene Texte (analog Inventar-Dialog)
+        tab1 = QWidget()
+        tab1_lay = QVBoxLayout(tab1)
+        tab1_lay.setContentsMargins(0, 0, 0, 0)
+        tab1_lay.addWidget(self.form)
+        tournament_rules = QPlainTextEdit()
+        tournament_rules.setMinimumHeight(180)
+        participation = QPlainTextEdit()
+        participation.setMinimumHeight(180)
+        tab2 = QWidget()
+        tab2_lay = QVBoxLayout(tab2)
+        tab2_lay.setContentsMargins(0, 0, 0, 0)
+        tab2_lay.addWidget(QLabel("Allgemeine Turnierregeln"))
+        tab2_lay.addWidget(tournament_rules, 1)
+        tab2_lay.addWidget(QLabel("Teilnahmebedingungen"))
+        tab2_lay.addWidget(participation, 1)
+        self._tab_rules, self._tab_conditions = tournament_rules, participation
+        self._tab_widget = QTabWidget()
+        self._tab_widget.addTab(tab1, "Allgemein")
+        self._tab_widget.addTab(tab2, "Turnierregeln")
+        self._body_layout.insertWidget(0, self._tab_widget)
 
     def _do_save(self) -> bool:
         data = self.form.values()
+        data["tournament_rules"] = self._tab_rules.toPlainText() or None
+        data["participation_conditions"] = self._tab_conditions.toPlainText() or None
         data["rules_json"] = json.loads(data.get("rules_json") or "{}")
         try:
             rule = sc.save_rule(data, self._record.id if self._record else None)
@@ -277,6 +304,8 @@ class RulesView(ListView):
             Action("Bearbeiten", self.edit_item, enabled=not locked,
                    tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Regelwerk bearbeiten"),
+            Action("Turnierregeln exportieren", self._export_rules_pdf,
+                   tooltip="Druckbare PDF der Turnierregeln erstellen"),
             Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
             Action("Als Standard setzen", self._set_default, tooltip="Als Standard für neue Runden"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
@@ -288,6 +317,7 @@ class RulesView(ListView):
         if r is None:
             return []
         return [("Bearbeiten", self.edit_item, not r.is_builtin),
+                ("Turnierregeln exportieren", self._export_rules_pdf),
                 ("Kopieren", self.clone_item),
                 ("Als Standard setzen", self._set_default),
                 None,
@@ -351,6 +381,19 @@ class RulesView(ListView):
                 for r in self._rules.values()]
         return [("Regelwerke", ["Bezeichnung", "Beschreibung", "Schüsse/Scheibe",
                                 "Nachschuss", "Zonen (JSON)", "Sonderregeln (JSON)"], rows)]
+
+    def _export_rules_pdf(self):
+        r = self._selected()
+        if r is None:
+            return
+        try:
+            with busy():
+                path = build_rules_pdf(r.id, context.tournament_id)
+        except Exception as exc:
+            show_error(self, exc, "Turnierregel-PDF konnte nicht erstellt werden")
+            return
+        Toast.show(self, "Turnierregeln exportiert", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
 
     def _import(self):
         res = run_import(self, RULE_IMPORT_FIELDS, "Regelwerke importieren")

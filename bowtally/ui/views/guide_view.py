@@ -333,11 +333,17 @@ class GuideView(QWidget):
             lay.addWidget(QLabel("Nachbesprechung", objectName="fieldLabel"))
             notes = QPlainTextEdit(checklist.get(DEBRIEF_KEY, ""))
             notes.setPlaceholderText("Was lief gut, was verbessern wir beim nächsten Turnier?")
-            notes.setFixedHeight(120)
-            lay.addWidget(notes)
+            notes.setMinimumHeight(120)
+            lay.addWidget(notes, 1)
             lay.addWidget(button("Notizen speichern",
                                  lambda: self._save_note(DEBRIEF_KEY, notes.toPlainText()),
-                                 tooltip="Nachbesprechung speichern"))
+                                 "primary", tooltip="Nachbesprechung speichern"))
+            if t.notes:
+                lay.addWidget(QLabel("Notizen", objectName="fieldLabel"))
+                nb = QPlainTextEdit(t.notes)
+                nb.setReadOnly(True)
+                nb.setMinimumHeight(80)
+                lay.addWidget(nb, 1)
             return card
         return None
 

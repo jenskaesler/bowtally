@@ -76,6 +76,8 @@ def tournament_sheets(tournament_id: int) -> list:
                   + [scores[(p.id, tg, s)].points if (p.id, tg, s) in scores else None
                      for tg, s in cols] for p in parts]
     ranking = rs.compute_ranking(tournament_id, overall=True)[rs.OVERALL]
+    debrief = ts.get_checklist_state(t.id).get("debrief_notes", "") or ""
+    notes = [["Notizen", t.notes or ""], ["Nachbesprechung", debrief]]
     return [
         ("Teilnehmer", ["Nr.", "Nachname", "Vorname", "Verein", "Klasse", "Gruppe", "Anmeldung",
                         "Zahlung", "Startgebühr", "Bezahlt (EUR)", "Zahlungsdatum",
@@ -86,6 +88,7 @@ def tournament_sheets(tournament_id: int) -> list:
          [[r.rank, r.start_number, r.name, r.club, r.bow_class, r.total] for r in ranking]),
         ("Startgebühren", ["Name", "Betrag (EUR)", "Beschreibung"],
          [[f.name, f.amount, f.description] for f in t.fees]),
+        ("Notizen", ["Feld", "Inhalt"], notes),
     ]
 
 

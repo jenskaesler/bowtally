@@ -12,6 +12,7 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import Form
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.search_bar import SearchBar
+from bowtally.ui.context import context
 
 _CONTEXT_ICONS = {
     "Als Standard setzen": "check",
@@ -24,6 +25,23 @@ _CONTEXT_ICONS = {
     "Turnier öffnen": "arrow-right",
     "Wieder aktivieren": "check-circle",
     "Als inaktiv markieren": "eye-off",
+    "Turnierregeln exportieren": "file",
+    "Bestätigung senden": "mail",
+    "Als bestätigt markieren": "check-circle",
+    "Bestätigung zurücksetzen": "x-circle",
+    "Anmeldung bestätigen": "check-circle",
+    "Zahlung als eingegangen markieren": "money",
+    "Zahlung als ausstehend markieren": "clock",
+    "Einchecken": "check",
+    "Einchecken rückgängig": "x-circle",
+    "Als DNS markieren (nicht gestartet)": "alert",
+    "Als zurückgezogen markieren": "x",
+    'Auf „Gemeldet" zurücksetzen': "clock",
+    "Gebühr zuweisen": "money",
+    "Gruppe ändern": "users",
+    "E-Mail: Anmeldebestätigung senden": "mail",
+    "E-Mail: Zahlungserinnerung senden": "mail",
+    "E-Mail: Startunterlagen senden": "mail",
 }
 
 
@@ -110,6 +128,11 @@ class ListView(QWidget):
         pass
 
     # ------------------------------------------------------------ shared behavior
+    @property
+    def tournament_closed(self) -> bool:
+        t = context.tournament()
+        return bool(t and t.phase == "closed")
+
     def _context_menu(self, row_id, pos):
         entries = self.context_entries(row_id)
         if entries:

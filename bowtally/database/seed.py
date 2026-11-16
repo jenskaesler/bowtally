@@ -49,6 +49,8 @@ DEFAULT_SETTINGS = [
      "Vorbelegung „Wichtige Hinweise“ für neue Turniere (eine Zeile je Hinweis)"),
     ("print_announcement_logo_footer", "true", "print", "boolean",
      "Vereinslogo klein am Ende der Ausschreibung wiederholen"),
+    ("default_scoring_rule_id", "", "internal", "string",
+     "Standard-Regelwerk für neue Runden (wird beim Start gesetzt, falls leer)"),
     ("last_active_tournament_id", "", "internal", "string",
      "Zuletzt geöffnetes Turnier (wird beim Start wiederhergestellt)"),
     # E-Mail-Vorlagen. Platzhalter: {name} {first_name} {last_name} {verein} {klasse}
@@ -522,6 +524,11 @@ def run(session: Session) -> None:
     for rule in DEFAULT_SCORING_RULES:
         if rule["name"] not in existing_rules:
             session.add(ScoringRule(is_builtin=True, **rule))
+    session.flush()
+    default = session.get(AppSetting, "default_scoring_rule_id")
+    if not default.value or session.get(ScoringRule, int(default.value)) is None:
+        default.value = str(session.scalar(
+            select(ScoringRule.id).where(ScoringRule.name == "3D Standard 3-Pfeil")))
     existing_classes = {bc.name for bc in session.scalars(
         select(BowClass).where(BowClass.is_builtin.is_(True)))}
     for i, (name, abbr, age) in enumerate(DEFAULT_BOW_CLASSES, start=1):

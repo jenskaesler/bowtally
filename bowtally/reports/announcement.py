@@ -11,8 +11,8 @@ from pathlib import Path
 from reportlab.lib import colors
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import (Image, KeepTogether, ListFlowable, ListItem, Paragraph,
-                                SimpleDocTemplate, Spacer, Table, TableStyle)
+from reportlab.platypus import (Image, KeepTogether, ListFlowable, ListItem, PageBreak,
+                                Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle)
 
 from bowtally import config
 from bowtally.reports import templates as tpl
@@ -36,6 +36,7 @@ HEADINGS = {
     "payment": "Anmeldung und Überweisung",
     "contact": "Anmeldung und Kontakt",
     "notes": "Wichtige Hinweise",
+    "conditions": "Teilnahmebedingungen",
 }
 LOGO_HEADER = (45 * mm, 28 * mm)
 LOGO_FOOTER = (25 * mm, 16 * mm)
@@ -204,6 +205,12 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
             [ListItem(Paragraph(_esc(n), st["p"]), leftIndent=12) for n in notes],
             bulletType="bullet", start="•", leftIndent=12))
 
+    notes = [n.strip() for n in (t.legal_notes or "").splitlines() if n.strip()]
+    if notes:
+        story += section("notes", ListFlowable(
+            [ListItem(Paragraph(_esc(n), st["p"]), leftIndent=12) for n in notes],
+            bulletType="bullet", start="•", leftIndent=12))
+
     if closing:
         story += [Spacer(1, 6 * mm), Paragraph(_esc(closing), st["p"])]
     if club.get("club_name"):
@@ -213,6 +220,15 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
         if small is not None:
             small.hAlign = "LEFT"
             story += [Spacer(1, 3 * mm), small]
+
+    conditions = [p.strip() for p in (rule.participation_conditions or "").replace("\r\n", "\n")
+                  .split("\n\n") if p.strip()] if rule else []
+    if conditions:
+        story += [PageBreak()] + section("conditions",
+                                         ListFlowable([ListItem(Paragraph(_esc(c), st["p"]),
+                                                                leftIndent=12)
+                                                       for c in conditions],
+                                                      bulletType="bullet", start="•", leftIndent=12))
 
     doc = SimpleDocTemplate(str(path), pagesize=tpl.page_size("A4", "portrait"),
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,

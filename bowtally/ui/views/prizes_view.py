@@ -88,8 +88,9 @@ class PrizesView(ListView):
         super().__init__("Preise", HEADERS, empty,
                          search_placeholder="Bezeichnung oder Klasse …", parent=parent)
         empty.actionTriggered.connect(self.new_item)
-        self.header.add(button("Neuer Preis", self.new_item, "primary",
-                               "Neuen Preis anlegen (Strg+N)"),
+        self._btn_new = button("Neuer Preis", self.new_item, "primary",
+                               "Neuen Preis anlegen (Strg+N)")
+        self.header.add(self._btn_new,
                         button("Preis- und Siegerliste", self._print_prize_list,
                                tooltip="Preis- und Siegerliste als PDF drucken"))
         self.table.activated.connect(self.edit_item)
@@ -117,7 +118,8 @@ class PrizesView(ListView):
 
     def on_selection(self, ids):
         p = self._prizes.get(self.table.selected_id())
-        closed = context.tournament() and context.tournament().phase == "closed"
+        closed = self.tournament_closed
+        self._btn_new.setEnabled(not closed)
         if p is None:
             self.action_bar.set_actions("", [])
             return
@@ -127,7 +129,7 @@ class PrizesView(ListView):
         ])
 
     def new_item(self):
-        if not context.tournament_id:
+        if not context.tournament_id or self.tournament_closed:
             return
         dlg = PrizeDialog(tournament_id=context.tournament_id, parent=self)
         if dlg.exec():
@@ -136,7 +138,7 @@ class PrizesView(ListView):
 
     def edit_item(self):
         p = self._prizes.get(self.table.selected_id())
-        if p is None:
+        if p is None or self.tournament_closed:
             return
         dlg = PrizeDialog(p, tournament_id=context.tournament_id, parent=self)
         if dlg.exec():
@@ -161,7 +163,7 @@ class PrizesView(ListView):
         p = self._prizes.get(row_id)
         if p is None:
             return []
-        closed = context.tournament() and context.tournament().phase == "closed"
+        closed = self.tournament_closed
         return [("Bearbeiten", self.edit_item, not closed),
                 None,
                 ("Löschen", self.delete_item, not closed)]

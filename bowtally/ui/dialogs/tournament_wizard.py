@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """9-step tournament wizard (also used to edit an existing tournament).
 
 Every page shows a step indicator, a title and a short explanation.
@@ -6,9 +6,10 @@ Every page shows a step indicator, a title and a short explanation.
 from PySide6.QtCore import QDate, Qt, QTime, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox,
-                               QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
+                               QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+                               QHeaderView, QLabel,
                                QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit,
-                               QPushButton, QScrollArea, QSpinBox, QTableWidget,
+                               QPushButton, QScrollArea, QSizePolicy, QSpinBox, QTableWidget,
                                QTableWidgetItem, QTimeEdit, QToolButton, QVBoxLayout, QWidget,
                                QWizard, QWizardPage)
 
@@ -76,6 +77,7 @@ class _Page(QWizardPage):
 
     def isComplete(self) -> bool:
         return self._is_complete() if self._is_complete else super().isComplete()
+
 
     def set_action_btn(self, btn: QWidget) -> None:
         sep = QFrame()
@@ -192,10 +194,32 @@ class TournamentWizard(QWizard):
             repolish(self.button(which))
         self.rules = sc.list_rules()
         self.classes = md.list_bow_classes()
+        # Page-specific actions live in the wizard footer as custom buttons (left of Back/Next)
+        self._footer_actions: dict[int, tuple[str, str, callable]] = {}
+        self.setOption(QWizard.WizardOption.HaveCustomButton1)
+        self.setOption(QWizard.WizardOption.HaveCustomButton2)
+        self.customButtonClicked.connect(
+            lambda which: which == QWizard.WizardButton.CustomButton1
+            and self._footer_actions[self.currentId()][2]())
+        self.currentIdChanged.connect(self._update_footer)
         for page in (self._page_basics(), self._page_config(), self._page_classes(),
                      self._page_deadlines(), self._page_fees(),
                      self._page_contact(), self._page_texts(), self._page_summary()):
             self.addPage(page)
+        self._update_footer(0)
+
+    def _update_footer(self, page_id: int):
+        B = QWizard.WizardButton
+        left = []
+        if page_id in self._footer_actions:
+            text, tooltip, _ = self._footer_actions[page_id]
+            self.setButtonText(B.CustomButton1, text)
+            self.button(B.CustomButton1).setToolTip(tooltip)
+            left.append(B.CustomButton1)
+        if page_id == 7:
+            left.append(B.CustomButton2)
+        self.setButtonLayout(left + [B.Stretch, B.BackButton, B.NextButton, B.FinishButton,
+                                     B.CancelButton])
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -243,10 +267,9 @@ class TournamentWizard(QWizard):
         page.body.addLayout(form)
         page.body.addStretch()
         if club.get("club_name") or club.get("city"):
-            page.set_action_btn(button(
-                "Vereinsdaten übernehmen",
-                lambda: self._fill_basics(club),
-                tooltip="Veranstalter und Ort aus dem Vereinsprofil übernehmen"))
+            self._footer_actions[0] = ("Vereinsdaten übernehmen",
+                                       "Veranstalter und Ort aus dem Vereinsprofil übernehmen",
+                                       lambda: self._fill_basics(club))
         return page
 
     # ------------------------------------------------------------ 2 classes (chips)
@@ -296,15 +319,12 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 1 config
     def _page_config(self) -> QWizardPage:
-        from PySide6.QtWidgets import QGroupBox
         self.groups = QLineEdit(self._t("start_groups", ""))
         self.groups.setPlaceholderText("z. B. A, B, C, D")
         self._draw_cb = QCheckBox("Teilnehmer per Auslosung einteilen")
         self._draw_cb.setChecked(bool(self._t("use_draw", False)))
-        self.course_notes = QPlainTextEdit(self._t("notes", ""))
-        self.course_notes.setPlaceholderText("z. B. Festes Schuhwerk empfohlen, Parcours ca. "
-                                             "4 km")
-        self.course_notes.setFixedHeight(70)
+        self.groups.setReadOnly(self._draw_cb.isChecked())
+        self._draw_cb.toggled.connect(self.groups.setReadOnly)
 
         self.scoring_mode = QComboBox()
         self.scoring_mode.setFixedWidth(WIZARD_COMBO_W)
@@ -330,12 +350,12 @@ class TournamentWizard(QWizard):
         for col, w in [(1, 140), (2, 60), (3, 60), (4, 110), (5, 36)]:
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.Fixed)
             self._round_table.setColumnWidth(col, w)
-        self._round_table.setFixedHeight(168)
         self._round_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self._round_group = QGroupBox("Rundenkonfiguration")
+        self._round_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         rg_lay = QVBoxLayout(self._round_group)
         rg_lay.setContentsMargins(8, 8, 8, 8)
-        rg_lay.addWidget(self._round_table)
+        rg_lay.addWidget(self._round_table, 1)
         add_btn = button("+ Runde", self._add_round, tooltip="Weitere Runde anlegen")
         tip = QLabel("Tipp: DBSV-Turnier → Runde 1 = Waldrunde, "
                      "Runde 2 = Jagdrunde", objectName="pageSubtitle")
@@ -355,14 +375,11 @@ class TournamentWizard(QWizard):
         course_desc = (club.get("course_description")
                        or ss.get("default_parcours_description", "") or "")
         form.addRow(_lbl("Wertungsmodus"), self.scoring_mode)
-        form.addRow(_lbl("Startgruppen"), self.groups)
         form.addRow(_lbl(""), self._draw_cb)
-        form.addRow(_lbl("Hinweise zum Parcours"), self.course_notes)
+        form.addRow(_lbl("Startgruppen"), self.groups)
         self._config_dirty = False
-        self.course_notes.textChanged.connect(lambda: setattr(self, '_config_dirty', True))
         page.body.addLayout(form)
-        page.body.addWidget(self._round_group)
-        page.body.addStretch()
+        page.body.addWidget(self._round_group, 1)
         if course_desc:
             page.set_action_btn(button(
                 "Parcours-Beschreibung übernehmen",
@@ -380,6 +397,9 @@ class TournamentWizard(QWizard):
         for i in range(n):
             self._init_round_row(i, tr=existing.get(i + 1))
         self._loading_rounds = False
+        if self.tournament is None:
+            for r in range(n):
+                self._on_rule_changed(r)
 
     def _init_round_row(self, i: int, tr=None):
         """Create all cell widgets for row i; skips columns that already have a widget."""
@@ -396,12 +416,12 @@ class TournamentWizard(QWizard):
                 default_id = ss.get("default_scoring_rule_id")
                 if default_id:
                     pre = int(default_id)
+            cb.currentIndexChanged.connect(lambda idx, row=i: self._on_rule_changed(row))
+            self._round_table.setCellWidget(i, 1, cb)
             if pre is not None:
                 idx = cb.findData(pre)
                 if idx >= 0:
                     cb.setCurrentIndex(idx)
-            cb.currentIndexChanged.connect(lambda idx, row=i: self._on_rule_changed(row))
-            self._round_table.setCellWidget(i, 1, cb)
         if self._round_table.cellWidget(i, 2) is None:
             sp = QSpinBox()
             sp.setRange(0, 200)
@@ -488,23 +508,22 @@ class TournamentWizard(QWizard):
         self.deadline = QDateEdit()
         self.deadline.setCalendarPopup(True)
         self.deadline.setDisplayFormat("dd.MM.yyyy")
-        self.deadline.setFixedWidth(WIZARD_COMBO_W)
         deadline = self._t("registration_deadline")
         self.deadline.setDate(QDate(deadline) if deadline else
                               self.date.date().addDays(-DEFAULT_DEADLINE_DAYS))
         self.max_participants = QSpinBox()
         self.max_participants.setRange(0, 9999)
         self.max_participants.setValue(self._t("max_participants", 0))
-        self.max_participants.setFixedWidth(WIZARD_COMBO_W)
         self.checkin_time = QTimeEdit(QTime.fromString(self._t("checkin_start_time", "09:00"),
                                                        "HH:mm"))
         self.shooting_time = QTimeEdit(QTime.fromString(self._t("shooting_start_time", "10:00"),
                                                         "HH:mm"))
         for w in (self.checkin_time, self.shooting_time):
             w.setDisplayFormat("HH:mm")
-            w.setFixedWidth(WIZARD_COMBO_W)
             w.setMinimumTime(QTime(0, 0))
             w.setSpecialValueText("--:--")
+        for w in (self.deadline, self.checkin_time, self.shooting_time, self.max_participants):
+            w.setFixedWidth(WIZARD_COMBO_W)
         self.practice = QCheckBox("Einschießen erlaubt")
         self.practice.setChecked(self._t("practice_allowed", True))
         self.practice_location = QLineEdit(self._t("practice_location", ""))
@@ -523,7 +542,6 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Einschießbereich"), self.practice_location)
         self.practice.toggled.connect(lambda on: form.setRowVisible(self.practice_location, on))
         form.setRowVisible(self.practice_location, self.practice.isChecked())
-        from PySide6.QtWidgets import QGroupBox
         cap_box = QGroupBox("Auslastung")
         cap_lay = QVBoxLayout(cap_box)
         cap_lay.setContentsMargins(8, 8, 8, 8)
@@ -621,10 +639,9 @@ class TournamentWizard(QWizard):
         page.body.addLayout(form)
         page.body.addStretch()
         if any(club.get(k) for k in ("club_name", "phone", "email", "bank_iban")):
-            page.set_action_btn(button(
-                "Vereinsdaten übernehmen",
-                lambda: self._fill_contact(club, _role_data),
-                tooltip="Kontakt- und Bankdaten aus dem Vereinsprofil übernehmen"))
+            self._footer_actions[5] = ("Vereinsdaten übernehmen",
+                                       "Kontakt- und Bankdaten aus dem Vereinsprofil übernehmen",
+                                       lambda: self._fill_contact(club, _role_data))
         return page
 
     def _fill_basics(self, club: dict):
@@ -699,12 +716,17 @@ class TournamentWizard(QWizard):
         self.closing.setPlaceholderText(CLOSING_PLACEHOLDER)
         for w in (self.intro, self.legal, self.closing):
             w.setFixedHeight(130)
+        self.course_notes = QPlainTextEdit(self._t("notes", ""))
+        self.course_notes.setPlaceholderText("z. B. Festes Schuhwerk empfohlen, Parcours ca. 4 km")
+        self.course_notes.setFixedHeight(70)
         page = _Page(6, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
                      "eine Zeile je Hinweis.")
         form = _form()
         form.addRow(_lbl("Einleitungstext"), self.intro)
+        form.addRow(_lbl("Hinweise zum Parcours"), self.course_notes)
         form.addRow(_lbl("Wichtige Hinweise"), self.legal)
         form.addRow(_lbl("Abschlusstext"), self.closing)
+        self.course_notes.textChanged.connect(lambda: setattr(self, '_config_dirty', True))
         page.body.addLayout(form)
         page.body.addStretch()
         return page
@@ -724,6 +746,7 @@ class TournamentWizard(QWizard):
         self._sum_layout.setSpacing(8)
         self.generate = QCheckBox("Ausschreibung jetzt generieren")
         self.generate.setChecked(self.tournament is None)
+        self.setButton(QWizard.WizardButton.CustomButton2, self.generate)
         page = _Page(7, "Zusammenfassung",
                      "Bitte prüfen. Bearbeiten-Links springen direkt zum jeweiligen Schritt.")
         page.initializePage = self._fill_summary
@@ -737,10 +760,6 @@ class TournamentWizard(QWizard):
         sep.setFrameShape(QFrame.Shape.HLine)
         sep.setFrameShadow(QFrame.Shadow.Sunken)
         page.body.addWidget(sep)
-        gen_row = QHBoxLayout()
-        gen_row.addWidget(self.generate)
-        gen_row.addStretch()
-        page.body.addLayout(gen_row)
         return page
 
     def _jump(self, link: str):

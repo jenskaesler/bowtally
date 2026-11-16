@@ -97,7 +97,9 @@ def clone_rule(rule_id: int) -> ScoringRule:
                       "ring_values": [dict(z) for z in src.ring_values],
                       "max_shots_per_target": src.max_shots_per_target,
                       "allow_retry_shot": src.allow_retry_shot,
-                      "rules_json": dict(src.rules_json or {})})
+                      "rules_json": dict(src.rules_json or {}),
+                      "tournament_rules": src.tournament_rules,
+                      "participation_conditions": src.participation_conditions})
 
 
 def import_rules(records: list[dict], strategy: str) -> dict:

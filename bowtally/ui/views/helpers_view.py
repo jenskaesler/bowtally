@@ -261,6 +261,9 @@ class HelpersView(ListView):
         self.table.activated.connect(self.edit_item)
         self._rows: dict[int, object] = {}
 
+    def set_tournament(self, _t):
+        self.refresh()
+
     # ---------------------------------------------------------------- data
     def refresh(self):
         tid = context.tournament_id
