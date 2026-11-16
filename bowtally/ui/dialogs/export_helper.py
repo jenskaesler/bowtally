@@ -82,7 +82,7 @@ def tournament_sheets(tournament_id: int) -> list:
                      for tg, s in cols] for p in parts]
     ranking = rs.compute_ranking(tournament_id, overall=True)[rs.OVERALL]
     debrief = ts.get_checklist_state(t.id).get("debrief_notes", "") or ""
-    notes = [["Notizen", t.notes or ""], ["Nachbesprechung", debrief]]
+    notes = [["Notizen", t.internal_notes or ""], ["Nachbesprechung", debrief]]
     return [
         ("Teilnehmer", ["Nr.", "Nachname", "Vorname", "Verein", "Klasse", "Gruppe", "Anmeldung",
                         "Zahlung", "Startgebühr", "Bezahlt (EUR)", "Zahlungsdatum",

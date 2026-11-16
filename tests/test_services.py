@@ -102,3 +102,17 @@ def test_migrations_down_and_up_again(tmp_path):
     assert settings_service.get("announcement_group_hint")
     t = ts.list_tournaments()[0]
     assert t.name == "Alt" and t.phase == "announcement"
+
+
+def test_internal_notes_are_independent_of_course_notes(tmp_path):
+    engine.init_database(f"sqlite:///{(tmp_path / 'n.db').as_posix()}")
+    rule = scoring_service.list_rules()[0].id
+    t = ts.save_tournament({"name": "N", "date": date(2030, 1, 1), "num_targets": 3,
+                            "scoring_rule_id": rule, "notes": "Parcours: Wald"},
+                           [md.list_bow_classes()[0].id])
+    ts.update_tournament_fields(t.id, {"internal_notes": "intern"})
+    ts.save_tournament({"name": "N", "date": date(2030, 1, 1), "num_targets": 3,
+                        "scoring_rule_id": rule, "notes": "Parcours: Wiese"},
+                       [md.list_bow_classes()[0].id], t.id)
+    t = ts.get_tournament(t.id)
+    assert (t.notes, t.internal_notes) == ("Parcours: Wiese", "intern")

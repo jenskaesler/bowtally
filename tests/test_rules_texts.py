@@ -47,3 +47,22 @@ def test_announcement_conditions_page_only_when_filled():
                                 "scoring_rule_id": rule.id}, [md.list_bow_classes()[0].id])
         return _page_count(generate_announcement_pdf(t.id))
     assert pages(participation_conditions="Nur mit Helm") == pages() + 1
+
+
+def test_announcement_notes_block_only_once(tmp_path, monkeypatch):
+    from reportlab.platypus import SimpleDocTemplate
+    stories = []
+    monkeypatch.setattr(SimpleDocTemplate, "build", lambda self, story, *a, **k: stories.append(story))
+    t = ts.save_tournament({"name": "N", "date": date(2030, 1, 1), "num_targets": 2,
+                            "legal_notes": "Hinweis A\nHinweis B",
+                            "scoring_rule_id": _rule().id},[md.list_bow_classes()[0].id])
+    generate_announcement_pdf(t.id, tmp_path / "a.pdf")
+    headings = [f._content[0].getPlainText() for f in stories[0] if hasattr(f, "_content")]
+    assert headings.count("Wichtige Hinweise") == 1
+
+
+def test_builtin_rule_saves_only_texts():
+    rule = sc.get_rule(int(ss.get("default_scoring_rule_id")))
+    saved = sc.save_rule_texts(rule.id, "Regeln", "Bedingungen")
+    assert (saved.tournament_rules, saved.participation_conditions) == ("Regeln", "Bedingungen")
+    assert saved.is_builtin and saved.name == "3D Standard 3-Pfeil"

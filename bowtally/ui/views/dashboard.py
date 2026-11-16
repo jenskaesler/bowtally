@@ -506,8 +506,8 @@ class TournamentDashboard(QWidget):
         text = QLabel(task.text if task else "Alle Aufgaben dieser Phase sind erledigt.")
         text.setWordWrap(True)
         c.addWidget(text)
-        if t.notes:
-            n = QLabel(t.notes)
+        if t.internal_notes:
+            n = QLabel(t.internal_notes)
             n.setWordWrap(True)
             c.addWidget(n)
         c.addStretch()

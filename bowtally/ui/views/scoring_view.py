@@ -666,7 +666,7 @@ class ScoringView(QWidget):
         label = f"Scheibe {target}" + (f", Schuss {shot}" if self.tournament.shots_per_target > 1
                                        else "")
         m = QMenu(self)
-        sub = m.addMenu(f"{label} für alle auf … setzen")
+        sub = m.addMenu(theme.icon("edit"), f"{label} für alle auf … setzen")
         for z in self.zones:
             sub.addAction(zone_label(z)).triggered.connect(
                 lambda _=False, zz=z, c=col, lb=label: self._fill_column(c, zz, lb))

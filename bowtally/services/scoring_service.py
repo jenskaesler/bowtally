@@ -84,6 +84,19 @@ def save_rule(data: dict, rule_id: int | None = None) -> ScoringRule:
         return rule
 
 
+def save_rule_texts(rule_id: int, tournament_rules: str | None,
+                    participation_conditions: str | None) -> ScoringRule:
+    """Nur die zwei Textspalten schreiben - erlaubt auch bei Standard-Regelwerken."""
+    with session_scope() as s:
+        rule = s.get(ScoringRule, rule_id)
+        if rule is None:
+            raise ValidationError("Regelwerk nicht gefunden.")
+        rule.tournament_rules = tournament_rules
+        rule.participation_conditions = participation_conditions
+        s.flush()
+        return rule
+
+
 def clone_rule(rule_id: int) -> ScoringRule:
     with session_scope() as s:
         src = s.get(ScoringRule, rule_id)

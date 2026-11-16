@@ -468,6 +468,7 @@ class TournamentWizard(QWizard):
         n = self._round_table.rowCount()
         self._round_table.setRowCount(n + 1)
         self._init_round_row(n)
+        self._on_rule_changed(n)  # Spalte 3 existiert erst jetzt: Pfeile aus Default-Regelwerk setzen
 
     def _delete_round(self):
         if self._round_table.rowCount() <= 1:

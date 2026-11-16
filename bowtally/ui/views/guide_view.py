@@ -208,7 +208,7 @@ class GuideView(QWidget):
         self.body_lay.addLayout(row)
         extra = self._phase_card(t, checklist)
         if extra is not None:
-            self.body_lay.addWidget(extra)
+            self.body_lay.addWidget(extra, int(t.phase == "closed"))  # Nachbesprechung füllt den Platz
         self.body_lay.addStretch()
 
     def _tasks_card(self, t, checks, checklist) -> QFrame:
@@ -338,9 +338,9 @@ class GuideView(QWidget):
             lay.addWidget(button("Notizen speichern",
                                  lambda: self._save_note(DEBRIEF_KEY, notes.toPlainText()),
                                  "primary", tooltip="Nachbesprechung speichern"))
-            if t.notes:
+            if t.internal_notes:
                 lay.addWidget(QLabel("Notizen", objectName="fieldLabel"))
-                nb = QPlainTextEdit(t.notes)
+                nb = QPlainTextEdit(t.internal_notes)
                 nb.setReadOnly(True)
                 nb.setMinimumHeight(80)
                 lay.addWidget(nb, 1)

@@ -205,12 +205,6 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
             [ListItem(Paragraph(_esc(n), st["p"]), leftIndent=12) for n in notes],
             bulletType="bullet", start="•", leftIndent=12))
 
-    notes = [n.strip() for n in (t.legal_notes or "").splitlines() if n.strip()]
-    if notes:
-        story += section("notes", ListFlowable(
-            [ListItem(Paragraph(_esc(n), st["p"]), leftIndent=12) for n in notes],
-            bulletType="bullet", start="•", leftIndent=12))
-
     if closing:
         story += [Spacer(1, 6 * mm), Paragraph(_esc(closing), st["p"])]
     if club.get("club_name"):

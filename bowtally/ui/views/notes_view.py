@@ -26,13 +26,13 @@ class NotesView(QWidget):
     def set_tournament(self, t):
         self.tournament = t
         locked = t.phase == "closed"
-        self.edit.setPlainText(t.notes or "")
+        self.edit.setPlainText(t.internal_notes or "")
         self.edit.setReadOnly(locked)
         self.btn_save.setEnabled(not locked)
         self.header.set_subtitle("Das Turnier ist abgeschlossen, Änderungen sind gesperrt."
                                  if locked else "Interne Notizen, erscheinen nicht in der Ausschreibung")
 
     def save(self):
-        ts.update_tournament_fields(self.tournament.id, {"notes": self.edit.toPlainText()})
+        ts.update_tournament_fields(self.tournament.id, {"internal_notes": self.edit.toPlainText()})
         Toast.show(self, "Notizen gespeichert", Toast.SUCCESS)
         context.notify()

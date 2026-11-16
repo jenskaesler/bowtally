@@ -174,7 +174,8 @@ class Tournament(Base):
     start_groups: Mapped[str | None] = mapped_column(Text)
     use_draw: Mapped[bool] = mapped_column(Boolean, default=False)
     description: Mapped[str | None] = mapped_column(Text)
-    notes: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)          # Hinweise zum Parcours (Ausschreibung)
+    internal_notes: Mapped[str | None] = mapped_column(Text)  # Tab "Notizen", nie in der Ausschreibung
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
     # lifecycle

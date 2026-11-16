@@ -32,7 +32,7 @@ CHECKLIST_ITEMS = {
 CHECKLIST_NOTES_KEY = "helpers_notes"
 
 BASE_FIELDS = ["name", "date", "location", "organizer", "num_targets", "shots_per_target",
-               "scoring_rule_id", "start_groups", "description", "notes",
+               "scoring_rule_id", "start_groups", "description", "notes", "internal_notes",
                "num_rounds", "scoring_mode"]
 DETAIL_FIELDS = ["registration_deadline", "max_participants", "checkin_start_time",
                  "shooting_start_time", "practice_allowed", "practice_location",
@@ -166,7 +166,7 @@ def update_tournament_fields(tournament_id: int, data: dict) -> None:
         t = s.get(Tournament, tournament_id)
         for k, v in data.items():
             setattr(t, k, v)
-        if set(data) - {"notes"}:
+        if set(data) - {"internal_notes"}:
             t.content_changed_at = datetime.now()
 
 

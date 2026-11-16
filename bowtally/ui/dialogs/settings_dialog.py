@@ -747,7 +747,7 @@ class SettingsDialog(QDialog):
         local_form = self._form()
         self._backup_path_edit = QLineEdit(ss.get("backup_local_path") or "")
         self._backup_path_edit.setPlaceholderText("Pfad zum Backup-Ordner …")
-        browse_btn = button("…", lambda: self._browse_backup_path())
+        browse_btn = self._menu_icon_button(lambda: self._browse_backup_path())
         path_row = QHBoxLayout()
         path_row.setContentsMargins(0, 0, 0, 0)
         path_row.setSpacing(8)
@@ -1075,10 +1075,19 @@ class SettingsDialog(QDialog):
             row = QHBoxLayout(w)
             row.setContentsMargins(0, 0, 0, 0)
             row.addWidget(w.edit)
-            row.addWidget(button("...", lambda _=False, e=w.edit: self._browse_path(e)))
+            row.addWidget(self._menu_icon_button(lambda _=False, e=w.edit: self._browse_path(e)))
         else:
             w = QLineEdit(value)
         return w
+
+    @staticmethod
+    def _menu_icon_button(slot) -> QPushButton:
+        """Schmaler Button mit Hamburger-Icon (≡) für die Pfadauswahl."""
+        b = button("", slot, tooltip="Durchsuchen")
+        b.setIcon(theme.icon("menu"))
+        b.setIconSize(QSize(16, 16))
+        b.setFixedSize(28, 28)
+        return b
 
     def _nav_tab(self) -> QWidget:
         w = QWidget()

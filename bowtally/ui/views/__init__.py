@@ -17,7 +17,7 @@ from bowtally.ui.context import context
 _CONTEXT_ICONS = {
     "Als Standard setzen": "check",
     "Bearbeiten": "edit",
-    "Klasse ändern …": "edit",
+    "Klasse ändern": "edit",
     "Kopieren": "copy",
     "Löschen": "trash",
     "Entfernen": "trash",

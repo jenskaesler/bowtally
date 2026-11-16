@@ -191,7 +191,8 @@ class ScoringRuleDialog(RecordDialog):
             self.form.set_values(values)
             self._tab_rules.setPlainText(record.tournament_rules or "")
             self._tab_conditions.setPlainText(record.participation_conditions or "")
-        self._baseline = self.form.snapshot()
+        self._baseline = self._snapshot()
+        self._save_btn.setEnabled(True)   # Texte sind auch bei Standard-Regelwerken speicherbar
         self.saved_id: int | None = None
         self.saved_name: str = ""
 
@@ -233,13 +234,24 @@ class ScoringRuleDialog(RecordDialog):
         self._tab_widget.addTab(tab2, "Turnierregeln")
         self._body_layout.insertWidget(0, self._tab_widget)
 
+    def _snapshot(self) -> tuple:
+        return (self.form.snapshot(), self._tab_rules.toPlainText(),
+                self._tab_conditions.toPlainText())
+
+    def _is_dirty(self) -> bool:
+        return self._snapshot() != self._baseline
+
     def _do_save(self) -> bool:
         data = self.form.values()
         data["tournament_rules"] = self._tab_rules.toPlainText() or None
         data["participation_conditions"] = self._tab_conditions.toPlainText() or None
         data["rules_json"] = json.loads(data.get("rules_json") or "{}")
         try:
-            rule = sc.save_rule(data, self._record.id if self._record else None)
+            if self._record and self._record.is_builtin:
+                rule = sc.save_rule_texts(self._record.id, data["tournament_rules"],
+                                          data["participation_conditions"])
+            else:
+                rule = sc.save_rule(data, self._record.id if self._record else None)
         except Exception as exc:
             show_error(self, exc, "Regelwerk konnte nicht gespeichert werden")
             return False
