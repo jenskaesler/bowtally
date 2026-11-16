@@ -204,6 +204,11 @@ def mark_announcement_generated(tournament_id: int) -> None:
             t.announced_at = now
 
 
+def scoring_locked(t: Tournament) -> bool:
+    """Score entry is read-only once the results list was created or the tournament is closed."""
+    return t.status == "closed" or t.results_generated_at is not None
+
+
 def mark_results_generated(tournament_id: int) -> None:
     with session_scope() as s:
         s.get(Tournament, tournament_id).results_generated_at = datetime.now()

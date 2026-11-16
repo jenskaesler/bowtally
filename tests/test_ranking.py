@@ -10,7 +10,7 @@ IBO = [{"zone": "Vital innen", "points": 20}, {"zone": "Vital außen", "points":
 
 
 def _row(pid, shots):
-    return RankRow(pid, pid, f"A{pid}", "", 1, "RH", [], shots, sum(shots))
+    return RankRow(pid, pid, f"A{pid}", "", 1, "RH", [], shot_points=shots, total=sum(shots))
 
 
 def test_most_top_scores_breaks_tie():

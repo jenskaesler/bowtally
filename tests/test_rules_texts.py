@@ -22,7 +22,7 @@ def db(tmp_path_factory):
 
 
 def _page_count(path) -> int:
-    return len(re.findall(rb"/Type /Page", path.read_bytes()))
+    return len(re.findall(rb"/Type /Page\b", path.read_bytes()))
 
 
 def _rule(**texts):
@@ -36,9 +36,7 @@ def test_default_rule_is_3d_standard_and_unique():
 
 
 def test_rules_pdf_created_with_special_characters():
-    path = build_rules_pdf(_rule(tournament_rules="Regel <1> & mehr
-
-Zweiter Absatz").id)
+    path = build_rules_pdf(_rule(tournament_rules="Regel <1> & mehr\n\nZweiter Absatz").id)
     assert path.read_bytes().startswith(b"%PDF") and _page_count(path) == 1
 
 

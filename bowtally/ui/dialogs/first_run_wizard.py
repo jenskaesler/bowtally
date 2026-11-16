@@ -10,13 +10,6 @@ from bowtally.services import settings_service as ss
 from bowtally.ui import button
 
 
-def _read_license() -> str:
-    try:
-        return (config._BASE / "LICENSE").read_text(encoding="utf-8")
-    except OSError:
-        return "Lizenztext nicht verfügbar."
-
-
 class FirstRunWizard(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -88,7 +81,7 @@ class FirstRunWizard(QDialog):
         lay.addWidget(title)
 
         browser = QTextBrowser()
-        browser.setPlainText(_read_license())
+        browser.setPlainText(config.license_text())
         browser.setOpenExternalLinks(False)
         lay.addWidget(browser, 1)
 

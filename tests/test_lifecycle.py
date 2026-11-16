@@ -8,6 +8,7 @@ from bowtally.services import ValidationError
 from bowtally.services import master_data_service as md
 from bowtally.services import participant_service as ps
 from bowtally.services import scoring_service as sc
+from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 
 
@@ -21,7 +22,9 @@ def _tournament(**extra):
     classes = md.list_bow_classes()
     data = {"name": "Lifecycle", "date": date.today() + timedelta(days=30), "num_targets": 2,
             "scoring_rule_id": ibo.id, **extra}
-    return ts.save_tournament(data, [classes[0].id, classes[1].id])
+    t = ts.save_tournament(data, [classes[0].id, classes[1].id])
+    assert ts.transition_phase(t.id, "announcement").ok      # new tournaments start as draft
+    return t
 
 
 def _go(t, phase, force=True):
@@ -63,6 +66,7 @@ def test_full_lifecycle_with_blockers_and_warnings():
                                        "max_participants": 3})
     _go(t, "registration")
 
+    ss.set_value("waitlist_mode", "block")                         # default "auto" would waitlist
     archers = [md.save_archer({"first_name": f"P{i}", "last_name": "L"}).id for i in range(4)]
     with pytest.raises(ValidationError):                           # 4 > max 3
         ts.add_participants(t.id, archers)

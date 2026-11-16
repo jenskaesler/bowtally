@@ -75,12 +75,17 @@ class ArcherDialog(RecordDialog):
         self.form.add("active", "Aktiv", QCheckBox("Aktiv (in Auswahllisten sichtbar)"))
         notify_cb = QCheckBox("Bei neuen Turnieren per E-Mail benachrichtigen")
         self.form.add("notify_new_tournament", "Benachrichtigung", notify_cb)
-        # disable notify checkbox when no e-mail address is set
+        results_cb = QCheckBox("Ergebnisversand per E-Mail")
+        self.form.add("notify_results", "Ergebnisversand", results_cb)
+        # disable notify checkboxes when no e-mail address is set
         def _update_notify(*_):
             has_email = bool(email_field.text().strip())
-            if not has_email:
-                notify_cb.setChecked(False)
-            notify_cb.setEnabled(has_email)
+            for cb in (notify_cb, results_cb):
+                if not has_email:
+                    cb.setChecked(False)
+                cb.setEnabled(has_email)
+                cb.setToolTip("" if has_email else
+                              "Nur verfügbar wenn eine E-Mail-Adresse hinterlegt ist.")
         email_field.textChanged.connect(_update_notify)
         _update_notify()
 

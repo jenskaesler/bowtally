@@ -226,8 +226,8 @@ def set_score(participant_id: int, target: int, shot: int,
         if part is None:
             raise ValidationError("Teilnehmer nicht gefunden.")
         t = part.tournament
-        if t.status == "closed":
-            raise ValidationError("Das Turnier ist abgeschlossen, Eingaben sind gesperrt.")
+        if t.status == "closed" or t.results_generated_at is not None:
+            raise ValidationError("Die Auswertung ist geschlossen, Eingaben sind gesperrt.")
         # target=0 is the per_round/total_only convention; skip range check for it
         if target != 0 and (not 1 <= target <= t.num_targets or
                             not 1 <= shot <= t.shots_per_target):

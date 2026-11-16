@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
                                QStyledItemDelegate, QToolButton,
                                QVBoxLayout, QWidget)
 
+from bowtally.services import master_data_service as md
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 from bowtally.ui import busy, button, repolish, show_error, theme
@@ -28,6 +29,7 @@ from bowtally.ui.views.guide_view import GuideView, unchecked_manual_tasks
 from bowtally.ui.views.calendar_view import CalendarView
 from bowtally.ui.views.helpers_view import HelpersView
 from bowtally.ui.views.rules_view import RulesView
+from bowtally.ui.utils.mailto import open_mailto
 from bowtally.ui.views.tournaments_view import TournamentsView
 from bowtally.ui.widgets.status_bar import StatusBar
 
@@ -605,6 +607,27 @@ class MainWindow(QMainWindow):
         Toast.show(self, "Ausschreibung erstellt", Toast.SUCCESS,
                    ("Öffnen", lambda: open_path(self, path)))
         context.notify()
+        self._offer_announcement_mail(ts.get_tournament(tournament_id), path)
+
+    def _offer_announcement_mail(self, t, pdf_path):
+        """Offer the announcement mail (PDF attached) to archers who want new-tournament news."""
+        emails = [a.email for a in md.get_notifiable_archers()]
+        if not emails or not ConfirmDialog.ask(
+                self, "Turnier-Ankündigung versenden?",
+                f"{len(emails)} Schütze{'n' if len(emails) != 1 else ''} "
+                f"{'haben' if len(emails) != 1 else 'hat'} E-Mail-Benachrichtigungen aktiviert.\n"
+                "Ankündigungs-E-Mail mit der Ausschreibung im Anhang jetzt öffnen?",
+                confirm_text="E-Mail öffnen", destructive=False):
+            return
+        ctx = {"turniername": t.name, "datum": f"{t.date:%d.%m.%Y}", "ort": t.location or "",
+               "klassen": ", ".join(bc.name for bc in t.bow_classes),
+               "startgeld": ", ".join(f"{f.name}: {f.amount:.2f} €" for f in t.fees),
+               "anmeldefrist": f"{t.registration_deadline:%d.%m.%Y}" if t.registration_deadline
+               else ""}
+        if t.contact_name:
+            ctx["kontakt_name"] = t.contact_name
+        open_mailto(ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE, None, ctx, self,
+                    attachment=pdf_path, bcc=",".join(emails))
 
     def _print_checkin_list(self, tournament_id: int):
         from bowtally.reports.participant_list import build_checkin_list

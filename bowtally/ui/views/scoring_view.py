@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QCheckB
 from shiboken6 import isValid
 
 from bowtally.services import scoring_service as sc
+from bowtally.services import tournament_service as ts
 from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT
@@ -313,7 +314,7 @@ class ScoringView(QWidget):
             scores = sc.get_scores(t.id, self._current_round)
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
-        locked = t.status == "closed"
+        locked = ts.scoring_locked(t)
         right_align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         self._loading = True
         self.model.clear()
@@ -485,7 +486,7 @@ class ScoringView(QWidget):
         t = self.tournament
         num_rounds = self._num_rounds()
         labels = self._round_labels()
-        locked = t.status == "closed"
+        locked = ts.scoring_locked(t)
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
         with busy():
@@ -533,7 +534,7 @@ class ScoringView(QWidget):
 
     def _load_total_only(self):
         t = self.tournament
-        locked = t.status == "closed"
+        locked = ts.scoring_locked(t)
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
         with busy():

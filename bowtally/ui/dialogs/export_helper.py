@@ -15,8 +15,11 @@ FORMATS = [("Excel (.xlsx)", "Excel (*.xlsx)", ".xlsx"),
 
 def export_button(parent, default_stem: str, sheets: Callable[[bool], list],
                   filtered_count: Callable[[], int | None] = lambda: None,
-                  text: str = "Exportieren") -> QPushButton:
-    """sheets(filtered) -> [(name, headers, rows)]. filtered_count() -> N if a filter is active."""
+                  text: str = "Exportieren",
+                  extra_actions: tuple[tuple[str, Callable], ...] = ()) -> QPushButton:
+    """sheets(filtered) -> [(name, headers, rows)]. filtered_count() -> N if a filter is active.
+
+    extra_actions: additional (label, callback) menu entries below the file formats."""
     btn = button(text, tooltip="Als CSV, Excel oder OpenDocument exportieren")
     m = QMenu(btn)
 
@@ -31,6 +34,8 @@ def export_button(parent, default_stem: str, sheets: Callable[[bool], list],
                 m.addAction(label).triggered.connect(
                     lambda _=False, f=filtered, fl=flt, e=ext: run_export(
                         parent, default_stem + e, fl, sheets(f)))
+        for label, callback in extra_actions:
+            m.addAction(label).triggered.connect(lambda _=False, cb=callback: cb())
 
     m.aboutToShow.connect(rebuild)
     btn.setMenu(m)

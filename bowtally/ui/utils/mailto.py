@@ -2,12 +2,15 @@
 """Central mailto helper: build and open mailto URLs from app_settings templates."""
 import base64
 import mimetypes
+import tempfile
+from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import quote
 
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 
+from bowtally.io import exporter
 from bowtally.services import settings_service as ss
 from bowtally.ui.components.toast import Toast
 
@@ -60,14 +63,16 @@ def _logo_data_uri(path: str | None) -> str:
 
 
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
-                parent=None) -> None:
+                parent=None, attachment: Path | None = None, bcc: str | None = None) -> None:
     """Open a mailto: URL built from app_settings template `template_key`.
 
     Loads `{template_key}_subject` and `{template_key}_body` from settings,
     replaces placeholders from `context`, and opens the system mail client.
     Shows warning toasts for missing email or unconfigured template.
+    With `attachment`, mailto: cannot carry files, so an unsent .eml draft is opened instead.
+    `bcc` is a comma-separated address list.
     """
-    if not recipient_email:
+    if not recipient_email and not bcc:
         name = context.get("name") or context.get("first_name") or "Teilnehmer"
         Toast.show(parent, f"Keine E-Mail-Adresse für {name} hinterlegt", Toast.WARNING)
         return
@@ -97,5 +102,21 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
     })
     subj = (subj_raw or "").format_map(ctx)
     body = (body_raw or "").format_map(ctx)
-    url = f"mailto:{quote(recipient_email)}?subject={quote(subj)}&body={quote(body)}"
+    if attachment:
+        msg = EmailMessage()
+        msg["X-Unsent"] = "1"  # mail clients open the .eml as an editable draft
+        for header, value in (("To", recipient_email), ("Bcc", bcc), ("Subject", subj)):
+            if value:
+                msg[header] = value
+        msg.set_content(body)
+        msg.add_attachment(Path(attachment).read_bytes(), maintype="application",
+                           subtype="pdf", filename=Path(attachment).name)
+        # shortcut: temp .eml files are not cleaned up, fine for a few KB-MB per mail
+        with tempfile.NamedTemporaryFile(suffix=".eml", delete=False) as f:
+            f.write(msg.as_bytes())
+        exporter.open_file(f.name)
+        return
+    url = f"mailto:{quote(recipient_email or '')}?subject={quote(subj)}&body={quote(body)}"
+    if bcc:
+        url += f"&bcc={quote(bcc)}"
     QDesktopServices.openUrl(QUrl(url))

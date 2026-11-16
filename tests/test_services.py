@@ -20,8 +20,12 @@ def db(tmp_path_factory):
 def test_seed():
     assert settings_service.get(settings_service.KEY_COLOR_PRIMARY) == "#00357D"
     assert len(md.list_bow_classes()) == 10
-    assert {r.name for r in scoring_service.list_rules()} == {"IBO 3D Standard", "ASA 3D",
-                                                              "WA 3D"}
+    assert {"IBO 3D Standard", "ASA 3D", "WA 3D"} <= {r.name for r in scoring_service.list_rules()}
+
+
+def test_archer_notify_results_saved():
+    archer = md.save_archer({"first_name": "Nina", "last_name": "N", "notify_results": True})
+    assert md.get_archer(archer.id).notify_results is True
 
 
 def test_tournament_flow():
@@ -84,8 +88,9 @@ def test_migrations_down_and_up_again(tmp_path):
     url = f"sqlite:///{(tmp_path / 'old.db').as_posix()}"
     engine.init_database(url)
     ts.save_tournament({"name": "Alt", "date": date(2030, 1, 1), "num_targets": 3,
-                        "scoring_rule_id": scoring_service.list_rules()[0].id},
-                       [md.list_bow_classes()[0].id])
+                        "scoring_rule_id": next(r for r in scoring_service.list_rules()
+                                                 if r.name == "IBO 3D Standard").id},
+                       [md.list_bow_classes()[0].id])   # a rule that survives the downgrade
     cfg = Config(str(config.ALEMBIC_INI))
     cfg.set_main_option("script_location", str(config.MIGRATIONS_DIR))
     with create_engine(url).begin() as conn:

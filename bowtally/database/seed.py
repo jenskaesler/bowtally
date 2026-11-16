@@ -120,7 +120,7 @@ DEFAULT_SETTINGS = [
      "Klasse: {klasse}\n"
      "Platz: {platz}\n"
      "Punkte: {punkte}\n\n"
-     "Die vollständige Ergebnisliste findest du auf der Vereinswebsite. "
+     "Die vollständige Ergebnisliste findest du im Anhang. "
      "Wir freuen uns auf das nächste Turnier mit dir!\n\n"
      "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Ergebnisversand"),

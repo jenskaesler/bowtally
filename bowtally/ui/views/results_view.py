@@ -4,13 +4,14 @@ from collections import Counter
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QHBoxLayout, QLabel,
-                               QListWidget, QListWidgetItem, QTabWidget, QVBoxLayout, QWidget)
+                               QListWidget, QListWidgetItem, QMessageBox, QTabWidget,
+                               QVBoxLayout, QWidget)
 
 from bowtally.reports.result_list import build_result_list, temp_pdf_path
 from bowtally.services import ranking_service as rs
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.ui import busy, button, show_error, theme
+from bowtally.ui import busy, button, confirm, show_error, theme
 from bowtally.ui.components.data_table import Cell, DataTable
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.spinner import Spinner
@@ -20,6 +21,7 @@ from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
 NOT_PRINTABLE = "Ergebnisliste erst ab der Phase „Schießen“ verfügbar"
+NOT_CREATED = "Bitte zuerst die Ergebnisliste erstellen."
 
 
 class _PdfWorker(QThread):
@@ -46,8 +48,9 @@ _ACTIVE_FOR_RESULTS = {"registered", "confirmed", "checked_in", "dnf", "dsq"}
 class _SendResultsDialog(QDialog):
     """Select participants to notify about their results via mailto."""
 
-    def __init__(self, tournament_id, pid_to_rank: dict, parent=None):
+    def __init__(self, tournament_id, pid_to_rank: dict, pdf_path, parent=None):
         super().__init__(parent)
+        self._pdf_path = pdf_path
         self.setWindowTitle("Ergebnisse versenden")
         self.resize(520, 420)
         t = ts.get_tournament(tournament_id)
@@ -72,7 +75,8 @@ class _SendResultsDialog(QDialog):
             item.setData(Qt.ItemDataRole.UserRole, p)
             if has_email:
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setCheckState(Qt.CheckState.Checked if p.archer.notify_results
+                                   else Qt.CheckState.Unchecked)
             else:
                 item.setFlags(Qt.ItemFlag.NoItemFlags)
                 item.setToolTip("Keine E-Mail-Adresse hinterlegt")
@@ -82,7 +86,6 @@ class _SendResultsDialog(QDialog):
         self._select_all_chk.setTristate(True)
         self._select_all_chk.clicked.connect(self._toggle_all)
         self.btn = button("E-Mail senden (0)", self._send, "primary")
-        self.btn.setEnabled(False)
         row = QHBoxLayout()
         row.addWidget(self._select_all_chk)
         row.addStretch()
@@ -92,6 +95,7 @@ class _SendResultsDialog(QDialog):
         lay.addWidget(info)
         lay.addWidget(self.lst, 1)
         lay.addLayout(row)
+        self._update_btn()  # reflects the preselected archers
 
     def _eligible(self):
         return [self.lst.item(i) for i in range(self.lst.count())
@@ -136,7 +140,7 @@ class _SendResultsDialog(QDialog):
                 "platz": str(r.rank) if r else "",
                 "punkte": str(r.total) if r else "",
                 **tournament_ctx(t, p),
-            }, self)
+            }, self, attachment=self._pdf_path)
         self.accept()
 
 
@@ -152,15 +156,16 @@ class ResultsView(QWidget):
         self.spinner = Spinner()
         self.btn_pdf = button("Ergebnisliste erstellen", self._create_pdf, "primary",
                               "Druckfertige Ergebnisliste als PDF erstellen")
-        self.btn_save_pdf = button("Als PDF speichern", self._save_pdf,
-                                   tooltip="Ergebnisliste an einem beliebigen Ort speichern")
         self.btn_send = button("Ergebnisse versenden", self._send_results,
                                tooltip="Ergebnisse per E-Mail an Teilnehmer versenden")
         self.btn_certs = button("Urkunden drucken", self._create_certificates,
                                 tooltip="Urkunden für Podiumsplätze als PDF erstellen")
         self.btn_prizes = button("Preis- und Siegerliste", self._create_prize_list,
                                  tooltip="Preis- und Siegerliste als PDF erstellen")
-        self.btn_export = export_button(self, "rangliste", lambda _f: self.sheets)
+        self.btn_export = export_button(self, "rangliste", lambda _f: self.sheets,
+                                        extra_actions=(("PDF (.pdf)", self._save_pdf),))
+        self._tips = {b: b.toolTip() for b in
+                      (self.btn_send, self.btn_certs, self.btn_prizes, self.btn_export)}
         self.info = QLabel(objectName="pageSubtitle")
         bar = QHBoxLayout()
         bar.addWidget(button("Neu berechnen", self.recalculate,
@@ -168,7 +173,6 @@ class ResultsView(QWidget):
         bar.addWidget(self.info)
         bar.addStretch()
         bar.addWidget(self.btn_export)
-        bar.addWidget(self.btn_save_pdf)
         bar.addWidget(self.btn_prizes)
         bar.addWidget(self.btn_certs)
         bar.addWidget(self.btn_send)
@@ -199,18 +203,12 @@ class ResultsView(QWidget):
         first_time = self.tournament is None or self.tournament.id != t.id
         self.tournament = t
         printable = ts.phase_index(t.phase) >= ts.phase_index("shooting")
-        for b in (self.btn_pdf, self.btn_save_pdf):
-            b.setEnabled(printable and self._worker is None)
-            b.setToolTip(b.toolTip() if printable else NOT_PRINTABLE)
-        sendable = t.phase in ("scoring", "closed")
-        self.btn_send.setEnabled(sendable)
-        self.btn_send.setToolTip(
-            "Ergebnisse per E-Mail an Teilnehmer versenden" if sendable
-            else "Nur in der Phase „Auswertung“ oder „Abgeschlossen“ verfügbar"
-        )
-        for b in (self.btn_certs, self.btn_prizes):
-            b.setEnabled(printable and self._worker is None)
-            b.setToolTip(b.toolTip() if printable else NOT_PRINTABLE)
+        self.btn_pdf.setEnabled(printable and self._worker is None)
+        self.btn_pdf.setToolTip(self.btn_pdf.toolTip() if printable else NOT_PRINTABLE)
+        created = t.results_generated_at is not None
+        for b in (self.btn_send, self.btn_certs, self.btn_prizes, self.btn_export):
+            b.setEnabled(created and printable and self._worker is None)
+            b.setToolTip(self._tips[b] if created else NOT_CREATED)
         if first_time or ss.get_bool(ss.KEY_RESULT_AUTO_RANK):
             self.recalculate()
 
@@ -268,9 +266,24 @@ class ResultsView(QWidget):
 
     # ------------------------------------------------------------ PDF
     def _create_pdf(self):
+        if self.tournament.results_generated_at is None:
+            if not confirm(self, "Die Auswertung wird nun geschlossen. Dieser Schritt kann "
+                                 "nicht rückgängig gemacht werden. Sicher?",
+                           "Ergebnisliste erstellen", "Ja, schließen", destructive=True):
+                return
+            ts.mark_results_generated(self.tournament.id)  # locks score entry for good
+            self.tournament = ts.get_tournament(self.tournament.id)
         self._start_pdf(temp_pdf_path(self.tournament.id))
 
+    def _results_created(self) -> bool:
+        if self.tournament is not None and self.tournament.results_generated_at is not None:
+            return True
+        QMessageBox.warning(self, "Ergebnisliste", NOT_CREATED)
+        return False
+
     def _save_pdf(self):
+        if not self._results_created():
+            return
         path, _ = QFileDialog.getSaveFileName(self, "Ergebnisliste speichern",
                                               f"Ergebnisliste_{self.tournament.name}.pdf",
                                               "PDF (*.pdf)")
@@ -281,7 +294,6 @@ class ResultsView(QWidget):
         if self._worker is not None:
             return
         self.btn_pdf.setEnabled(False)
-        self.btn_save_pdf.setEnabled(False)
         self.btn_pdf.setText("PDF wird erstellt …")
         self.spinner.start()
         self._worker = _PdfWorker(self.tournament.id, path, self)
@@ -297,18 +309,23 @@ class ResultsView(QWidget):
         if isinstance(result, Exception):
             show_error(self, result, "Ergebnisliste konnte nicht erstellt werden")
             return
-        ts.mark_results_generated(self.tournament.id)
         Toast.show(self, f"Ergebnisliste erstellt: {result.name}", Toast.SUCCESS,
                    ("Öffnen", lambda: open_path(self, result)))
 
     def _send_results(self):
-        if self.tournament is None:
+        if not self._results_created():
             return
-        dlg = _SendResultsDialog(self.tournament.id, self._pid_to_rank, self)
-        dlg.exec()
+        try:
+            with busy():
+                pdf_path = build_result_list(self.tournament.id,
+                                             temp_pdf_path(self.tournament.id))
+        except Exception as exc:
+            show_error(self, exc, "Ergebnisliste konnte nicht erstellt werden")
+            return
+        _SendResultsDialog(self.tournament.id, self._pid_to_rank, pdf_path, self).exec()
 
     def _create_certificates(self):
-        if self.tournament is None:
+        if not self._results_created():
             return
         from bowtally.reports.certificates import build_certificates
         try:
@@ -321,7 +338,7 @@ class ResultsView(QWidget):
                    ("Öffnen", lambda: open_path(self, path)))
 
     def _create_prize_list(self):
-        if self.tournament is None:
+        if not self._results_created():
             return
         from bowtally.reports.prize_list import build_prize_list
         try:
@@ -335,5 +352,5 @@ class ResultsView(QWidget):
 
     # global shortcuts
     def shortcut_save(self):
-        if self.btn_save_pdf.isEnabled():
+        if self.btn_export.isEnabled():
             self._save_pdf()

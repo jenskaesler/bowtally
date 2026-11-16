@@ -42,3 +42,10 @@ MIGRATIONS_DIR = PACKAGE_DIR / "database" / "migrations"
 ALEMBIC_INI = PACKAGE_DIR / "database" / "alembic.ini"
 ASSETS_DIR = _BASE / "assets"
 ICON_PATH = ASSETS_DIR / "icon.ico"
+
+
+def license_text() -> str:
+    try:
+        return (_BASE / "docs" / "license.txt").read_text(encoding="utf-8")
+    except OSError:
+        return "Lizenzdatei nicht gefunden."

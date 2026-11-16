@@ -20,13 +20,6 @@ _SHORTCUTS = [
 ]
 
 
-def _read_file(path) -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except Exception:
-        return ""
-
-
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -155,41 +148,7 @@ class AboutDialog(QDialog):
         lay = QVBoxLayout(w)
         lay.setContentsMargins(16, 16, 16, 16)
         b = self._make_browser()
-        b.setHtml(
-            "<h2>BowTally Non-Commercial Copyleft License</h2>"
-            "<p><b>Version 1.0, Oktober 2026</b><br>"
-            "Copyright (c) 2026 Jens Kaesler &lt;"
-            "<a href='mailto:mail@jens-kaesler.de'>mail@jens-kaesler.de</a>&gt;</p>"
-            "<p>BowTally ist freie Software für den nicht-kommerziellen Gebrauch. "
-            "Du darfst die Software nutzen, kopieren und für nicht-kommerzielle Zwecke "
-            "verändern und weitergeben.</p>"
-            "<h3>Nicht-kommerzielle Nutzung</h3>"
-            "<p>Eine kommerzielle Nutzung – etwa der Verkauf der Software, die Einbindung "
-            "in ein bezahltes Produkt oder die Erbringung kostenpflichtiger Leistungen für "
-            "Dritte – ist ohne vorherige schriftliche Genehmigung des Rechteinhabers "
-            "nicht gestattet.</p>"
-            "<h3>Copyleft (Share-Alike)</h3>"
-            "<p>Wenn du eine veränderte Version verteilst oder veröffentlichst, musst du</p>"
-            "<ul>"
-            "<li>den vollständigen Quellcode öffentlich auf GitHub (oder einer "
-            "gleichwertigen Plattform) bereitstellen,</li>"
-            "<li>die veränderte Version unter denselben Lizenzbedingungen stellen,</li>"
-            "<li>deutlich machen, dass Änderungen vorgenommen wurden, und das Datum "
-            "angeben.</li>"
-            "</ul>"
-            "<h3>Attribution</h3>"
-            "<p>Alle Copyright-Hinweise und dieser Lizenztext müssen in allen Kopien "
-            "erhalten bleiben.</p>"
-            "<h3>Keine Gewährleistung</h3>"
-            "<p>Die Software wird „wie besehen“ ohne jede Gewährleistung bereitgestellt. "
-            "Der Rechteinhaber haftet nicht für Schäden, die aus der Nutzung entstehen.</p>"
-            "<h3>Kündigung</h3>"
-            "<p>Bei Verstoß gegen diese Lizenz enden deine Rechte automatisch. Du musst "
-            "dann alle Kopien vernichten.</p>"
-            "<h3>Kontakt</h3>"
-            "<p>Für kommerzielle Lizenzanfragen oder weitergehende Genehmigungen: "
-            "<a href='mailto:mail@jens-kaesler.de'>mail@jens-kaesler.de</a></p>"
-        )
+        b.setPlainText(config.license_text())
         lay.addWidget(b, 1)
         return w
 

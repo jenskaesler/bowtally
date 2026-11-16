@@ -296,6 +296,8 @@ def _import_data(conn, inspector, data: dict) -> None:
 def restore_json(backup_path: str) -> None:
     from bowtally.database.engine import _upgrade_to_head, _enable_sqlite_fk
     from sqlalchemy import create_engine, inspect as sa_inspect, event
+    from sqlalchemy.orm import Session
+    from bowtally.database import seed
 
     raw = Path(backup_path).read_text(encoding="utf-8")
     backup = json.loads(raw)
@@ -317,6 +319,9 @@ def restore_json(backup_path: str) -> None:
         event.listen(tmp_engine, "connect", _enable_sqlite_fk)
         _upgrade_to_head(tmp_engine)
         inspector = sa_inspect(tmp_engine)
+        with Session(tmp_engine) as session:  # built-in rows are skipped on import, so seed them first (FKs)
+            seed.run(session)
+            session.commit()
         with tmp_engine.begin() as conn:
             _import_data(conn, inspector, data)
         tmp_engine.dispose()

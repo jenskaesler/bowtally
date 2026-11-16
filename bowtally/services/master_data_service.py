@@ -11,7 +11,8 @@ from bowtally.database.models import (Archer, BowClass, TournamentParticipant,
 from bowtally.services import ValidationError
 
 ARCHER_FIELDS = ["first_name", "last_name", "birth_date", "club", "member_number", "email",
-                 "phone", "default_bow_class_id", "notes", "active", "notify_new_tournament"]
+                 "phone", "default_bow_class_id", "notes", "active", "notify_new_tournament",
+                 "notify_results"]
 BOW_CLASS_FIELDS = ["name", "abbreviation", "age_group", "description"]
 
 
