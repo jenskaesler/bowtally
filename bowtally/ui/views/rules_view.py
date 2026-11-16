@@ -16,6 +16,7 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT, Cell, ReorderTable
 from bowtally.ui.components.empty_state import EmptyState
+from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.reports.rules_pdf import build_rules_pdf
@@ -189,10 +190,7 @@ class ScoringRuleDialog(RecordDialog):
             values = {k: getattr(record, k) for k in self.form.fields}
             values["rules_json"] = json.dumps(record.rules_json or {}, ensure_ascii=False, indent=2)
             self.form.set_values(values)
-            self._tab_rules.setPlainText(record.tournament_rules or "")
-            self._tab_conditions.setPlainText(record.participation_conditions or "")
-        self._baseline = self._snapshot()
-        self._save_btn.setEnabled(True)   # Texte sind auch bei Standard-Regelwerken speicherbar
+        self._baseline = self.form.snapshot()
         self.saved_id: int | None = None
         self.saved_name: str = ""
 
@@ -212,46 +210,12 @@ class ScoringRuleDialog(RecordDialog):
                       validator=_zones_validator,
                       required_message="Mindestens eine Zone ist erforderlich")
         self.form.add("rules_json", "Sonderregeln (JSON)", rules, validator=_json_validator)
-        # Tab 2: turnierbezogene Texte (analog Inventar-Dialog)
-        tab1 = QWidget()
-        tab1_lay = QVBoxLayout(tab1)
-        tab1_lay.setContentsMargins(0, 0, 0, 0)
-        tab1_lay.addWidget(self.form)
-        tournament_rules = QPlainTextEdit()
-        tournament_rules.setMinimumHeight(180)
-        participation = QPlainTextEdit()
-        participation.setMinimumHeight(180)
-        tab2 = QWidget()
-        tab2_lay = QVBoxLayout(tab2)
-        tab2_lay.setContentsMargins(0, 0, 0, 0)
-        tab2_lay.addWidget(QLabel("Allgemeine Turnierregeln"))
-        tab2_lay.addWidget(tournament_rules, 1)
-        tab2_lay.addWidget(QLabel("Teilnahmebedingungen"))
-        tab2_lay.addWidget(participation, 1)
-        self._tab_rules, self._tab_conditions = tournament_rules, participation
-        self._tab_widget = QTabWidget()
-        self._tab_widget.addTab(tab1, "Allgemein")
-        self._tab_widget.addTab(tab2, "Turnierregeln")
-        self._body_layout.insertWidget(0, self._tab_widget)
-
-    def _snapshot(self) -> tuple:
-        return (self.form.snapshot(), self._tab_rules.toPlainText(),
-                self._tab_conditions.toPlainText())
-
-    def _is_dirty(self) -> bool:
-        return self._snapshot() != self._baseline
 
     def _do_save(self) -> bool:
         data = self.form.values()
-        data["tournament_rules"] = self._tab_rules.toPlainText() or None
-        data["participation_conditions"] = self._tab_conditions.toPlainText() or None
         data["rules_json"] = json.loads(data.get("rules_json") or "{}")
         try:
-            if self._record and self._record.is_builtin:
-                rule = sc.save_rule_texts(self._record.id, data["tournament_rules"],
-                                          data["participation_conditions"])
-            else:
-                rule = sc.save_rule(data, self._record.id if self._record else None)
+            rule = sc.save_rule(data, self._record.id if self._record else None)
         except Exception as exc:
             show_error(self, exc, "Regelwerk konnte nicht gespeichert werden")
             return False
@@ -260,7 +224,7 @@ class ScoringRuleDialog(RecordDialog):
         return True
 
 
-class RulesView(ListView):
+class _RulesTab(ListView):
     def __init__(self, parent=None):
         empty = EmptyState("rules", "Keine Regelwerke",
                            "Lege ein Regelwerk mit Zonen und Punktwerten an.", "Neues Regelwerk")
@@ -316,8 +280,6 @@ class RulesView(ListView):
             Action("Bearbeiten", self.edit_item, enabled=not locked,
                    tooltip="Bearbeiten (Standard-Einträge sind schreibgeschützt)" if locked
                    else "Regelwerk bearbeiten"),
-            Action("Turnierregeln exportieren", self._export_rules_pdf,
-                   tooltip="Druckbare PDF der Turnierregeln erstellen"),
             Action("Kopieren", self.clone_item, tooltip="Anpassbare Kopie anlegen"),
             Action("Als Standard setzen", self._set_default, tooltip="Als Standard für neue Runden"),
             Action("Löschen", self.delete_item, "danger", enabled=not locked,
@@ -329,7 +291,6 @@ class RulesView(ListView):
         if r is None:
             return []
         return [("Bearbeiten", self.edit_item, not r.is_builtin),
-                ("Turnierregeln exportieren", self._export_rules_pdf),
                 ("Kopieren", self.clone_item),
                 ("Als Standard setzen", self._set_default),
                 None,
@@ -394,19 +355,6 @@ class RulesView(ListView):
         return [("Regelwerke", ["Bezeichnung", "Beschreibung", "Schüsse/Scheibe",
                                 "Nachschuss", "Zonen (JSON)", "Sonderregeln (JSON)"], rows)]
 
-    def _export_rules_pdf(self):
-        r = self._selected()
-        if r is None:
-            return
-        try:
-            with busy():
-                path = build_rules_pdf(r.id, context.tournament_id)
-        except Exception as exc:
-            show_error(self, exc, "Turnierregel-PDF konnte nicht erstellt werden")
-            return
-        Toast.show(self, "Turnierregeln exportiert", Toast.SUCCESS,
-                   ("Öffnen", lambda: open_path(self, path)))
-
     def _import(self):
         res = run_import(self, RULE_IMPORT_FIELDS, "Regelwerke importieren")
         if res is None:
@@ -421,3 +369,74 @@ class RulesView(ListView):
         Toast.show(self, f"Import abgeschlossen: {r['created']} neu, {r['updated']} "
                          f"aktualisiert, {r['skipped']} übersprungen", Toast.SUCCESS)
         self.refresh()
+
+
+class _TournamentRulesTab(QWidget):
+    """Globale Texte für den Turnierregeln-Aushang und die Ausschreibung (Einstellungen)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.header = PageHeader("Turnierregeln", "Gelten für alle Turniere")
+        self._save_btn = button("Speichern", self._save, "primary", "Turnierregeln speichern")
+        self.header.add(button("Turnierregeln exportieren", self._export_pdf,
+                               tooltip="Druckbare PDF der Turnierregeln erstellen"), self._save_btn)
+        self._rules = QPlainTextEdit()
+        self._terms = QPlainTextEdit()
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(self.header)
+        for label, edit in (("Allgemeine Turnierregeln", self._rules),
+                            ("Teilnahmebedingungen", self._terms)):
+            lay.addWidget(QLabel(label))
+            lay.addWidget(edit, 1)
+            edit.textChanged.connect(self._update_save_state)
+        self._load()
+
+    def _texts(self) -> tuple[str, str]:
+        return self._rules.toPlainText(), self._terms.toPlainText()
+
+    def _load(self):
+        self._saved = (ss.get(ss.KEY_TOURNAMENT_RULES_TEXT, ""), ss.get(ss.KEY_PARTICIPATION_TERMS_TEXT, ""))
+        self._rules.setPlainText(self._saved[0])
+        self._terms.setPlainText(self._saved[1])
+        self._update_save_state()
+
+    def _update_save_state(self):
+        self._save_btn.setEnabled(self._texts() != self._saved)
+
+    def _save(self):
+        rules, terms = self._texts()
+        ss.set_many({ss.KEY_TOURNAMENT_RULES_TEXT: rules, ss.KEY_PARTICIPATION_TERMS_TEXT: terms})
+        self._saved = (rules, terms)
+        self._update_save_state()
+        Toast.show(self, "Turnierregeln gespeichert", Toast.SUCCESS)
+
+    def _export_pdf(self):
+        try:
+            with busy():
+                path = build_rules_pdf(context.tournament_id)
+        except Exception as exc:
+            show_error(self, exc, "Turnierregel-PDF konnte nicht erstellt werden")
+            return
+        Toast.show(self, "Turnierregeln exportiert", Toast.SUCCESS,
+                   ("Öffnen", lambda: open_path(self, path)))
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        if self._texts() == self._saved:   # ungespeicherte Eingaben nicht überschreiben
+            self._load()
+
+
+class RulesView(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._tab_rules = _RulesTab()
+        tabs = QTabWidget()
+        tabs.addTab(self._tab_rules, "Regelwerke")
+        tabs.addTab(_TournamentRulesTab(), "Turnierregeln")
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(tabs)
+
+    def shortcut_new(self):
+        self._tab_rules.new_item()

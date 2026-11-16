@@ -28,6 +28,8 @@ KEY_PRINT_SHOW_SCORES_PER_TARGET = "print_show_scores_per_target"
 KEY_RESULT_TIEBREAK_MODE = "result_tiebreak_mode"
 KEY_RESULT_AUTO_RANK = "result_auto_rank"
 KEY_UI_LANGUAGE = "ui_language"
+KEY_TOURNAMENT_RULES_TEXT = "tournament_rules_text"
+KEY_PARTICIPATION_TERMS_TEXT = "participation_terms_text"
 
 # Email template key prefixes — each maps to {key}_subject and {key}_body in app_settings
 KEY_EMAIL_TPL_CONFIRMATION = "email_reg"

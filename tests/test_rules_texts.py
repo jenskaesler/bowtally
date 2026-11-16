@@ -25,9 +25,12 @@ def _page_count(path) -> int:
     return len(re.findall(rb"/Type /Page\b", path.read_bytes()))
 
 
-def _rule(**texts):
-    return sc.save_rule({"name": f"R{id(texts)}", "ring_values": [{"zone": "Z", "points": 5}],
-                         "max_shots_per_target": 1, **texts})
+_rule_counter = iter(range(1000))
+
+
+def _rule():
+    return sc.save_rule({"name": f"R{next(_rule_counter)}", "ring_values": [{"zone": "Z", "points": 5}],
+                         "max_shots_per_target": 1})
 
 
 def test_default_rule_is_3d_standard_and_unique():
@@ -35,18 +38,19 @@ def test_default_rule_is_3d_standard_and_unique():
     assert rule.name == "3D Standard 3-Pfeil"
 
 
-def test_rules_pdf_created_with_special_characters():
-    path = build_rules_pdf(_rule(tournament_rules="Regel <1> & mehr\n\nZweiter Absatz").id)
+def test_rules_pdf_created_with_special_characters(tmp_path):
+    ss.set_value(ss.KEY_TOURNAMENT_RULES_TEXT, "Regel <1> & mehr\n\nZweiter Absatz")
+    path = build_rules_pdf(path=tmp_path / "r.pdf")
     assert path.read_bytes().startswith(b"%PDF") and _page_count(path) == 1
 
 
-def test_announcement_conditions_page_only_when_filled():
-    def pages(**texts):
-        rule = _rule(**texts)
+def test_announcement_conditions_page_only_when_filled(tmp_path):
+    def pages(terms):
+        ss.set_value(ss.KEY_PARTICIPATION_TERMS_TEXT, terms)
         t = ts.save_tournament({"name": "T", "date": date(2030, 1, 1), "num_targets": 2,
-                                "scoring_rule_id": rule.id}, [md.list_bow_classes()[0].id])
-        return _page_count(generate_announcement_pdf(t.id))
-    assert pages(participation_conditions="Nur mit Helm") == pages() + 1
+                                "scoring_rule_id": _rule().id}, [md.list_bow_classes()[0].id])
+        return _page_count(generate_announcement_pdf(t.id, tmp_path / "a.pdf"))
+    assert pages("Nur mit Helm") == pages("") + 1
 
 
 def test_announcement_notes_block_only_once(tmp_path, monkeypatch):
@@ -59,10 +63,3 @@ def test_announcement_notes_block_only_once(tmp_path, monkeypatch):
     generate_announcement_pdf(t.id, tmp_path / "a.pdf")
     headings = [f._content[0].getPlainText() for f in stories[0] if hasattr(f, "_content")]
     assert headings.count("Wichtige Hinweise") == 1
-
-
-def test_builtin_rule_saves_only_texts():
-    rule = sc.get_rule(int(ss.get("default_scoring_rule_id")))
-    saved = sc.save_rule_texts(rule.id, "Regeln", "Bedingungen")
-    assert (saved.tournament_rules, saved.participation_conditions) == ("Regeln", "Bedingungen")
-    assert saved.is_builtin and saved.name == "3D Standard 3-Pfeil"

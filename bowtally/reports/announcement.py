@@ -215,8 +215,8 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
             small.hAlign = "LEFT"
             story += [Spacer(1, 3 * mm), small]
 
-    conditions = [p.strip() for p in (rule.participation_conditions or "").replace("\r\n", "\n")
-                  .split("\n\n") if p.strip()] if rule else []
+    conditions = [p.strip() for p in (ss.get(ss.KEY_PARTICIPATION_TERMS_TEXT) or "")
+                  .replace("\r\n", "\n").split("\n\n") if p.strip()]
     if conditions:
         story += [PageBreak()] + section("conditions",
                                          ListFlowable([ListItem(Paragraph(_esc(c), st["p"]),

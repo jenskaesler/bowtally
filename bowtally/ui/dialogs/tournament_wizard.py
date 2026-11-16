@@ -199,7 +199,7 @@ class TournamentWizard(QWizard):
         self.setOption(QWizard.WizardOption.HaveCustomButton1)
         self.setOption(QWizard.WizardOption.HaveCustomButton2)
         self.customButtonClicked.connect(
-            lambda which: which == QWizard.WizardButton.CustomButton1
+            lambda which: which == QWizard.WizardButton.CustomButton1.value  # Signal liefert int
             and self._footer_actions[self.currentId()][2]())
         self.currentIdChanged.connect(self._update_footer)
         for page in (self._page_basics(), self._page_config(), self._page_classes(),
@@ -526,13 +526,14 @@ class TournamentWizard(QWizard):
         for w in (self.deadline, self.checkin_time, self.shooting_time, self.max_participants):
             w.setFixedWidth(WIZARD_COMBO_W)
         self.practice = QCheckBox("Einschießen erlaubt")
-        self.practice.setChecked(self._t("practice_allowed", True))
+        self.practice.setChecked(self._t("practice_allowed", False))
         self.practice_location = QLineEdit(self._t("practice_location", ""))
         self.practice_location.setPlaceholderText("z. B. dem Einschießplatz am Vereinsheim")
         self.capacity = CapacityBar()
         self.max_participants.valueChanged.connect(self._update_capacity)
         page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden, wie viele Plätze "
                      "gibt es und wann geht es am Turniertag los?")
+        page.validatePage = self._validate_practice
         form = _form()
         form.addRow(_lbl("Anmeldefrist"), self.deadline)
         form.addRow(_lbl("Maximale Teilnehmerzahl"), self.max_participants)
@@ -552,6 +553,13 @@ class TournamentWizard(QWizard):
         page.body.addStretch()
         self._update_capacity()
         return page
+
+    def _validate_practice(self) -> bool:
+        if self.practice.isChecked() and not self.practice_location.text().strip():
+            Toast.show(self, "Bitte den Einschießbereich angeben.", Toast.WARNING)
+            self.practice_location.setFocus()
+            return False
+        return True
 
     def _update_capacity(self):
         active = sum(ts.is_active_participant(p) for p in self.tournament.participants) \

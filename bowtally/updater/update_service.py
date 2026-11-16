@@ -63,13 +63,13 @@ class UpdateService:
 
     # ---------------------------------------------------------------- version check
     def check_for_update(self) -> UpdateInfo | None:
-        self._set_last_check()
         try:
             res = requests.get(RELEASE_API, timeout=TIMEOUT,
                                headers={"Accept": "application/vnd.github+json"})
         except requests.RequestException as exc:
             log.debug("Update check failed: %s", exc)
             return None
+        self._set_last_check()  # nur nach erfolgreicher Verbindung, nicht bei Netzwerkfehler
         if res.status_code != 200:
             log.debug("Update check returned HTTP %s", res.status_code)
             return None

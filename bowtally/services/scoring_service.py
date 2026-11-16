@@ -7,8 +7,7 @@ from bowtally.database.models import Score, ScoringRule, Tournament, TournamentP
 from bowtally.services import ValidationError
 
 RULE_FIELDS = ["name", "description", "ring_values", "max_shots_per_target",
-               "allow_retry_shot", "rules_json", "tracked_specials",
-               "tournament_rules", "participation_conditions"]
+               "allow_retry_shot", "rules_json", "tracked_specials"]
 
 
 # ---------------------------------------------------------------- rules
@@ -84,19 +83,6 @@ def save_rule(data: dict, rule_id: int | None = None) -> ScoringRule:
         return rule
 
 
-def save_rule_texts(rule_id: int, tournament_rules: str | None,
-                    participation_conditions: str | None) -> ScoringRule:
-    """Nur die zwei Textspalten schreiben - erlaubt auch bei Standard-Regelwerken."""
-    with session_scope() as s:
-        rule = s.get(ScoringRule, rule_id)
-        if rule is None:
-            raise ValidationError("Regelwerk nicht gefunden.")
-        rule.tournament_rules = tournament_rules
-        rule.participation_conditions = participation_conditions
-        s.flush()
-        return rule
-
-
 def clone_rule(rule_id: int) -> ScoringRule:
     with session_scope() as s:
         src = s.get(ScoringRule, rule_id)
@@ -110,9 +96,7 @@ def clone_rule(rule_id: int) -> ScoringRule:
                       "ring_values": [dict(z) for z in src.ring_values],
                       "max_shots_per_target": src.max_shots_per_target,
                       "allow_retry_shot": src.allow_retry_shot,
-                      "rules_json": dict(src.rules_json or {}),
-                      "tournament_rules": src.tournament_rules,
-                      "participation_conditions": src.participation_conditions})
+                      "rules_json": dict(src.rules_json or {})})
 
 
 def import_rules(records: list[dict], strategy: str) -> dict:

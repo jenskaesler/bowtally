@@ -661,15 +661,16 @@ class SettingsDialog(QDialog):
         from bowtally.updater.update_service import UpdateService
         service = UpdateService(config.APP_DATA_DIR)
         btn_manual = button("Jetzt prüfen", lambda: self._manual_update_check(service))
+        self._last_check_label = QLabel(f"Letzte Prüfung: {service.last_check_str()}")
+        self._last_check_label.setObjectName("pageSubtitle")
+        right_col = QVBoxLayout()
+        right_col.addWidget(btn_manual, alignment=Qt.AlignRight)
+        right_col.addWidget(self._last_check_label, alignment=Qt.AlignRight)
         check_row = QHBoxLayout()
-        check_row.setAlignment(Qt.AlignVCenter)
-        check_row.addWidget(self._update_check)
-        check_row.addWidget(btn_manual)
+        check_row.addWidget(self._update_check, alignment=Qt.AlignVCenter)
+        check_row.addStretch()
+        check_row.addLayout(right_col)
         form_update.addRow("", check_row)
-
-        hint = QLabel(f"Letzte Prüfung: {service.last_check_str()}")
-        hint.setObjectName("pageSubtitle")
-        form_update.addRow("", hint)
         lay.addWidget(box_update)
 
         # Speicherorte
@@ -695,6 +696,7 @@ class SettingsDialog(QDialog):
 
     def _manual_update_check(self, service):
         info = service.check_for_update()
+        self._last_check_label.setText(f"Letzte Prüfung: {service.last_check_str()}")
         if info is None or not info.available:
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.information(self, "Update-Prüfung",
