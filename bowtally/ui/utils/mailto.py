@@ -3,6 +3,8 @@
 import base64
 import mimetypes
 import tempfile
+import html
+from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import quote
@@ -62,6 +64,18 @@ def _logo_data_uri(path: str | None) -> str:
         return ""
 
 
+def _font_family() -> str:
+    """Configured UI font, only if it is installed here; else "" (mail client default)."""
+    from PySide6.QtGui import QFontDatabase
+    family = ss.get(ss.KEY_FONT_FAMILY) or ""
+    return family if family and QFontDatabase.hasFamily(family) else ""
+
+
+def _html_body(body: str, font: str) -> str:
+    inner = "<br>".join(html.escape(line) for line in body.split("\n"))
+    return f'<div style="font-family:\'{font}\'">{inner}</div>'
+
+
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
                 parent=None, attachment: Path | None = None, bcc: str | None = None) -> None:
     """Open a mailto: URL built from app_settings template `template_key`.
@@ -105,14 +119,24 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
     if attachment:
         msg = EmailMessage()
         msg["X-Unsent"] = "1"  # mail clients open the .eml as an editable draft
-        for header, value in (("To", recipient_email), ("Bcc", bcc), ("Subject", subj)):
-            if value:
-                msg[header] = value
-        msg.set_content(body)
+        if recipient_email:
+            msg["To"] = recipient_email
+        if bcc:
+            msg["Bcc"] = bcc
+        msg["Subject"] = subj
+        font = _font_family()
+        if font:
+            msg.set_content(_html_body(body, font), subtype="html", charset="utf-8")
+        else:
+            msg.set_content(body)  # font not installed: keep the mail client default
         msg.add_attachment(Path(attachment).read_bytes(), maintype="application",
                            subtype="pdf", filename=Path(attachment).name)
         # shortcut: temp .eml files are not cleaned up, fine for a few KB-MB per mail
-        with tempfile.NamedTemporaryFile(suffix=".eml", delete=False) as f:
+        name = context.get("turniername") or "Turnier"
+        safe_name = "".join(ch for ch in name if ch.isalnum() or ch in (" ", "-", "_")).strip().replace(" ", "_") or "Turnier"
+        ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        with tempfile.NamedTemporaryFile(prefix=f"BowTally_Ankündigung_{safe_name}_{ts_str}_",
+                                         suffix=".eml", delete=False) as f:
             f.write(msg.as_bytes())
         exporter.open_file(f.name)
         return

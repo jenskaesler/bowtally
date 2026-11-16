@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEd
 from bowtally.services import master_data_service as md
 from bowtally.services import prize_service as ps
 from bowtally.services import tournament_service as ts
-from bowtally.ui import busy, button, show_error
+from bowtally.ui import button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
@@ -90,9 +90,7 @@ class PrizesView(ListView):
         empty.actionTriggered.connect(self.new_item)
         self._btn_new = button("Neuer Preis", self.new_item, "primary",
                                "Neuen Preis anlegen (Strg+N)")
-        self.header.add(self._btn_new,
-                        button("Preis- und Siegerliste", self._print_prize_list,
-                               tooltip="Preis- und Siegerliste als PDF drucken"))
+        self.header.add(self._btn_new)
         self.table.activated.connect(self.edit_item)
         self._prizes = {}
 
@@ -168,16 +166,3 @@ class PrizesView(ListView):
                 None,
                 ("Löschen", self.delete_item, not closed)]
 
-    def _print_prize_list(self):
-        tid = context.tournament_id
-        if not tid:
-            return
-        try:
-            with busy():
-                from bowtally.reports.prize_list import build_prize_list
-                from bowtally.ui.dialogs.export_helper import open_path
-                path = build_prize_list(tid)
-            Toast.show(self, "Preis- und Siegerliste erstellt", Toast.SUCCESS,
-                       ("Öffnen", lambda: open_path(self, path)))
-        except Exception as exc:
-            show_error(self, exc, "PDF konnte nicht erstellt werden")

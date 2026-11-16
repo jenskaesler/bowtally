@@ -38,7 +38,7 @@ DETAIL_FIELDS = ["registration_deadline", "max_participants", "checkin_start_tim
                  "shooting_start_time", "practice_allowed", "practice_location",
                  "bank_account_holder", "bank_iban", "bank_bic", "bank_reference_template",
                  "contact_name", "contact_phone", "contact_email", "legal_notes",
-                 "additional_info"]
+                 "additional_info", "use_draw"]
 TOURNAMENT_FIELDS = BASE_FIELDS + DETAIL_FIELDS
 PARTICIPANT_FIELDS = ["bow_class_id", "start_number", "start_group", "start_time",
                       "entry_fee_id", "notes", "payment_notes"]

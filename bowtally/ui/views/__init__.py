@@ -60,9 +60,11 @@ def menu(parent, entries) -> QMenu:
             continue
         text = e[0]
         (destructive if text.split(" …")[0] in ("Löschen", "Entfernen") else rest).append(e)
-    for e in rest + destructive:
+    ordered = rest + ([None] + destructive if destructive else [])
+    for i, e in enumerate(ordered):
         if e is None:
-            m.addSeparator()
+            if m.actions() and not m.actions()[-1].isSeparator() and i < len(ordered) - 1:
+                m.addSeparator()
             continue
         text, callback, enabled = (list(e) + [True])[:3]
         act = QAction(text, m)

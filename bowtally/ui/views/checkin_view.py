@@ -16,7 +16,7 @@ from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.status_chip import payment_chip, registration_chip
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
-from bowtally.ui.views.participants_view import full_hint, money
+from bowtally.ui.views.participants_view import money
 
 HEADERS = ["Nr.", "Name", "Verein", "Klasse", "Anmeldung", "Zahlung"]
 CHECKIN_PHASES = ("checkin", "shooting")
@@ -110,9 +110,8 @@ class CheckinView(QWidget):
                              f"Erwartet: {stats.expected}")
         cap = stats.capacity
         self.capacity.set_capacity(cap)
-        self.btn_walkin.setEnabled(enabled and not cap.is_full)
-        self.btn_walkin.setToolTip(full_hint(cap) if cap.is_full else
-                                   "Neuen Teilnehmer vor Ort erfassen und direkt einchecken")
+        self.btn_walkin.setEnabled(enabled)  # Walk-ins also allowed when capacity is reached
+        self.btn_walkin.setToolTip("Neuen Teilnehmer vor Ort erfassen und direkt einchecken")
         self.empty.cta.setEnabled(self.btn_walkin.isEnabled())
         self.empty.cta.setToolTip(self.btn_walkin.toolTip())
         self.cls.clear()

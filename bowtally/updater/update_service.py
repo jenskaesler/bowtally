@@ -33,6 +33,7 @@ class UpdateInfo:
 class UpdateService:
     def __init__(self, config_dir: Path):
         self.config_dir = Path(config_dir)
+        self.last_error: str | None = None
         self._cleanup_pending()
 
     # ---------------------------------------------------------------- state
@@ -63,15 +64,19 @@ class UpdateService:
 
     # ---------------------------------------------------------------- version check
     def check_for_update(self) -> UpdateInfo | None:
+        """None = kein Ergebnis; `last_error` sagt, ob ein Fehler der Grund war."""
+        self.last_error = None
         try:
             res = requests.get(RELEASE_API, timeout=TIMEOUT,
                                headers={"Accept": "application/vnd.github+json"})
         except requests.RequestException as exc:
             log.debug("Update check failed: %s", exc)
+            self.last_error = "Der Update-Server ist nicht erreichbar. Bitte Internetverbindung prüfen."
             return None
         self._set_last_check()  # nur nach erfolgreicher Verbindung, nicht bei Netzwerkfehler
         if res.status_code != 200:
             log.debug("Update check returned HTTP %s", res.status_code)
+            self.last_error = f"Der Update-Server antwortete mit einem Fehler (HTTP {res.status_code})."
             return None
         try:
             data = res.json()

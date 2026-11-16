@@ -17,12 +17,18 @@ EXPORT_TABLE_ORDER = [
     "tournament_phases", "tournaments", "entry_fees", "tournament_participants",
     "tournament_rounds", "scores", "helpers", "tournament_helpers",
     "score_sheet_templates", "prizes", "course_targets", "schedule_groups",
-    "phase_transition_log", "inventory_items",
+    "phase_transition_log", "inventory_items", "activity_log", "backup_log",
+    "tournament_bow_classes",
 ]
 
 
-def _json_name() -> str:
-    return f"BowTally-Backup-{datetime.now():%Y-%m-%d-%H%M%S}.json"
+def _zip_name() -> str:
+    return f"bowtally_backup_{datetime.now():%Y-%m-%d-%H%M%S}.zip"
+
+
+def _logo_from_backup(backup: dict) -> str | None:
+    rows = backup.get("data", {}).get("club_profile") or []
+    return (rows[0].get("logo_path") or None) if rows else None
 
 
 def _prune_by_days(dest_dir: Path, days: int):
@@ -70,9 +76,11 @@ def _set_password(key: str, value: str) -> None:
 def create_backup(session, app_version: str) -> dict:
     from sqlalchemy import text as _text
     meta = {
+        "type": "bowtally_backup",
         "bowtally_version": app_version,
         "backup_created_at": datetime.now().isoformat(),
         "format_version": "1",
+        "logo_path": None,
     }
     try:
         row = session.execute(_text("SELECT version_num FROM alembic_version")).fetchone()
@@ -93,9 +101,28 @@ def create_backup(session, app_version: str) -> dict:
     return {"meta": meta, "data": data}
 
 
-def save_backup_to_file(backup_dict: dict, path) -> None:
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(backup_dict, f, ensure_ascii=False, indent=2)
+def save_backup_to_zip(backup_dict: dict, path, logo_path: str | None) -> None:
+    """Write backup as ZIP: backup.json + bowtally.info (+ logo/<name> if present)."""
+    from bowtally import __version__
+    meta = backup_dict.setdefault("meta", {})
+    if logo_path and os.path.exists(logo_path):
+        logo_file = Path(logo_path)
+        meta["logo_path"] = f"logo/{logo_file.name}"
+        logo_bytes = logo_file.read_bytes()
+    else:
+        meta["logo_path"] = None
+        logo_bytes = None
+    info = (
+        f"type: bowtally_backup\n"
+        f"app_version: {__version__}\n"
+        f"schema_version: {meta.get('schema_version')}\n"
+        f"backup_created_at: {meta.get('backup_created_at')}\n"
+    )
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("backup.json", json.dumps(backup_dict, ensure_ascii=False, indent=2))
+        zf.writestr("bowtally.info", info)
+        if logo_bytes is not None:
+            zf.writestr(meta["logo_path"], logo_bytes)
 
 
 # ------------------------------------------------------------------ backup
@@ -120,10 +147,10 @@ def backup_local() -> str:
         raise ValueError("Kein Backup-Pfad konfiguriert.")
     dest = Path(path)
     dest.mkdir(parents=True, exist_ok=True)
-    file_path = dest / _json_name()
+    file_path = dest / _zip_name()
     with session_scope() as session:
         backup = create_backup(session, __version__)
-    save_backup_to_file(backup, file_path)
+    save_backup_to_zip(backup, file_path, _logo_from_backup(backup))
     _prune_by_days(dest, _retention_days())
     _log_backup(file_path.name, "local", os.path.getsize(file_path), True)
     return str(file_path)
@@ -147,10 +174,10 @@ def backup_network() -> str:
             raise ConnectionError(result.stderr.strip() or "net use fehlgeschlagen")
     dest = Path(path)
     dest.mkdir(parents=True, exist_ok=True)
-    file_path = dest / _json_name()
+    file_path = dest / _zip_name()
     with session_scope() as session:
         backup = create_backup(session, __version__)
-    save_backup_to_file(backup, file_path)
+    save_backup_to_zip(backup, file_path, _logo_from_backup(backup))
     _prune_by_days(dest, _retention_days())
     _log_backup(file_path.name, "network", os.path.getsize(file_path), True)
     return str(file_path)
@@ -200,11 +227,10 @@ def backup_nextcloud() -> str:
     auth = _nc_auth(user, pwd)
     with session_scope() as session:
         backup = create_backup(session, __version__)
-    filename = _json_name()
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False,
-                                     encoding="utf-8") as tmp:
-        json.dump(backup, tmp, ensure_ascii=False, indent=2)
+    filename = _zip_name()
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp_path = tmp.name
+    save_backup_to_zip(backup, tmp_path, _logo_from_backup(backup))
     try:
         dav_base = _nc_dav_base(url, user)
         folder_url = f"{dav_base}{remote_path}/"
@@ -293,14 +319,12 @@ def _import_data(conn, inspector, data: dict) -> None:
                          filtered)
 
 
-def restore_json(backup_path: str) -> None:
+def _restore_impl(backup: dict) -> None:
     from bowtally.database.engine import _upgrade_to_head, _enable_sqlite_fk
     from sqlalchemy import create_engine, inspect as sa_inspect, event
     from sqlalchemy.orm import Session
     from bowtally.database import seed
 
-    raw = Path(backup_path).read_text(encoding="utf-8")
-    backup = json.loads(raw)
     meta = backup.get("meta", {})
     if meta.get("format_version") != "1":
         raise ValueError(f"Unbekanntes Backup-Format (format_version={meta.get('format_version')})")
@@ -334,13 +358,40 @@ def restore_json(backup_path: str) -> None:
         raise
 
 
-def restore(zip_path: str):
-    """Backward compat: restore from old ZIP backup."""
-    db_path = config.DB_PATH
+def restore_from_json(backup_path: str) -> None:
+    path = Path(backup_path)
+    if zipfile.is_zipfile(path):
+        restore(str(path))
+        return
+    _restore_impl(json.loads(path.read_text(encoding="utf-8")))
+
+
+# Backward compat: alter Name der öffentlichen API
+restore_json = restore_from_json
+
+
+def restore(zip_path: str) -> None:
+    """Restore from a ZIP backup: checks bowtally.info, imports backup.json, restores logo."""
+    if not zipfile.is_zipfile(zip_path):
+        raise ValueError("Alte JSON-Backups werden nicht mehr unterstützt. "
+                         "Bitte ein ZIP-Backup (.zip) verwenden.")
     with zipfile.ZipFile(zip_path) as zf:
         names = zf.namelist()
-        if not names:
-            raise ValueError("Leeres ZIP-Archiv.")
-        shutil.copy2(db_path, str(db_path) + ".restore_backup")
-        with zf.open(names[0]) as src, open(db_path, "wb") as dst:
-            dst.write(src.read())
+        if "backup.json" not in names or "bowtally.info" not in names:
+            raise ValueError("Kein gültiges BowTally-Backup (ZIP-Format erwartet).")
+        info = {}
+        for line in zf.read("bowtally.info").decode("utf-8").splitlines():
+            if ": " in line:
+                key, value = line.split(": ", 1)
+                info[key.strip()] = value.strip()
+        if info.get("type") != "bowtally_backup":
+            raise ValueError("Kein gültiges BowTally-Backup (Typ fehlt oder falsch).")
+        backup = json.loads(zf.read("backup.json").decode("utf-8"))
+        logo_entry = next((n for n in names if n.startswith("logo/")), None)
+        logo_bytes = zf.read(logo_entry) if logo_entry else None
+    if logo_entry and logo_bytes:
+        config.APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        dest = config.APP_DATA_DIR / Path(logo_entry).name
+        dest.write_bytes(logo_bytes)
+        backup.setdefault("meta", {})["logo_path"] = str(dest)
+    _restore_impl(backup)

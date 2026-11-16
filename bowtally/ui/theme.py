@@ -344,6 +344,7 @@ QMenu {{ background: {t['surface']}; border: 1px solid {t['border']}; border-rad
 QMenu::item {{ padding: 6px 20px; border-radius: 6px; color: {t['text']}; }}
 QMenu::item:selected {{ background: {t['primary']}; color: {t['on_primary']}; }}
 QMenu::item:disabled {{ color: {t['disabled']}; }}
+QFrame#sidebarDivider {{ background: {t['border']}; min-height: 1px; max-height: 1px; border: none; margin: 4px 12px; }}
 QMenu::separator {{ height: 1px; background: {t['border']}; margin: 4px 8px; }}
 
 /* side drawer */

@@ -14,6 +14,7 @@ datas = [
     (os.path.join(PKG, "database", "alembic.ini"), "bowtally/database"),
     (os.path.join(ROOT, "assets"), "assets"),
     (os.path.join(ROOT, "docs", "license.txt"), "docs"),
+    (os.path.join(ROOT, "CHANGELOG.md"), "docs"),
 ]
 datas += collect_data_files("reportlab")
 # Qt plugins (platforms, styles, imageformats, ...) are collected by the PySide6 hooks

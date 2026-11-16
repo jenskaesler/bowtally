@@ -3,7 +3,7 @@
 import logging
 from contextlib import contextmanager
 
-from PySide6.QtCore import QSettings, Qt
+from PySide6.QtCore import QSettings, QSize, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox, QPushButton, QWidget
 
 from bowtally.services import ValidationError
@@ -35,6 +35,23 @@ def button(text: str, slot=None, kind: str | None = None, tooltip: str = "") -> 
     if kind:
         b.setProperty(kind, True)
     b.setToolTip(tooltip or text)
+    if slot is not None:
+        b.clicked.connect(slot)
+    return b
+
+
+def burger_button(tooltip: str, slot=None, menu=None) -> QPushButton:
+    """Square icon-only button with the hamburger icon (same height as normal buttons)."""
+    from bowtally.ui import theme
+    b = QPushButton()
+    b.setIcon(theme.icon("menu"))
+    b.setIconSize(QSize(18, 18))
+    b.setFixedSize(34, 34)
+    # the global button padding (7px 16px) would squeeze the icon out of a 34px square
+    b.setStyleSheet("QPushButton { padding: 0; } QPushButton::menu-indicator { image: none; }")
+    b.setToolTip(tooltip)
+    if menu is not None:
+        b.setMenu(menu)
     if slot is not None:
         b.clicked.connect(slot)
     return b

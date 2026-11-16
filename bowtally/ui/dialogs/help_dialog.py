@@ -15,46 +15,206 @@ _SECTIONS = [
 <h2>BowTally – Übersicht</h2>
 <p>BowTally ist eine Turnierverwaltungs-App für 3D-Bogensport-Vereine. Die wichtigsten Module:</p>
 <ul>
+  <li><b>Dashboard</b> – Überblick über Turniere und Stammdaten</li>
   <li><b>Turniere</b> – anlegen, bearbeiten, phasenweise durchführen</li>
-  <li><b>Schützen</b> – Stammdaten und Einschreibung</li>
-  <li><b>Ergebnisse</b> – Punkteingabe und Ranglistenberechnung</li>
+  <li><b>Kalender</b> – alle Turniere im Jahres-, Monats-, Wochen- und Tagesraster</li>
+  <li><b>Schützen</b> und <b>Helfer</b> – Stammdaten und Einsatzplanung</li>
   <li><b>Regelwerke &amp; Klassen</b> – Punktverteilung und Wertungsgruppen</li>
-  <li><b>Einstellungen</b> – Vereinsprofil, Design, Druck und Verhalten</li>
+  <li><b>Inventar</b> – Scheiben und 3D-Ziele des Vereins</li>
+  <li><b>Logbuch</b> – Protokoll der Aktivitäten</li>
+  <li><b>Einstellungen</b> – Vereinsprofil, E-Mail-Vorlagen, Druck, Backup, Updates und Design</li>
 </ul>
 <h3>Navigation</h3>
-<p>Links in der Seitenleiste wechselst du zwischen den Modulen.
-Ist ein Turnier geöffnet, erscheinen im oberen Teil der Leiste
-turnierspezifische Schnellzugriffe.</p>
-<h3>Leitfaden</h3>
-<p>Für jedes geöffnete Turnier zeigt der <b>Leitfaden</b> in der Seitenleiste
-alle anstehenden Aufgaben an. Ein Klick auf eine Aufgabe springt direkt
-in die entsprechende Ansicht.</p>
+<p>Links in der Seitenleiste wechselst du zwischen den Modulen. Ein Klick auf das Logo
+oben führt zurück zum Dashboard. Unten findest du <b>Einstellungen</b>, <b>Hilfe</b> und
+<b>Über BowTally</b>. Reihenfolge und Sichtbarkeit der Einträge stellst du unter
+Einstellungen → Navigation ein.</p>
+<p>Ein orangefarbener Punkt an <b>Turniere</b> weist darauf hin, dass beim aktiven Turnier die
+maximale Teilnehmerzahl erreicht ist oder dass ein Turnier in der Phase „Schießen“ läuft.</p>
+<h3>Aktives Turnier</h3>
+<p>Wenn du ein Turnier öffnest, erscheint im oberen Teil der Seitenleiste ein Turnier-Block mit
+Name, Phase und diesen Schnellzugriffen:</p>
+<ul>
+  <li><b>Wechseln</b> – anderes Turnier öffnen; das <b>✕</b> schließt das Turnier wieder</li>
+  <li><b>Turnier-Dashboard</b> – Kennzahlen des Turniers</li>
+  <li><b>Turnier-Details</b> – Tabs wie Teilnehmer, Parcours oder Ergebnisse</li>
+  <li><b>Leitfaden</b> – Aufgaben der aktuellen Phase</li>
+  <li><b>Nächste Phase</b> – Phasenwechsel (siehe „Turnierphasen &amp; Leitfaden“)</li>
+  <li><b>Phasenwechsel-Protokoll</b> – alle bisherigen Phasenwechsel</li>
+</ul>
+<p>Der Eintrag <b>Turniere</b> ist ausgeblendet, solange ein Turnier geöffnet ist; die Liste
+erreichst du dann über <b>Alle Turniere</b> in den Turnier-Details. Nach dem Öffnen eines Turniers
+zeigt BowTally zuerst den Leitfaden. Beim nächsten Start wird das zuletzt aktive Turnier
+wieder geöffnet.</p>
+<h3>Statusleiste</h3>
+<p>Ganz unten stehen der Pfad der Datenbank und die Programmversion. Das Fragezeichen öffnet
+diese Hilfe (<code>F1</code>).</p>
 """),
     ("Turniere", """
 <h2>Turniere</h2>
+<h3>Turnierliste</h3>
+<p>Die Liste zeigt Datum, Name, Ort, Phase, Teilnehmerzahl und Regelwerk. Abgeschlossene Turniere
+sind ausgeblendet, bis du <i>Abgeschlossene Turniere anzeigen</i> aktivierst. Die Suche findet
+Name, Ort oder Phase.</p>
 <h3>Turnier anlegen</h3>
-<p>Über <b>Neu</b> (Strg+N) öffnet sich der Turnier-Assistent. Er führt durch
-acht Schritte: Basisdaten, Regelwerk, Bogenklassen, Konfiguration, Fristen,
-Gebühren, Kontakt/Bank und Texte.</p>
+<p>Über <b>Neues Turnier</b> (Strg+N) öffnet sich der Turnier-Assistent. Er führt durch
+acht Schritte: Grunddaten, Konfiguration, Bogenklassen, Fristen und Zeiten, Startgebühren,
+Kontakt und Bankdaten, Hinweise und Texte sowie Zusammenfassung. Details stehen im
+Abschnitt „Turnier-Assistent“.</p>
 <h3>Turnierphasen</h3>
 <ol>
-  <li><b>Entwurf</b> – Vorbereitung, noch nicht aktiv</li>
-  <li><b>Ausschreibung</b> – Turnier ist öffentlich angekündigt</li>
-  <li><b>Anmeldung</b> – Schützen können sich anmelden</li>
-  <li><b>Einschreibung</b> – Vor-Ort-Check-in am Turniertag</li>
-  <li><b>Schießen</b> – Ergebniseingabe aktiv</li>
-  <li><b>Abgeschlossen</b> – Turnier beendet, Rangliste eingefroren</li>
+  <li><b>Entwurf</b> – Turnierdaten werden angelegt und können frei bearbeitet werden</li>
+  <li><b>Ausschreibung</b> – Kontakt, Bank und Startgebühren festlegen, Ausschreibungs-PDF erstellen</li>
+  <li><b>Vorbereitung</b> – Parcours und Helfer planen</li>
+  <li><b>Anmeldung</b> – Anmeldungen erfassen, bestätigen und Zahlungen verbuchen</li>
+  <li><b>Einschreibung</b> – Turniertag: Check-in vor Ort</li>
+  <li><b>Schießen</b> – Ergebniseingabe</li>
+  <li><b>Auswertung</b> – Ergebnisse prüfen, Ergebnisliste erstellen, Siegerehrung vorbereiten</li>
+  <li><b>Abgeschlossen</b> – Turnier beendet, Daten gesperrt</li>
 </ol>
-<p>Mit dem <b>Nächste Phase</b>-Button in der Seitenleiste wechselst du in die
-nächste Phase. BowTally prüft dabei Voraussetzungen (z. B. mindestens ein
-Teilnehmer).</p>
+<p>Mit <b>Nächste Phase</b> in der Seitenleiste (oder im Leitfaden) wechselst du in die nächste
+Phase. BowTally prüft dabei Voraussetzungen, siehe „Turnierphasen &amp; Leitfaden“.</p>
 <h3>Warteliste</h3>
-<p>Ist <i>Warteliste bei Vollbelegung</i> auf <b>Automatisch</b> eingestellt,
-werden überzählige Anmeldungen automatisch auf die Warteliste gesetzt
-(Status „Auf Warteliste").</p>
+<p>Ist <i>Warteliste bei Vollbelegung</i> (Einstellungen → Turnierverwaltung → Allgemein) auf
+<b>Automatisch (Warteliste)</b> eingestellt, werden überzählige Anmeldungen automatisch auf die
+Warteliste gesetzt (Status „Auf Warteliste“). Bei <b>Gesperrt (kein Nachrücken)</b> lassen sich bei
+voller Teilnehmerzahl keine weiteren Schützen zuweisen.</p>
+<p>Wird ein Teilnehmer zurückgezogen, disqualifiziert oder entfernt, rücken Wartelistenplätze
+in der Reihenfolge der Anmeldung nach (Status wird „Gemeldet“). Schützen desselben Vereins rücken
+nur gemeinsam nach, wenn für alle Platz ist. Über <b>Benachrichtigen</b> in der Meldung
+kannst du die Nachrücker per E-Mail informieren.</p>
 <h3>Turnier kopieren</h3>
-<p>Ein Turnier kann als Vorlage kopiert werden (ohne Teilnehmer und Ergebnisse).
-Nützlich für wiederkehrende Turniere.</p>
+<p>Ein Turnier kann als Vorlage kopiert werden (ohne Teilnehmer und Ergebnisse). Parcours-Ziele und
+Preise werden mit übernommen. Nützlich für wiederkehrende Turniere.</p>
+<h3>Turnier löschen</h3>
+<p><b>Löschen</b> entfernt das Turnier nach Rückfrage endgültig – mit allen Teilnehmern und
+erfassten Ergebnissen.</p>
+"""),
+    ("Turnierphasen & Leitfaden", """
+<h2>Turnierphasen &amp; Leitfaden</h2>
+<h3>Was ist in welcher Phase möglich?</h3>
+<p>Die Tabs im Turnier (Turnier-Details) hängen von der Phase ab.
+<b>Teilnehmer</b>, <b>Preise</b>, <b>Helfer</b> und <b>Notizen</b> sind immer sichtbar.</p>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>Entwurf</b></td><td>Startgebühren; „Turnierdaten bearbeiten“ möglich</td></tr>
+  <tr><td><b>Ausschreibung</b></td><td>Startgebühren; „Turnierdaten bearbeiten“ möglich; Ausschreibungs-PDF erstellen</td></tr>
+  <tr><td><b>Vorbereitung</b></td><td>neu: <i>Parcours</i> und <i>Zeitplan</i>; Startgebühren und „Turnierdaten bearbeiten“ nicht mehr verfügbar</td></tr>
+  <tr><td><b>Anmeldung</b></td><td>Anmeldungen bestätigen, Zahlungen verbuchen</td></tr>
+  <tr><td><b>Einschreibung</b></td><td>neu: <i>Einschreibung</i> (Check-in)</td></tr>
+  <tr><td><b>Schießen</b></td><td>neu: <i>Ergebniseingabe</i>; Teilnehmer lassen sich nicht mehr zuweisen oder entfernen</td></tr>
+  <tr><td><b>Auswertung</b></td><td>neu: <i>Auswertung</i> (Rangliste, Ergebnisliste); der Check-in-Tab entfällt</td></tr>
+  <tr><td><b>Abgeschlossen</b></td><td>alles nur noch lesbar; Export möglich</td></tr>
+</table>
+<p>Der Tab <i>Zeitplan</i> erscheint nur, wenn im Assistenten keine
+Auslosung eingestellt ist.</p>
+<h3>Turnierdaten bearbeiten</h3>
+<p>Der Button <b>Turnierdaten bearbeiten</b> in den Turnier-Details öffnet
+den Assistenten und ist nur in den Phasen <i>Entwurf</i> und
+<i>Ausschreibung</i> sichtbar. In der Turnierliste ist
+<b>Bearbeiten</b> bis einschließlich <i>Anmeldung</i> möglich und ab der
+Einschreibung gesperrt.</p>
+<h3>Phasenwechsel und Voraussetzungen</h3>
+<p>Vor jedem Wechsel zeigt BowTally an, was fehlt. <b>Rot</b> (muss erfüllt
+sein) blockiert den Wechsel, <b>Gelb</b> (Hinweis) lässt ihn nach Rückfrage
+zu. Hinweise und offene manuelle Leitfaden-Aufgaben werden im Protokoll
+festgehalten.</p>
+<table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+  <tr><td><b>→ Vorbereitung</b></td><td>muss: Regelwerk, Bogenklassen, Turnierdatum nicht in der Vergangenheit · Hinweis: Kontakt, Bankverbindung, Ausschreibung erstellt</td></tr>
+  <tr><td><b>→ Anmeldung</b></td><td>muss: Startgebühren, Anmeldefrist · Hinweis: Ausschreibung aktuell, maximale Teilnehmerzahl</td></tr>
+  <tr><td><b>→ Einschreibung</b></td><td>muss: mindestens ein bestätigter Teilnehmer · Hinweis: alle bestätigt, alle bezahlt, Anmeldefrist abgelaufen</td></tr>
+  <tr><td><b>→ Schießen</b></td><td>muss: mindestens ein Teilnehmer eingecheckt · Hinweis: alle erwarteten eingecheckt, alle bezahlt</td></tr>
+  <tr><td><b>→ Auswertung</b></td><td>muss: Ergebnisse vorhanden · Hinweis: Ergebnisse vollständig</td></tr>
+  <tr><td><b>→ Abgeschlossen</b></td><td>Hinweis: Ergebnisliste erstellt, alle bezahlt · danach sind keine Änderungen mehr möglich</td></tr>
+</table>
+<h3>Phase zurücksetzen und Protokoll</h3>
+<p><b>Phasenwechsel-Protokoll</b> (Seitenleiste) listet Zeitpunkt, Von, Nach,
+Erzwungen und Warnungen aller Wechsel. Dort führt <b>← Zur vorherigen Phase</b>
+nach Rückfrage einen Schritt zurück; der Schritt wird als erzwungener Wechsel
+protokolliert. Die Phasenliste in der Seitenleiste zeigt, wann welche Phase
+erreicht wurde.</p>
+<h3>Leitfaden</h3>
+<p>Der <b>Leitfaden</b> zeigt für die aktuelle Phase: eine Beschreibung, die
+<b>Aufgaben</b>, die <b>Voraussetzungen</b> für die nächste Phase (Ampel) und –
+je nach Phase – einen Status und Kennzahlen (Anmeldungen, Einschreibung,
+Ergebnisfortschritt, ausstehende Zahlungen). Aufgaben mit Button springen
+direkt in die passende Ansicht (z. B. <i>Bankdaten eingeben</i>, <i>PDF
+generieren</i>, <i>Auslosung starten</i>, <i>Unvollständige anzeigen</i>). Manche
+Aufgaben hakst du von Hand ab (z. B. „Parcours planen und aufbauen“,
+„Helfer einteilen“); andere erledigen sich automatisch, sobald die Daten
+vollständig sind. In der Phase <i>Abgeschlossen</i> bietet der Leitfaden
+<b>Alle Turnierdaten exportieren</b>, die Nachbesprechung und die Notizen
+(siehe „Notizen &amp; Nachbesprechung“).</p>
+<p>Das <b>Turnier-Dashboard</b> zeigt dieselbe „Nächste Aufgabe“ und weitere
+Kennzahlen, siehe „Dashboard &amp; Logbuch“.</p>
+"""),
+    ("Turnier-Assistent", """
+<h2>Turnier-Assistent</h2>
+<p>Der Assistent legt Turniere an, kopiert sie oder bearbeitet sie. Oben zeigt
+eine Fortschrittsleiste den aktuellen Schritt; die Zusammenfassung enthält
+<b>Bearbeiten</b>-Links, die zum jeweiligen Schritt zurückspringen.</p>
+<h3>1 Grunddaten</h3>
+<p>Turniername (Pflicht), Datum, Ort, Veranstalter und eine interne
+Beschreibung. Der Button <b>Vereinsdaten übernehmen</b> in der Fußzeile trägt
+Veranstalter und Ort aus dem Vereinsprofil ein; bereits geänderte Felder
+werden erst nach Rückfrage überschrieben. Der Button erscheint nur, wenn im
+Vereinsprofil Name oder Ort hinterlegt sind.</p>
+<h3>2 Konfiguration</h3>
+<p><b>Wertungsmodus</b>: <i>Scheibenwertung</i> (Punkte je Scheibe),
+<i>Rundenwertung</i> (Punkte je Runde) oder <i>Nur Gesamtpunkte</i>.</p>
+<p><b>Auslosung oder Startgruppen:</b> Mit <i>Teilnehmer per Auslosung
+einteilen</i> werden die Gruppen später per Auslosung vergeben (das Feld
+Startgruppen ist dann gesperrt und der Tab <i>Zeitplan</i> entfällt). Ohne
+Auslosung trägst du unter <b>Startgruppen</b> die Gruppen ein (z. B.
+<code>A, B, C, D</code>); neue Teilnehmer werden reihum darauf verteilt und im
+Tab <i>Zeitplan</i> bekommen die Gruppen Startzeiten.</p>
+<p><b>Rundenkonfiguration:</b> Jede Runde hat Bezeichnung, Regelwerk (oder
+„Turnier-Standard“), Ziele, Pfeile und Entfernung (Standard, bekannt,
+unbekannt). Mit <b>+ Runde</b> fügst du Runden hinzu, der Papierkorb entfernt
+sie (mindestens eine bleibt). Die erste Runde bestimmt Regelwerk,
+Scheibenzahl und Pfeile des Turniers. Bei neuen Turnieren ist das als
+Standard markierte Regelwerk (★ in der Regelwerke-Liste) vorgewählt. Der
+Button <b>Parcours-Beschreibung übernehmen</b> trägt die im Vereinsprofil
+hinterlegte Beschreibung in „Hinweise zum Parcours“ ein.</p>
+<h3>3 Bogenklassen</h3>
+<p>Klassen per Klick an- und abwählen; <b>Alle</b>, <b>Keine</b> und <b>Eigene</b>
+(nur benutzerdefinierte Klassen) helfen bei der Auswahl. Mindestens eine
+Klasse ist nötig.</p>
+<h3>4 Fristen und Zeiten</h3>
+<p>Anmeldefrist, maximale Teilnehmerzahl (<code>0</code> = keine Begrenzung),
+Einschreibung ab und Schießbeginn. Bei <b>Einschießen erlaubt</b> erscheint
+das Feld <b>Einschießbereich</b>; es ist dann Pflicht, sonst kommst du nicht
+weiter. Der Bereich erscheint in der Ausschreibung. Die Auslastung zeigt, wie
+viele Plätze bereits belegt sind.</p>
+<h3>5 Startgebühren</h3>
+<p>Neue Turniere starten mit den Gebührenvorlagen; Bezeichnung und Betrag sind
+direkt änderbar, mit <b>Zeile hinzufügen</b> kommen weitere dazu. Ohne Gebühr
+ist kein Wechsel in die Anmeldephase möglich (die Zusammenfassung warnt
+darauf).</p>
+<h3>6 Kontakt und Bankdaten</h3>
+<p>Kontaktperson (Auswahl aus den Rollen des Vereinsvorstands, vorbelegt mit
+der Standard-Kontaktperson), Telefon, E-Mail, Kontoinhaber, IBAN, BIC und
+Verwendungszweck mit den Platzhaltern <code>{name}</code> und
+<code>{bow_class}</code>. <b>Vereinsdaten übernehmen</b> füllt diese Felder aus
+Vereinsprofil, Vorstand und Bankdaten.</p>
+<h3>7 Hinweise und Texte</h3>
+<p>Einleitungstext, Hinweise zum Parcours, wichtige Hinweise (eine Zeile je
+Hinweis; vorbelegt aus Einstellungen → Druck &amp; Listen) und Abschlusstext.
+Sie erscheinen in der Ausschreibung.</p>
+<h3>8 Zusammenfassung</h3>
+<p>Prüfe die Angaben und speichere mit <b>Turnier erstellen</b> bzw.
+<b>Speichern</b>. Die Checkbox <b>Ausschreibung jetzt generieren</b> in der
+Fußzeile erstellt direkt das Ausschreibungs-PDF; sie ist bei neuen Turnieren
+vorgekreuzt, beim Bearbeiten nicht. Über diesen Weg wird nur das PDF erstellt
+– das Angebot für die Ankündigungs-Mail erscheint beim Erstellen aus dem
+Leitfaden (siehe „E-Mail-Funktionen“).</p>
+<h3>Ausschreibungs-PDF</h3>
+<p>Das PDF enthält Vereinskopf mit Logo, Einladung, Termin und Ablauf, Parcours,
+Bogenklassen, Startgeld, Anmeldung und Überweisung, Kontakt, Hinweise und
+Abschlusstext. Ist unter Regelwerke → Turnierregeln der Text
+<i>Teilnahmebedingungen</i> gepflegt, folgt er als eigene Seite am Ende.
+Wurden Turnierdaten nach dem Erstellen geändert, markieren Leitfaden und
+Dashboard die Ausschreibung als veraltet; dort kannst du sie neu
+generieren.</p>
 """),
     ("Schützen & Teilnehmer", """
 <h2>Schützen &amp; Teilnehmer</h2>
@@ -64,11 +224,31 @@ Nützlich für wiederkehrende Turniere.</p>
 BowTally erkennt gängige Spaltenbezeichnungen automatisch.</p>
 <p>Schützen können als <b>inaktiv</b> markiert werden und werden dann aus
 Auswahllisten ausgeblendet. Die Checkbox <i>Inaktive Schützen anzeigen</i>
-blendet sie wieder ein.</p>
+blendet sie wieder ein. Schützen mit Turnierteilnahme lassen sich nicht löschen;
+BowTally bietet stattdessen an, sie zu deaktivieren.</p>
+<p>Der Bearbeiten-Dialog zeigt im Tab <b>Turnierhistorie</b> alle bisherigen
+Teilnahmen mit Rang und Punkten. Zwei Checkboxen gibt es nur mit hinterlegter
+E-Mail-Adresse (ohne Adresse sind sie ausgegraut und abgewählt):</p>
+<ul>
+  <li><b>Bei neuen Turnieren per E-Mail benachrichtigen</b> – der Schütze erhält
+      die Ankündigungs-Mail mit der Ausschreibung (nur wenn er aktiv ist)</li>
+  <li><b>Ergebnisversand per E-Mail</b> – der Schütze ist beim Ergebnisversand
+      vorausgewählt</li>
+</ul>
+<h3>E-Mail-Benachrichtigungen</h3>
+<p>Im Schützen-Dialog gibt es zwei Checkboxen, die nur mit hinterlegter
+E-Mail-Adresse aktivierbar sind (ohne Adresse sind sie ausgegraut und
+abgewählt):</p>
+<ul>
+  <li><b>Bei neuen Turnieren per E-Mail benachrichtigen</b> – der Schütze
+      erhält die Ankündigungs-Mail mit der Ausschreibung (nur wenn er aktiv ist)</li>
+  <li><b>Ergebnisversand per E-Mail</b> – der Schütze ist beim
+      Ergebnisversand vorausgewählt</li>
+</ul>
 <h3>Teilnehmer-Anmeldung</h3>
-<p>Im Turnier unter <b>Teilnehmer</b> weist du Schützen über <b>Schütze zuweisen</b>
-dem Turnier zu. Bei mehreren Schützen kannst du die Bogenklassen im
-folgenden Dialog individuell anpassen.</p>
+<p>Im Turnier unter <b>Teilnehmer</b> weist du Schützen über
+<b>Schütze zuweisen</b> dem Turnier zu. Bei mehreren Schützen kannst du die
+Bogenklassen im folgenden Dialog individuell anpassen.</p>
 <h3>Anmeldestatus</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
   <tr><td><b>Gemeldet</b></td><td>Anmeldung eingegangen, noch nicht bestätigt</td></tr>
@@ -87,64 +267,252 @@ Teilnehmern direkt in der Tabelle zugewiesen werden. Zahlungsstatus
 <p>Doppelklick auf Startnummer, Bogenklasse, Startgruppe, Gebühr oder
 Startzeit bearbeitet die Felder direkt in der Tabelle.</p>
 """),
+    ("Check-in & Startgebühren", """
+<h2>Check-in &amp; Startgebühren</h2>
+<h3>Startgebühren anlegen</h3>
+<p>Der Tab <b>Startgebühren</b> ist nur in den Phasen <i>Entwurf</i> und
+<i>Ausschreibung</i> sichtbar und bearbeitbar. Er enthält Bezeichnung, Betrag
+und Beschreibung je Gebühr (<b>Neue Gebühr</b>, Strg+N). <b>Vorlagen laden</b>
+kopiert die Standard-Gebühren hinzu. Eine Gebühr, die Teilnehmern zugewiesen
+ist, lässt sich nicht löschen. Die Gebühren erscheinen in der Ausschreibung
+und in der Einnahmenübersicht.</p>
+<h3>Gebühren zuweisen und Zahlungen verbuchen</h3>
+<p>Zugewiesen und verbucht wird im Tab <b>Teilnehmer</b>: per Doppelklick auf
+die Gebühr, über <b>Gebühr zuweisen …</b> im Kontextmenü oder beim Bestätigen
+einer Anmeldung. Der Zahlungsstatus lautet <b>Ausstehend</b>,
+<b>Erwartet</b> oder <b>Bezahlt</b>. <b>Zahlung eingegangen</b> setzt „Bezahlt“
+mit dem heutigen Datum; <b>Zahlung als ausstehend markieren</b> macht es
+rückgängig.</p>
+<h3>Check-in am Turniertag</h3>
+<p>Der Tab <b>Einschreibung</b> ist in den Phasen <i>Einschreibung</i> und
+<i>Schießen</i> aktiv. Gib Name oder Startnummer ein und drücke <b>Enter</b> –
+der Teilnehmer wird eingecheckt. Der Button wechselt zu <b>Auschecken</b>,
+wenn der Teilnehmer bereits eingecheckt ist (Status danach „Bestätigt“). Oben
+stehen <i>Eingecheckt / Erwartet</i> und die Auslastung. Ist die Startgebühr
+nicht als eingegangen markiert, erscheint die Warnung „Startgebühr nicht als
+eingegangen markiert“.</p>
+<h3>Walk-in</h3>
+<p><b>Als Walk-in erfassen</b> (Strg+N) legt einen Teilnehmer vor Ort an und
+checkt ihn direkt ein: Vorname und Nachname sind Pflicht, dazu Verein,
+Bogenklasse, Startgebühr und die Checkbox <i>Startgebühr bar bezahlt</i>.
+Bei voller Teilnehmerzahl ist der Button gesperrt.</p>
+<h3>Einschreibeliste</h3>
+<p>Die <b>Einschreibeliste</b> druckst du als PDF über die Aufgabe
+„Teilnehmerliste drucken“ im Leitfaden der Phase <i>Einschreibung</i>.</p>
+"""),
     ("Parcours, Zeitplan & Preise", """
 <h2>Parcours, Zeitplan &amp; Preise</h2>
 <h3>Parcours-Planung</h3>
-<p>Der Tab <b>Parcours</b> (ab Phase <i>Planung</i>) enthält alle Scheiben bzw. 3D-Tiere.
-Felder: Scheiben-Nr., Tier / Bezeichnung, Distanz (m), Pfeilstoppklasse, Geländetyp,
-Max. Gruppengröße und Helfernotiz.</p>
-<p>Über <b>Aus Inventar …</b> im Bearbeitungsdialog lassen sich Bezeichnungen direkt
-aus dem Vereinsinventar übernehmen. Die Reihenfolge ist per <b>Drag-and-Drop</b>
-änderbar und wird dauerhaft gespeichert.</p>
-<p>Drucken: <b>Aufbauplan</b> (mit Helfernotizen für Helfer) und <b>Scheibenplan</b>
-(ohne Notizen für Teilnehmer) als PDF.</p>
+<p>Der Tab <b>Parcours</b> (ab Phase <i>Vorbereitung</i>) enthält alle Scheiben bzw.
+3D-Tiere. Felder: Scheiben-Nr., Tier / Bezeichnung, Distanz (m),
+Pfeilstoppklasse, Geländetyp, Max. Gruppengröße und Helfernotiz.</p>
+<p>Über <b>Aus Inventar …</b> im Bearbeitungsdialog lassen sich Bezeichnungen
+direkt aus dem Vereinsinventar übernehmen. Die Reihenfolge ist per
+<b>Drag-and-Drop</b> änderbar und wird dauerhaft gespeichert.</p>
+<p>Drucken: <b>Aufbauplan</b> (mit Helfernotizen für Helfer) und
+<b>Scheibenplan</b> (ohne Notizen für Teilnehmer) als PDF.</p>
 <h3>Zeitplan</h3>
-<p>Der Tab <b>Zeitplan</b> erscheint ab Phase <i>Planung</i>, sofern kein Lossystem
-aktiviert ist. Hier werden Startgruppen und -zeiten verwaltet.</p>
-<h3>Lossystem (Auslosung)</h3>
-<p>Wird im Turnier-Assistenten unter <i>Konfiguration</i> das <b>Lossystem</b>
-aktiviert, ersetzt die Auslosung den Zeitplan. Der Button <b>Auslosung …</b>
-im Teilnehmer-Tab verteilt Teilnehmer zufällig auf Gruppen. Die maximalen
-Gruppengrößen aus dem Parcours werden dabei berücksichtigt.</p>
+<p>Der Tab <b>Zeitplan</b> erscheint ab Phase <i>Vorbereitung</i>, sofern im
+Assistenten keine Auslosung eingestellt ist. Hier werden Startgruppen und
+-zeiten verwaltet.</p>
+<h3>Auslosung</h3>
+<p>Wird im Turnier-Assistenten unter <i>Konfiguration</i> <b>Teilnehmer per
+Auslosung einteilen</b> aktiviert, ersetzt die Auslosung den Zeitplan. Der
+Button <b>Auslosung …</b> im Teilnehmer-Tab verteilt Teilnehmer zufällig auf
+Gruppen. Die maximalen Gruppengrößen aus dem Parcours werden dabei
+berücksichtigt.</p>
 <h3>Preise</h3>
-<p>Der Tab <b>Preise</b> ist immer sichtbar und enthält die Preisgestaltung des Turniers.</p>
-<h3>Wertungsblätter</h3>
-<p>Unter <b>Wertungsblätter</b> werden Vorlagen für das Drucken von Scorebögen verwaltet.</p>
+<p>Der Tab <b>Preise</b> ist immer sichtbar und enthält die Preisgestaltung des
+Turniers.</p>
+<h3>Wertungszettel</h3>
+<p>Im Auslosungs-Dialog wählst du eine <b>Wertungszettel-Vorlage</b>. Nach der Auslosung
+erstellt BowTally dann für jeden Teilnehmer einen Wertungszettel als PDF; „Keinen“ führt nur
+die Auslosung durch. Weitere Listen: <b>Starterfeld drucken</b> (⋮-Menü der Teilnehmer, nach
+Startgruppe sortiert) und <b>Helferliste drucken</b> (Tab Helfer).</p>
+"""),
+    ("Ergebnisse & Wertung", """
+<h2>Ergebnisse &amp; Wertung</h2>
+<h3>Ergebniseingabe</h3>
+<p>Der Tab <b>Ergebniseingabe</b> erscheint ab der Phase <i>Schießen</i>. Je Teilnehmer gibt es
+eine Zeile, je Scheibe (bei mehreren Pfeilen je Schuss) eine Spalte. Tippe eine Punktzahl oder wähle
+eine Zone aus der liste. Navigiere mit <b>Tab / Umschalt+Tab</b> zwischen Scheiben und
+mit <b>Enter / ↓ / ↑</b> zwischen Teilnehmern; <b>Esc</b> verwirft die laufende Eingabe.
+Jede Zelle wird sofort gespeichert; <b>Speichern</b> (Strg+S) bestätigt dies nur.</p>
+<h3>Filter und Hilfen</h3>
+<ul>
+  <li><b>Klassen-Tabs</b>, Gruppenfilter (nur sichtbar, wenn Startgruppen existieren) und Suche
+      nach Name oder Startnummer</li>
+  <li><b>Nur unvollständige</b> zeigt nur Teilnehmer mit fehlenden Scheibenergebnissen</li>
+  <li>Rechtsklick auf eine Spaltenüberschrift setzt die Scheibe für alle sichtbaren
+      Teilnehmer auf eine Zone (mit Rückfrage)</li>
+  <li>Bei mehreren Runden wählst du die Runde über Tabs über der Tabelle</li>
+  <li>Zählt das Regelwerk Sonderwertungen (z. B. Kill oder X), erscheinen zusätzliche Spalten</li>
+</ul>
+<p>Bei den Wertungsmodi <i>Rundenwertung</i> und <i>Nur Gesamtpunkte</i> trägst du stattdessen
+die Punkte je Runde bzw. die Gesamtpunkte in einer einfachen Tabelle ein.</p>
+<p>Ist die Auswertung geschlossen (Ergebnisliste erstellt) oder das Turnier abgeschlossen, ist
+die Eingabe gesperrt.</p>
+<h3>Rang berechnen</h3>
+<p>Der Rang wird beim Öffnen der Auswertung neu berechnet, wenn <i>automatisch neu berechnen</i>
+aktiv ist (Einstellungen → Turnierverwaltung → Allgemein). Andernfalls klickst du auf
+<b>Neu berechnen</b> (F5). Bei Punktgleichstand greift die konfigurierte Tie-Break-Logik; bleiben
+Teilnehmer gleichauf, steht „ex aequo“ beim Rang.</p>
+<h3>Tie-Break-Logik</h3>
+<ul>
+  <li><b>most_top_scores (Meiste Top-Treffer)</b> – bei gleicher Punktzahl entscheidet die Anzahl der
+      Treffer, beginnend bei der höchsten Wertung</li>
+  <li><b>total_highest (Gesamthöchste Wertung)</b> – nur die Gesamtpunkte zählen; gleiche Punktzahl
+      bedeutet gleicher Rang</li>
+</ul>
+<p>Sonderwertungen, die im Regelwerk als Tie-Break markiert sind, werden zusätzlich berücksichtigt.</p>
+<h3>Exportieren</h3>
+<p>Ranglisten lassen sich als Excel, OpenDocument oder CSV sowie als PDF exportieren, siehe
+„Auswertung &amp; Ergebnisliste“. Einschreibe- und Teilnehmerlisten exportierst du über die
+jeweiligen Ansichten (siehe „Import &amp; Export“).</p>
+"""),
+    ("Auswertung & Ergebnisliste", """
+<h2>Auswertung &amp; Ergebnisliste</h2>
+<h3>Ergebnisliste erstellen</h3>
+<p><b>Ergebnisliste erstellen</b> erzeugt das druckfertige PDF. Beim ersten Mal
+fragt BowTally: „Die Auswertung wird nun geschlossen. Dieser Schritt kann
+nicht rückgängig gemacht werden.“ Nach der Bestätigung ist die
+<b>Ergebniseingabe unwiderruflich schreibgeschützt</b>. Danach kannst du die
+Ergebnisliste beliebig oft neu erstellen.</p>
+<h3>Aktionen nach dem Erstellen</h3>
+<p>Diese Buttons sind erst aktiv, nachdem die Ergebnisliste erstellt wurde
+(vorher steht im Tooltip „Bitte zuerst die Ergebnisliste erstellen“):</p>
+<ul>
+  <li><b>Urkunden drucken</b> – Urkunden für die Podiumsplätze als PDF</li>
+  <li><b>Preis- und Siegerliste</b> – Rangliste je Bogenklasse mit den
+      zugewiesenen Preisen als PDF</li>
+  <li><b>Exportieren</b> – Excel, OpenDocument, CSV oder <b>PDF (.pdf)</b>
+      (Dateiname frei wählbar)</li>
+  <li><b>Ergebnisse versenden</b> – Ergebnisse per E-Mail an die Teilnehmer,
+      siehe „E-Mail-Funktionen“</li>
+</ul>
+<h3>Voraussetzungen und Abschluss</h3>
+<p>Im Leitfaden der Phase <i>Auswertung</i> prüfst du die Vollständigkeit
+(<b>Unvollständige anzeigen</b>), erstellst die Ergebnisliste, bereitest die
+Siegerehrung vor und hängst die Liste aus oder versendest sie. Beim Wechsel zu
+<i>Abgeschlossen</i> weist BowTally darauf hin, falls die Ergebnisliste noch
+nicht erstellt wurde oder Zahlungen offen sind.</p>
+<h3>Speichern</h3>
+<p>Die Ergebnisseingabe speichert jede Zelle sofort. Mit <b>Speichern</b>
+(Strg+S) bestätigst du den aktuellen Stand.</p>
+"""),
+    ("Notizen & Nachbesprechung", """
+<h2>Notizen &amp; Nachbesprechung</h2>
+<h3>Notizen-Tab</h3>
+<p>Der Tab <b>Notizen</b> im Turnier ist in jeder Phase sichtbar und enthält ein
+freies Textfeld für interne Notizen zum Turnier. Mit <b>Notizen speichern</b>
+sicherst du den Text. Die Notizen erscheinen <b>nicht</b> in der Ausschreibung.
+In der Phase <i>Abgeschlossen</i> sind sie schreibgeschützt.</p>
+<p>Die Notizen sind außerdem sichtbar:</p>
+<ul>
+  <li>im Turnier-Dashboard in der Karte „Aktuelle Phase“</li>
+  <li>im Leitfaden der Phase <i>Abgeschlossen</i></li>
+  <li>im Export „Alle Turnierdaten exportieren“ (Blatt <i>Notizen</i>)</li>
+</ul>
+<h3>Nachbesprechung</h3>
+<p>Im Leitfaden der Phase <i>Abgeschlossen</i> hältst du in der
+<b>Nachbesprechung</b> fest, was gut lief und was beim nächsten Turnier besser
+werden soll. <b>Notizen speichern</b> sichert den Text; er wird ebenfalls mit
+„Alle Turnierdaten exportieren“ ausgegeben. Dort stehen auch eine
+Zusammenfassung mit Datum, Teilnehmerzahl und Einnahmen.</p>
 """),
     ("Inventar & Kalender", """
 <h2>Inventar &amp; Kalender</h2>
 <h3>Vereinsinventar</h3>
-<p>Das Modul <b>Inventar</b> (Seitenleiste) verwaltet Scheiben (Scheibenbilder)
-und 3D-Ziele des Vereins. Felder: Bezeichnung, Hersteller, Anzahl, Zustand
-(Gut / Mittel / Schlecht) und ob der Eintrag aktiv ist.</p>
+<p>Das Modul <b>Inventar</b> (Seitenleiste) verwaltet in zwei Tabs <b>Scheiben</b>
+(Scheibenbilder) und <b>3D-Ziele</b> des Vereins. Felder: Bezeichnung, Hersteller,
+Anzahl, Zustand (Gut / Mittel / Schlecht), Notizen und ob der Eintrag aktiv ist.
+<i>Inaktive anzeigen</i> blendet inaktive Einträge ein; Import und Export sind
+möglich.</p>
 <p>Aktive Einträge erscheinen im Parcours-Dialog unter <b>Aus Inventar …</b>,
 um Scheibenbezeichnungen schnell zu übernehmen.</p>
-<h3>Jahresansicht im Kalender</h3>
-<p>Der Kalender wechselt mit dem <b>Jahres-Button</b> in eine Übersicht
-aller zwölf Monate. Tage mit Turnieren sind farblich hervorgehoben.
-Ein Klick auf einen Monatsnamen springt direkt in die Monatsansicht.</p>
+<h3>Kalender</h3>
+<p>Der Kalender zeigt alle Turniere als farbige Badges (Farbe je Phase). Mit den
+Buttons <b>Jahr</b>, <b>Monat</b>, <b>Woche</b> und <b>Tag</b> wechselst du die
+Ansicht; BowTally merkt sich die zuletzt gewählte. <b>◀</b>, <b>Heute</b> und
+<b>▶</b> navigieren in der Zeit.</p>
+<p>Die Jahresansicht zeigt alle zwölf Monate; Tage mit Turnieren sind farblich
+hervorgehoben. Ein Klick auf einen Monatsnamen springt direkt in die Monatsansicht.
+Fährst du mit der Maus über ein Turnier, erscheint eine Vorschau mit
+<b>Turnier öffnen →</b>; ein Klick auf das Badge öffnet das Turnier direkt.</p>
+<p><b>ICS exportieren</b> schreibt alle Turniere in eine Kalenderdatei
+(<code>.ics</code>) im Exportordner, die du in andere Kalender-Apps importieren
+kannst.</p>
 <h3>Regelwerk-Standard</h3>
 <p>In der Liste der Regelwerke lässt sich über <b>Als Standard setzen</b>
 (Rechtsklick → Kontextmenü) ein Regelwerk als Standard markieren (⭐).
 Beim Anlegen neuer Turniere wird dieses Regelwerk automatisch vorausgewählt.</p>
 """),
-    ("Ergebnisse & Wertung", """
-<h2>Ergebnisse &amp; Wertung</h2>
-<h3>Ergebniseingabe</h3>
-<p>In der Schieß-Phase können Punkte je Scheibe direkt eingegeben werden.
-Navigiere mit <b>Tab / Umschalt+Tab</b> zwischen Scheiben und
-mit <b>Enter / ↓ / ↑</b> zwischen Teilnehmern.</p>
-<h3>Rang berechnen</h3>
-<p>Der Rang wird nach jeder Eingabe automatisch neu berechnet (konfigurierbar
-unter Einstellungen → Verhalten). Bei Punktgleichstand greift die
-konfigurierte Tie-Break-Logik.</p>
-<h3>Tie-Break-Logik</h3>
+    ("Helfer", """
+<h2>Helfer</h2>
+<h3>Helfer-Stammdaten</h3>
+<p>Das Modul <b>Helfer</b> (Seitenleiste) verwaltet Helfer mit Name, Telefon,
+E-Mail, Notizen und Status. Neue Helfer legst du mit <b>Neuer Helfer</b>
+(Strg+N) an; im Bearbeiten-Dialog zeigt der Tab <b>Turnierbeteiligung</b>
+frühere Einsätze. <i>Inaktive anzeigen</i> blendet inaktive Einträge ein;
+Import und Export sind möglich.</p>
+<h3>Einsatzplanung im Turnier</h3>
+<p>Mit geöffnetem Turnier (Modul <b>Helfer</b> oder Tab <b>Helfer</b>) siehst du
+die Einsätze dieses Turniers: Name, Aufgabe, Von, Bis, Bestätigt und
+Kontaktdaten. <b>Aus Stammdatei</b> weist vorhandene Helfer zu,
+<b>Neuer Helfer</b> legt einen neuen an. Im Einsatz-Dialog trägst du Aufgabe
+und Zeit ein und kannst <i>Bestätigung versendet</i> abhaken.</p>
+<p>Im Kontextmenü: <b>Bestätigung senden</b> (öffnet die Helfer-Vorlage als
+E-Mail, nur mit E-Mail-Adresse), <b>Als bestätigt markieren</b>,
+<b>Bestätigung zurücksetzen</b>, <b>Als inaktiv markieren</b> und
+<b>Entfernen</b>. <b>Helferliste drucken</b> erstellt eine PDF-Liste.</p>
+"""),
+    ("Dashboard & Logbuch", """
+<h2>Dashboard &amp; Logbuch</h2>
+<h3>Dashboard</h3>
+<p>Ohne geöffnetes Turnier zeigt das Dashboard Kacheln für
+<i>Aktive Turniere</i>, <i>Nächstes Turnier</i>, <i>Turnierarchiv</i>,
+<i>Schützen</i>, <i>Regelwerke</i>, <i>Bogenklassen</i>, <i>Helfer</i>,
+<i>Inventar</i> und <i>Kalender</i> mit Direktlinks. Die Kacheln lassen sich
+per Drag-and-Drop umsortieren; die Reihenfolge bleibt erhalten.</p>
+<h3>Turnier-Dashboard</h3>
+<p>Mit geöffnetem Turnier (<b>Turnier-Dashboard</b> in der Seitenleiste) zeigt
+es Karten für <b>Teilnehmer</b> (inklusive Hinweis „Ausschreibung veraltet“
+mit <b>Neu generieren</b>), <b>Einnahmen</b>, <b>Aktuelle Phase</b> (nächste
+Aufgabe, Notizen und Link <b>Zum Leitfaden</b>), <b>Ergebnisfortschritt</b>
+(ab der Phase Schießen), <b>Klassen</b> und <b>Zeitplan</b> (Anmeldefrist,
+Turnierdatum, Einschreibung ab, Schießbeginn mit Countdown). Ein Klick auf
+eine Karte öffnet die passende Ansicht.</p>
+<h3>Logbuch</h3>
+<p>Das <b>Logbuch</b> protokolliert Aktivitäten. Du kannst nach Turnier,
+Zeitraum (Gesamter Zeitraum, Heute, 7 oder 30 Tage) und Text filtern sowie
+mit <b>Ältere laden …</b> in älteren Einträgen blättern. Geführt werden
+Ergebniseingaben, Phasenwechsel, Backups und Eincheckungen.</p>
+"""),
+    ("Regelwerke & Turnierregeln", """
+<h2>Regelwerke &amp; Turnierregeln</h2>
+<p>Das Modul <b>Regelwerke</b> hat zwei Tabs: <b>Regelwerke</b> (Punktverteilung)
+und <b>Turnierregeln</b> (globale Texte).</p>
+<h3>Regelwerke</h3>
+<p>Ein Regelwerk definiert, wie viele Schüsse je Scheibe erlaubt sind und wie
+viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
+(Chip <i>Standard</i>) sind schreibgeschützt – über <b>Kopieren</b> erstellst
+du eine anpassbare Kopie.</p>
+<h3>Regelwerk-Standard</h3>
+<p>In der Liste der Regelwerke lässt sich über <b>Als Standard setzen</b>
+(Rechtsklick → Kontextmenü) ein Regelwerk als Standard markieren (⭐).
+Beim Anlegen neuer Turniere wird dieses Regelwerk automatisch vorausgewählt.</p>
+<h3>Turnierregeln (globale Texte)</h3>
+<p>Der Tab <b>Turnierregeln</b> enthält zwei Texte, die für alle Turniere
+gelten:</p>
 <ul>
-  <li><b>Meiste Top-Treffer</b> – Wer mehr Treffer in der höchsten Zone hat, gewinnt</li>
-  <li><b>Gesamthöchste Wertung</b> – Höchste Einzelscheibenwertung entscheidet</li>
+  <li><b>Allgemeine Turnierregeln</b></li>
+  <li><b>Teilnahmebedingungen</b></li>
 </ul>
-<h3>Exportieren</h3>
-<p>Ranglisten und Einschreibelisten können als CSV, Excel oder OpenDocument exportiert werden.</p>
+<p><b>Speichern</b> ist nur aktiv, wenn du etwas geändert hast.
+<b>Turnierregeln exportieren</b> erstellt einen Aushang als PDF mit den
+allgemeinen Turnierregeln; ist ein Turnier geöffnet, steht dessen Name, Datum,
+Ort und Veranstalter darüber. Die <b>Teilnahmebedingungen</b> erscheinen als
+eigene Seite am Ende der Ausschreibung (sofern der Text gepflegt ist).</p>
 """),
     ("Einstellungen & Stammdaten", """
 <h2>Einstellungen &amp; Stammdaten</h2>
@@ -157,13 +525,26 @@ fest, welche Vorstand-Rolle beim Erstellen neuer Turniere vorbelegt wird.</p>
 können diese Daten per Klick auf <b>Übernehmen</b> als Turnierkontakt übernommen werden.</p>
 <h3>Bankdaten</h3>
 <p>IBAN, BIC und Verwendungszweck-Vorlage für Startgebühren-Überweisungen.
-Im Verwendungszweck können Platzhalter genutzt werden (z. B. <code>{name}</code>).</p>
-<h3>Design</h3>
-<p>Hell/Dunkel-Modus und individuelle Farbanpassung für helles und dunkles Theme.</p>
-<h3>Verhalten</h3>
-<p>Sprache, Schriftart, Rang-Neuberechnung und Tie-Break-Logik.</p>
-<h3>Druck</h3>
-<p>Papiergröße, Ausrichtung, Logo auf Ausdrucken und Textvorlagen für Ausschreibungen.</p>
+Im Verwendungszweck können Platzhalter genutzt werden (z. B.
+<code>{name}</code>).</p>
+<h3>Turnierverwaltung → Allgemein</h3>
+<p>Tie-Break-Logik, <i>automatisch neu berechnen</i> (Rang) und
+<i>Warteliste bei Vollbelegung</i>.</p>
+<h3>Turnierverwaltung → Druck &amp; Listen</h3>
+<p>Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
+und Einzelwertung je Scheibe auf Ausdrucken sowie Textvorlagen für
+Ausschreibungen: Parcours-Beschreibung, Überweisungshinweis, Gruppenhinweis und
+Wichtige Hinweise.</p>
+<h3>Turnierverwaltung → E-Mail-Vorlagen</h3>
+<p>Betreff und Text für die sieben E-Mail-Vorlagen, siehe „E-Mail-Funktionen“.</p>
+<h3>System → Allgemein</h3>
+<p><b>Update-Prüfung</b> (Beim Start nach Updates suchen, <b>Jetzt prüfen</b>) und
+der <b>Standard-Exportpfad</b> für erzeugte Dateien (leer = Downloads-Ordner),
+siehe „Backup &amp; Updates“.</p>
+<h3>Darstellung → Design</h3>
+<p><b>Darstellung</b> System, Hell oder Dunkel (Dark Mode), Markenfarben und
+individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> und
+<b>Zurücksetzen auf Standard</b>. <b>Oberfläche</b>: Sprache und Schriftart.</p>
 <h3>Regelwerke</h3>
 <p>Regelwerke definieren, wie viele Schüsse je Scheibe erlaubt sind und
 wie viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
@@ -173,14 +554,117 @@ du eine anpassbare Kopie.</p>
 <p>Bogenklassen gruppieren Schützen für die Wertung (z. B. Recurve, Compound).
 Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
 <h3>Backup</h3>
-<p>Aktiviere <i>Backup beim Beenden</i> unter Einstellungen → Backup für
-automatische Sicherungen. Zur Wiederherstellung: <b>Backup wiederherstellen</b>
-→ ZIP-Datei wählen. <b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich
-ersetzt – App danach neu starten.</p>
+<p>Siehe „Backup &amp; Updates“: automatisches Backup beim Beenden, Speicherort
+(Lokal / Netzwerk / Nextcloud), Aufbewahrungsdauer und Wiederherstellung aus
+einer JSON-Datei.</p>
 <h3>Navigation</h3>
 <p>Unter Einstellungen → <b>Navigation</b> lässt sich die Reihenfolge der
 Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
 werden nach einem <b>Neustart</b> der App wirksam.</p>
+"""),
+    ("E-Mail-Funktionen", """
+<h2>E-Mail-Funktionen</h2>
+<p>BowTally versendet keine E-Mails selbst: Es öffnet eine vorbereitete Nachricht in deinem
+Standard-Mailprogramm, die du prüfst und abschickst.</p>
+<h3>Vorlagen und Platzhalter</h3>
+<p>Unter Einstellungen → Turnierverwaltung → <b>E-Mail-Vorlagen</b> pflegst du Betreff und Text
+für sieben Vorlagen: Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Ergebnisversand,
+Wartelisten-Nachrücker, Helfer-Bestätigung und Turnier-Ankündigung. Platzhalter schreibst du in
+geschweiften Klammern, z. B. <code>{name}</code> (Liste siehe „Referenz“). Unbekannte
+Platzhalter bleiben im Text stehen.</p>
+<h3>Wo werden Mails vorbereitet?</h3>
+<ul>
+  <li><b>Teilnehmer</b> (Rechtsklick): <i>E-Mail: Anmeldebestätigung / Zahlungserinnerung /
+      Startunterlagen senden</i>. Bei mehreren Teilnehmern fragt BowTally vorher nach, weil je
+      Person ein Mail-Fenster geöffnet wird.</li>
+  <li><b>Anmeldung bestätigen</b> fragt anschließend, ob die Bestätigungsmail geöffnet werden soll.</li>
+  <li><b>Warteliste</b>: Nach dem Nachrücken öffnet <b>Benachrichtigen</b> eine Liste, aus der du
+      die Wartelisten-Mail an ausgewählte Personen öffnest.</li>
+  <li><b>Helfer</b> (Rechtsklick): <i>Bestätigung senden</i></li>
+  <li><b>Auswertung</b>: <b>Ergebnisse versenden</b></li>
+  <li><b>Ankündigung</b> nach dem Erzeugen der Ausschreibung</li>
+</ul>
+<p>Hat ein Teilnehmer oder Helfer keine E-Mail-Adresse, meldet BowTally das; ist eine Vorlage leer,
+erscheint ein Hinweis auf Einstellungen → E-Mail-Vorlagen.</p>
+<h3>Ankündigungs-Mail</h3>
+<p>Erstellst du die Ausschreibung über den Leitfaden (<b>PDF generieren</b>) oder das Dashboard
+(<b>Neu generieren</b>), fragt BowTally, ob die <b>Turnier-Ankündigung</b> versendet werden soll –
+sofern aktive Schützen mit der Option <i>Bei neuen Turnieren per E-Mail benachrichtigen</i> und
+E-Mail-Adresse existieren. Die Mail wird mit der Ausschreibung (PDF) im Anhang geöffnet; die
+Empfänger stehen im Blindkopie-Feld (BCC).</p>
+<h3>Ergebnisversand</h3>
+<p><b>Ergebnisse versenden</b> (erst nach „Ergebnisliste erstellen“) öffnet eine Liste mit Rang und
+Punkten. Vorausgewählt sind Teilnehmer mit der Option <i>Ergebnisversand per E-Mail</i>; Teilnehmer
+ohne E-Mail-Adresse sind ausgegraut. <b>E-Mail senden (n)</b> öffnet je Auswahl eine Mail mit der
+<b>Ergebnisliste im Anhang</b>.</p>
+<h3>Anhang-Mechanismus (.eml)</h3>
+<p>Ein <code>mailto:</code>-Link kann keine Dateien enthalten. Bei Mails mit Anhang erzeugt BowTally
+daher einen <b>.eml-Entwurf</b> (als „unversendet“ markiert) mit dem PDF und öffnet ihn im
+Standard-Mailprogramm. Das Mailprogramm muss <code>.eml</code>-Dateien als bearbeitbaren Entwurf
+öffnen können. Mails ohne Anhang werden als normaler <code>mailto:</code>-Link geöffnet.</p>
+"""),
+    ("Import & Export", """
+<h2>Import &amp; Export</h2>
+<h3>Import</h3>
+<p>Schützen, Helfer, Bogenklassen, Regelwerke, Inventar und Teilnehmer lassen sich per
+<b>Importieren</b> aus CSV, Excel (<code>.xlsx</code>) oder OpenDocument (<code>.ods</code>)
+einlesen (bei Teilnehmern über das ⋮-Menü). Der Import-Dialog führt durch:</p>
+<ul>
+  <li><b>Spalten-Zuordnung</b> – BowTally ordnet gängige Spaltenbezeichnungen automatisch zu;
+      Pflichtfelder sind mit * markiert</li>
+  <li><b>Vorschau</b> der ersten Zeilen und <b>Validierung</b>: fehlerhafte Zeilen werden
+      gemeldet und übersprungen</li>
+  <li><b>Duplikate</b>: Überspringen, Aktualisieren oder Immer neu</li>
+</ul>
+<p>Beim Teilnehmerimport prüft BowTally, ob die maximale Teilnehmerzahl überschritten wird.</p>
+<h3>Export</h3>
+<p>Der Button <b>Exportieren</b> bietet Excel, OpenDocument und CSV. Ist ein Filter aktiv, kannst du
+zwischen <i>Alle Datensätze</i> und <i>Nur gefilterte</i> wählen. CSV-Dateien verwenden das
+Semikolon als Trennzeichen (UTF-8); bestehen die Daten aus mehreren Tabellenblättern, entstehen
+mehrere CSV-Dateien. Nach dem Export bietet ein Hinweis <b>Öffnen</b> an.</p>
+<p>Verfügbar ist der Export u. a. bei Schützen, Helfern, Bogenklassen, Regelwerken, Inventar und
+der Rangliste (zusätzlich als PDF). In der Phase <i>Abgeschlossen</i> exportiert
+<b>Alle Turnierdaten exportieren</b> (Leitfaden) Teilnehmer, Ergebnisse, Rangliste,
+Startgebühren und Notizen.</p>
+<h3>PDF-Dokumente</h3>
+<p>Ausschreibung, Listen, Pläne, Urkunden und Ergebnisliste werden als PDF im
+<b>Standard-Exportpfad</b> abgelegt (Einstellungen → System → Allgemein; leer =
+Downloads-Ordner).</p>
+"""),
+    ("Backup & Updates", """
+<h2>Backup &amp; Updates</h2>
+<h3>Backup</h3>
+<p>Unter Einstellungen → System → <b>Backup</b> stellst du ein:</p>
+<ul>
+  <li><b>Automatisches Backup beim Beenden der App</b> und die <b>Aufbewahrungsdauer</b>
+      (1–365 Tage); ältere Backups werden nach einer Sicherung automatisch gelöscht</li>
+  <li><b>Speicherort</b>: <i>Lokal</i> (Ordner), <i>Netzwerk</i> (NAS / Freigabe, optional mit
+      Anmeldung) oder <i>Nextcloud</i> (Server-URL, Benutzer, Passwort, Zielpfad)</li>
+  <li><b>Verbindung testen</b> prüft den gewählten Speicherort, <b>Backup jetzt erstellen</b>
+      sichert sofort</li>
+</ul>
+<p>Backups sind JSON-Dateien (<code>BowTally-Backup-…json</code>). Das automatische Backup beim
+Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
+<h3>Wiederherstellung</h3>
+<p><b>Backup wiederherstellen</b> → JSON-Datei wählen. <b>Achtung:</b> Die aktuelle Datenbank wird
+nach Rückfrage ersetzt – das lässt sich nicht rückgängig machen. Danach die App neu starten.
+Alte ZIP-Backups können nicht mehr importiert werden.</p>
+<h3>Updates</h3>
+<p>Unter Einstellungen → System → Allgemein sucht BowTally auf Wunsch <b>beim Start nach
+Updates</b> (<i>Beim Start nach Updates suchen</i>). <b>Jetzt prüfen</b> startet die Suche sofort;
+<i>Letzte Prüfung</i> zeigt den Zeitpunkt der letzten erfolgreichen Verbindung.</p>
+<p>Gibt es eine neue Version, zeigt ein Dialog die Neuerungen und einen Link zum vollständigen
+Changelog. Mit <b>Jetzt aktualisieren</b> lädt BowTally den Installer herunter, prüft die
+Prüfsumme (sofern vorhanden) und installiert das Update; <b>Später erinnern</b> verschiebt es,
+<b>Diese Version überspringen</b> blendet sie aus.</p>
+<h3>Fehlermeldungen bei der Update-Prüfung</h3>
+<p>Bei einer manuellen Prüfung erscheint „Der Update-Server ist nicht erreichbar. Bitte
+Internetverbindung prüfen.“ bei Netzwerkproblemen, bzw. eine Meldung mit dem HTTP-Fehlercode,
+wenn der Server mit einem Fehler antwortet. Ist alles aktuell, lautet die Meldung „Kein Update
+verfügbar.“ Beim automatischen Start-Check bleiben Fehler ohne Meldung.</p>
+<h3>Über BowTally</h3>
+<p>Der Eintrag <b>Über BowTally</b> (Seitenleiste unten) enthält Informationen zur Version,
+den Lizenztext, das Changelog und die Tastenkürzel.</p>
 """),
     ("Rechtsklick-Menüs", """
 <h2>Rechtsklick-Menüs</h2>
@@ -195,14 +679,14 @@ mit den verfügbaren Aktionen für den ausgewählten Eintrag.</p>
 </table>
 <h3>Schützenliste</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
-  <tr><td><b>Bearbeiten</b></td><td>Stammdaten im Seitenpanel bearbeiten</td></tr>
-  <tr><td><b>Kopieren</b></td><td>Schützen-Datensatz duplizieren</td></tr>
+  <tr><td><b>Bearbeiten</b></td><td>Stammdaten im Dialog bearbeiten</td></tr>
+  <tr><td><b>Klasse ändern …</b></td><td>Standardklasse für die Auswahl setzen</td></tr>
   <tr><td><b>Als inaktiv markieren</b></td><td>Aus Auswahllisten ausblenden</td></tr>
   <tr><td><b>Löschen</b></td><td>Schützen dauerhaft löschen</td></tr>
 </table>
 <h3>Regelwerke &amp; Bogenklassen</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
-  <tr><td><b>Bearbeiten</b></td><td>Im Seitenpanel bearbeiten (Standard-Einträge schreibgeschützt)</td></tr>
+  <tr><td><b>Bearbeiten</b></td><td>Im Dialog bearbeiten (Standard-Einträge schreibgeschützt)</td></tr>
   <tr><td><b>Kopieren</b></td><td>Anpassbare Kopie anlegen</td></tr>
   <tr><td><b>Löschen</b></td><td>Eintrag löschen (Standard-Einträge schreibgeschützt)</td></tr>
 </table>
@@ -217,7 +701,7 @@ ausgeblendet. Bei abgeschlossenen Turnieren sind alle Aktionen gesperrt.</p>
   <tr><td><b>Als zurückgezogen markieren</b></td><td>Nur für aktive Teilnehmer</td></tr>
   <tr><td><b>Auf „Gemeldet" zurücksetzen</b></td><td>Nur wenn bereits bestätigt oder eingecheckt</td></tr>
   <tr><td><b>Zahlung als ausstehend markieren</b></td><td>Zahlungsstatus auf „Ausstehend" setzen</td></tr>
-  <tr><td><b>Gebühr / Klasse / Gruppe zuweisen</b></td><td>Direkte Zuweisung für die Auswahl</td></tr>
+  <tr><td><b>Gebühr / Klasse / Gruppe zuweisen</b></td><td>Direkte Zuweisung für die Auswahl (Klasse und Gruppe nicht in der Schieß-Phase)</td></tr>
   <tr><td><b>Entfernen</b></td><td>Teilnehmer aus dem Turnier entfernen</td></tr>
 </table>
 """),
@@ -236,15 +720,22 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
 <p><i>Immer verfügbar:</i></p>
 <table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
   <tr><td><code>{name}</code></td><td>Vor- und Nachname des Teilnehmers / Helfers</td></tr>
+  <tr><td><code>{first_name}</code>, <code>{last_name}</code></td><td>Vor- bzw. Nachname</td></tr>
   <tr><td><code>{turniername}</code></td><td>Name des Turniers</td></tr>
   <tr><td><code>{datum}</code></td><td>Turnierdatum (TT.MM.JJJJ)</td></tr>
-  <tr><td><code>{ort}</code></td><td>Veranstaltungsort des Turniers</td></tr>
   <tr><td><code>{anmeldefrist}</code></td><td>Anmeldefrist (TT.MM.JJJJ)</td></tr>
-  <tr><td><code>{iban}</code></td><td>IBAN aus den Turnier-Bankdaten</td></tr>
   <tr><td><code>{vereinsname}</code></td><td>Vereinsname aus dem Vereinsprofil</td></tr>
-  <tr><td><code>{kontakt_name}</code></td><td>Name der Standard-Kontaktperson</td></tr>
-  <tr><td><code>{kontakt_email}</code></td><td>E-Mail der Standard-Kontaktperson</td></tr>
-  <tr><td><code>{kontakt_telefon}</code></td><td>Telefon der Standard-Kontaktperson</td></tr>
+  <tr><td><code>{kontakt_name}</code></td><td>Name der Standard-Kontaktperson (bei der Ankündigung die Turnier-Kontaktperson)</td></tr>
+  <tr><td><code>{kontakt_email}</code></td><td>E-Mail-Adresse aus dem Vereinsprofil</td></tr>
+  <tr><td><code>{kontakt_telefon}</code></td><td>Telefonnummer aus dem Vereinsprofil</td></tr>
+</table>
+<p><i>In allen Vorlagen außer der Turnier-Ankündigung:</i></p>
+<table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
+  <tr><td><code>{ort}</code></td><td>Veranstaltungsort des Turniers</td></tr>
+  <tr><td><code>{iban}</code></td><td>IBAN aus den Turnier-Bankdaten</td></tr>
+  <tr><td><code>{bank_account_holder}</code></td><td>Kontoinhaber aus den Turnier-Bankdaten</td></tr>
+  <tr><td><code>{checkin_start_time}</code></td><td>Einschreibung ab (Uhrzeit)</td></tr>
+  <tr><td><code>{shooting_start_time}</code></td><td>Schießbeginn (Uhrzeit)</td></tr>
 </table>
 <p><i>Nur in Teilnehmer-Vorlagen:</i></p>
 <table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
@@ -264,9 +755,15 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
   <tr><td><code>{von}</code></td><td>Einsatzbeginn</td></tr>
   <tr><td><code>{bis}</code></td><td>Einsatzende</td></tr>
 </table>
+<p><i>Nur in der Turnier-Ankündigung:</i></p>
+<table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
+  <tr><td><code>{ort}</code></td><td>Veranstaltungsort des Turniers</td></tr>
+  <tr><td><code>{klassen}</code></td><td>Bogenklassen des Turniers</td></tr>
+  <tr><td><code>{startgeld}</code></td><td>Startgebühren mit Beträgen</td></tr>
+</table>
 <h3>Tastenkürzel</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
-  <tr><td><code>Strg+N</code></td><td>Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer)</td></tr>
+  <tr><td><code>Strg+N</code></td><td>Neu (Schütze, Klasse, Regelwerk, Turnier, Teilnehmer, Helfer, Preis, Walk-in)</td></tr>
   <tr><td><code>Strg+F</code></td><td>Suchfeld der aktuellen Ansicht</td></tr>
   <tr><td><code>Strg+S</code></td><td>Speichern (Seitenpanel, Ergebniseingabe)</td></tr>
   <tr><td><code>Esc</code></td><td>Seitenpanel schließen / Suche leeren / Eingabe verwerfen</td></tr>
@@ -276,11 +773,13 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
   <tr><td><code>Tab / Umschalt+Tab</code></td><td>Ergebniseingabe: nächste / vorherige Scheibe</td></tr>
   <tr><td><code>Enter / ↓ / ↑</code></td><td>Ergebniseingabe: nächster / vorheriger Teilnehmer</td></tr>
 </table>
+<p>Eine kurze Liste der wichtigsten Kürzel steht auch unter
+<b>Über BowTally → Tastenkürzel</b>.</p>
 <h3>Backup &amp; Wiederherstellung</h3>
-<p>Aktiviere <i>Backup beim Beenden der App erstellen</i> unter Einstellungen → Backup.
-Für manuelle Sicherungen: <b>Backup jetzt erstellen</b> (lokal) oder
-<b>Zu Nextcloud sichern</b>.</p>
-<p>Zur Wiederherstellung: <b>Backup wiederherstellen</b> → ZIP-Datei wählen.
+<p>Aktiviere <i>Automatisches Backup beim Beenden der App</i> unter Einstellungen →
+System → Backup. Für manuelle Sicherungen: <b>Backup jetzt erstellen</b> (Lokal,
+Netzwerk oder Nextcloud je nach gewähltem Speicherort).</p>
+<p>Zur Wiederherstellung: <b>Backup wiederherstellen</b> → JSON-Datei wählen.
 <b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich ersetzt.
 App danach neu starten.</p>
 """),

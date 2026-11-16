@@ -25,7 +25,7 @@ class FirstRunWizard(QDialog):
         self._error_lbl.hide()
 
         self._next_btn = button("Weiter", self._next, "primary")
-        self._cancel_btn = button("Abbrechen", self.reject)
+        self._cancel_btn = button("Abbrechen", self._cancel)
 
         btn_row = QHBoxLayout()
         btn_row.addWidget(self._cancel_btn)
@@ -118,7 +118,23 @@ class FirstRunWizard(QDialog):
                               "federation": self.federation.text().strip()})
         self.accept()
 
-    def reject(self):
-        """License not accepted or wizard skipped: close the application."""
+    def _cancel(self):
+        """Cancel aborts the whole application, not just the wizard."""
         from PySide6.QtWidgets import QApplication
         QApplication.instance().quit()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(0, self._center_on_parent)
+
+    def _center_on_parent(self):
+        """Start 15% larger than the natural size, centered on the main window."""
+        parent = self.parentWidget()
+        if not parent:
+            return
+        base = self.sizeHint()
+        limit = parent.frameGeometry().size()
+        self.resize(min(int(base.width() * 1.15), limit.width()),
+                    min(int(base.height() * 1.15), limit.height()))
+        self.move(parent.frameGeometry().center() - self.rect().center())

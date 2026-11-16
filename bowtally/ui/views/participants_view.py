@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """Participant management of one tournament: picker, registration / payment status,
 inline editing, bulk actions, capacity limit and import."""
-from PySide6.QtCore import QDate, QSize, Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDateEdit, QDialog, QDoubleSpinBox,
                                QFormLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-                               QMenu, QPushButton, QRadioButton, QVBoxLayout, QWidget)
+                               QMenu, QRadioButton, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import PARTICIPANT_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
 from bowtally.services import participant_service as ps
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.ui import busy, button, restore_geom, save_geom, show_error, theme
+from bowtally.ui import burger_button, busy, button, restore_geom, save_geom, show_error, theme
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
@@ -315,20 +315,14 @@ class ParticipantsView(QWidget):
             "Startnummern neu vergeben", self._renumber)
         self._act_import = self._more_menu.addAction(
             "Importieren …", self._import)
-        self._more_menu.addSeparator()
+        self._draw_separator = self._more_menu.addSeparator()
         self._act_draw = self._more_menu.addAction("Auslosung …", self._run_draw)
         self._act_starter = self._more_menu.addAction(
             "Starterfeld drucken", self._print_starter)
         for act, icon_name in ((self._act_renumber, "list"), (self._act_import, "inbox"),
                                (self._act_draw, "users"), (self._act_starter, "file")):
             act.setIcon(theme.icon(icon_name))
-        self.btn_more = QPushButton()
-        self.btn_more.setMenu(self._more_menu)
-        self.btn_more.setIcon(theme.icon("menu"))
-        self.btn_more.setIconSize(QSize(16, 16))
-        self.btn_more.setFixedSize(28, 28)
-        self.btn_more.setStyleSheet("QPushButton::menu-indicator { image: none; }")
-        self.btn_more.setToolTip("Weitere Aktionen")
+        self.btn_more = burger_button("Weitere Aktionen", menu=self._more_menu)
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(280)
         bar = QHBoxLayout()
@@ -386,6 +380,8 @@ class ParticipantsView(QWidget):
             "Teilnehmerliste aus CSV, Excel oder OpenDocument" if assignable
             else (CLOSED_HINT if not editable else shooting_hint))
         self._act_draw.setEnabled(editable)
+        self._act_draw.setVisible(bool(t.use_draw))
+        self._draw_separator.setVisible(bool(t.use_draw))
         self._act_starter.setEnabled(True)
         self.btn_more.setEnabled(True)
         add_ok = assignable and (not cap.is_full or waitlist_auto)

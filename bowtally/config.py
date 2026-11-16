@@ -44,8 +44,18 @@ ASSETS_DIR = _BASE / "assets"
 ICON_PATH = ASSETS_DIR / "icon.ico"
 
 
-def license_text() -> str:
+def _read_text(relative_path: str, not_found: str) -> str:
     try:
-        return (_BASE / "docs" / "license.txt").read_text(encoding="utf-8")
+        return (_BASE / relative_path).read_text(encoding="utf-8")
     except OSError:
-        return "Lizenzdatei nicht gefunden."
+        return not_found
+
+
+def license_text() -> str:
+    return _read_text("docs/license.txt", "Lizenzdatei nicht gefunden.")
+
+
+def changelog_text() -> str:
+    # Installation: docs/CHANGELOG.md; Entwicklung: liegt im Repo-Root
+    return (_read_text("docs/CHANGELOG.md", "")
+            or _read_text("CHANGELOG.md", "Changelog-Datei nicht gefunden."))

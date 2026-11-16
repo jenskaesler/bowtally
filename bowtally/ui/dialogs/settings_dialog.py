@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
 
 from bowtally import config
 from bowtally.services import ValidationError, settings_service as ss
-from bowtally.ui import button, restore_geom, save_geom, show_error, theme
+from bowtally.ui import burger_button, button, restore_geom, save_geom, show_error, theme
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
                    "templates": "Textvorlagen"}
@@ -253,9 +253,13 @@ class SettingsDialog(QDialog):
         body.addWidget(vline)
         body.addWidget(self._stack, 1)
 
+        self._save_btn = button("Speichern", self._save_settings, "danger",
+                                "Ungespeicherte Änderungen speichern")
+        self._save_btn.setEnabled(False)
         close_btn = button("Schließen", self._close_dialog, "primary")
         btn_row = QHBoxLayout()
         btn_row.addStretch()
+        btn_row.addWidget(self._save_btn)
         btn_row.addWidget(close_btn)
 
         lay = QVBoxLayout(self)
@@ -270,7 +274,8 @@ class SettingsDialog(QDialog):
             lambda: self._do_settings_search(self._settings_search.text()))
         self._settings_search.textChanged.connect(lambda: self._search_timer.start())
         self._select_settings_page("club")
-        self._connect_autosave()
+        self._saved = self._state()
+        self._connect_changes()
 
     def _on_settings_nav(self, current, _prev):
         if current is None:
@@ -355,65 +360,94 @@ class SettingsDialog(QDialog):
                 self._settings_nav.setCurrentItem(item)
                 return
 
-    def _autosave(self):
+    def _nav_order_json(self) -> str:
+        return json.dumps([
+            {"key": self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole),
+             "visible": bool(self._nav_list_widget.item(i).data(VISIBLE_ROLE))}
+            for i in range(self._nav_list_widget.count())
+        ])
+
+    def _state(self) -> dict:
+        """All editable values, as the settings would be saved."""
         try:
             values = self._colors()
         except ValidationError:
             values = {}
+        values.update({k: self._value_of(w) for k, w in self.value_widgets.items()})
+        club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
+                for k, e in self.club_edits.items()}
+        club["logo_path"] = self._logo_path
+        return {"values": values, "club": club, "nav": self._nav_order_json(),
+                "backup": self._backup_values()}
+
+    def _update_save_btn(self):
+        self._save_btn.setEnabled(self._state() != self._saved)
+
+    def _save_settings(self):
         try:
-            values.update({k: self._value_of(w) for k, w in self.value_widgets.items()})
-            club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
-                    for k, e in self.club_edits.items()}
-            club["logo_path"] = self._logo_path
-            nav_order = json.dumps([
-                {"key": self._nav_list_widget.item(i).data(Qt.ItemDataRole.UserRole),
-                 "visible": bool(self._nav_list_widget.item(i).data(VISIBLE_ROLE))}
-                for i in range(self._nav_list_widget.count())
-            ])
-            ss.set_many(values)
-            ss.set_value("nav_order", nav_order)
-            ss.save_club_profile(club)
+            state = self._state()
+            ss.set_many(state["values"])
+            ss.set_value("nav_order", state["nav"])
+            ss.save_club_profile(state["club"])
             self._save_backup_settings()
         except Exception as exc:
             show_error(self, exc, "Einstellungen konnten nicht gespeichert werden")
+            return
+        self._saved = self._state()
+        self._update_save_btn()
 
     def _close_dialog(self):
-        self._autosave()
+        if self._has_unsaved_changes():
+            return
         self.accept()
 
     def reject(self):
-        self._autosave()
-        super().reject()
+        if not self._has_unsaved_changes():
+            super().reject()
 
-    def _connect_autosave(self):
+    def closeEvent(self, event):
+        if not self._has_unsaved_changes():
+            super().closeEvent(event)
+
+    def _has_unsaved_changes(self) -> bool:
+        if self._state() == self._saved:
+            return True
+        from bowtally.ui.components.confirm_dialog import ConfirmDialog
+        if ConfirmDialog.ask(self, "Ungespeicherte Änderungen",
+                             "Es gibt ungespeicherte Änderungen. Trotzdem schließen?",
+                             "Verwerfen", destructive=True):
+            self.apply_theme()     # drop the live preview
+            return True
+        return False
+
+    def _connect_changes(self):
         for w in self.value_widgets.values():
             if isinstance(w, QCheckBox):
-                w.toggled.connect(self._autosave)
+                w.toggled.connect(self._update_save_btn)
             elif isinstance(w, QComboBox):
-                w.currentIndexChanged.connect(self._autosave)
+                w.currentIndexChanged.connect(self._update_save_btn)
             elif isinstance(w, QSpinBox):
-                w.valueChanged.connect(self._autosave)
+                w.valueChanged.connect(self._update_save_btn)
             elif isinstance(w, QLineEdit):
-                w.editingFinished.connect(self._autosave)
+                w.textChanged.connect(self._update_save_btn)
             elif isinstance(w, QPlainTextEdit):
-                w.textChanged.connect(self._autosave)
+                w.textChanged.connect(self._update_save_btn)
             elif hasattr(w, 'edit') and isinstance(w.edit, QLineEdit):
-                w.edit.editingFinished.connect(self._autosave)
+                w.edit.textChanged.connect(self._update_save_btn)
         for e in self.club_edits.values():
-            if isinstance(e, QLineEdit):
-                e.editingFinished.connect(self._autosave)
+            e.textChanged.connect(self._update_save_btn)
         if hasattr(self, 'mode'):
-            self.mode.currentIndexChanged.connect(self._autosave)
+            self.mode.currentIndexChanged.connect(self._update_save_btn)
         for f in getattr(self, 'color_fields', {}).values():
-            f.edit.editingFinished.connect(self._autosave)
+            f.edit.textChanged.connect(self._update_save_btn)
         if hasattr(self, '_backup_on_close'):
-            self._backup_on_close.toggled.connect(self._autosave)
+            self._backup_on_close.toggled.connect(self._update_save_btn)
         if hasattr(self, '_backup_retention_days'):
-            self._backup_retention_days.valueChanged.connect(self._autosave)
+            self._backup_retention_days.valueChanged.connect(self._update_save_btn)
         if hasattr(self, '_backup_target_combo'):
-            self._backup_target_combo.currentIndexChanged.connect(self._autosave)
+            self._backup_target_combo.currentIndexChanged.connect(self._update_save_btn)
         if hasattr(self, '_nav_list_widget'):
-            self._nav_list_widget.model().rowsMoved.connect(self._autosave)
+            self._nav_list_widget.model().rowsMoved.connect(self._update_save_btn)
 
     @staticmethod
     def _flbl(text: str) -> QLabel:
@@ -699,8 +733,10 @@ class SettingsDialog(QDialog):
         self._last_check_label.setText(f"Letzte Prüfung: {service.last_check_str()}")
         if info is None or not info.available:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.information(self, "Update-Prüfung",
-                                    "Kein Update verfügbar.")
+            if service.last_error:
+                QMessageBox.warning(self, "Update-Prüfung", service.last_error)
+            else:
+                QMessageBox.information(self, "Update-Prüfung", "Kein Update verfügbar.")
             return
         from bowtally.updater.update_dialog import UpdateDialog
         UpdateDialog(info, service, parent=self).exec()
@@ -843,13 +879,13 @@ class SettingsDialog(QDialog):
         # ---- Box 3: Wiederherstellen
         restore_box = QGroupBox("Wiederherstellen")
         restore_lay = QVBoxLayout(restore_box)
-        restore_lay.addWidget(QLabel("Wähle eine lokale Backup-Datei (.json):",
+        restore_lay.addWidget(QLabel("Wähle eine lokale Backup-Datei (.zip):",
                                      objectName="pageSubtitle"))
         restore_btns = QHBoxLayout()
         restore_btns.addWidget(button("Backup wiederherstellen",
                                       lambda: self._do_restore(bs),
                                       "danger",
-                                      "Backup-JSON auswählen und Datenbank ersetzen"))
+                                      "Backup-ZIP auswählen und Datenbank ersetzen"))
         restore_btns.addStretch()
         restore_lay.addLayout(restore_btns)
         lay.addWidget(restore_box)
@@ -862,11 +898,8 @@ class SettingsDialog(QDialog):
         if path:
             self._backup_path_edit.setText(path)
 
-    def _save_backup_settings(self):
-        from bowtally.services import backup_service as bs
-        bs._set_password("backup_network_password", self._net_pass.text())
-        bs._set_password("backup_nextcloud_password", self._nc_pass.text())
-        ss.set_many({
+    def _backup_values(self) -> dict:
+        return {
             "backup_on_close": "true" if self._backup_on_close.isChecked() else "false",
             "backup_retention_days": str(self._backup_retention_days.value()),
             "backup_target": self._backup_target_combo.currentData(),
@@ -878,7 +911,16 @@ class SettingsDialog(QDialog):
             "backup_nextcloud_url": self._nc_url.text().strip(),
             "backup_nextcloud_user": self._nc_user.text().strip(),
             "backup_nextcloud_path": self._nc_path.text().strip(),
-        })
+            "backup_network_password": self._net_pass.text(),
+            "backup_nextcloud_password": self._nc_pass.text(),
+        }
+
+    def _save_backup_settings(self):
+        from bowtally.services import backup_service as bs
+        values = self._backup_values()
+        bs._set_password("backup_network_password", values.pop("backup_network_password"))
+        bs._set_password("backup_nextcloud_password", values.pop("backup_nextcloud_password"))
+        ss.set_many(values)
 
     def _test_backup(self, bs, target: str):
         self._save_backup_settings()
@@ -923,12 +965,8 @@ class SettingsDialog(QDialog):
 
     def _do_restore(self, bs):
         path, _ = QFileDialog.getOpenFileName(self, "Backup auswählen", "",
-                                               "BowTally-Backup (*.json);;Altes Backup (*.zip *.db)")
+                                               "BowTally-Backup (*.zip)")
         if not path:
-            return
-        if path.lower().endswith((".zip", ".db")):
-            show_error(self, "Alte ZIP/DB-Backups können nicht importiert werden.\n"
-                             "Bitte ein JSON-Backup verwenden.", "Nicht unterstütztes Format")
             return
         from bowtally.ui.components.confirm_dialog import ConfirmDialog
         if not ConfirmDialog.ask(self, "Datenbank wiederherstellen?",
@@ -937,7 +975,7 @@ class SettingsDialog(QDialog):
                                  "Wiederherstellen", destructive=True):
             return
         try:
-            bs.restore_json(path)
+            bs.restore(path)
         except Exception as exc:
             show_error(self, exc, "Wiederherstellung fehlgeschlagen")
             return
@@ -1085,11 +1123,7 @@ class SettingsDialog(QDialog):
     @staticmethod
     def _menu_icon_button(slot) -> QPushButton:
         """Schmaler Button mit Hamburger-Icon (≡) für die Pfadauswahl."""
-        b = button("", slot, tooltip="Durchsuchen")
-        b.setIcon(theme.icon("menu"))
-        b.setIconSize(QSize(16, 16))
-        b.setFixedSize(28, 28)
-        return b
+        return burger_button("Durchsuchen", slot)
 
     def _nav_tab(self) -> QWidget:
         w = QWidget()
@@ -1165,13 +1199,14 @@ class SettingsDialog(QDialog):
                 item.setData(VISIBLE_ROLE, new_vis)
                 locked = key in NAV_LOCKED
                 self._nav_list_widget.setItemWidget(item, self._make_nav_row(key, new_vis, locked))
-                self._autosave()
+                self._update_save_btn()
                 return
 
     def _reset_nav_order(self):
         self._nav_list_widget.clear()
         for key in NAV_KEYS:
             self._add_nav_item(key, True)
+        self._update_save_btn()
 
     def _browse_path(self, edit: QLineEdit):
         path, _ = QFileDialog.getOpenFileName(self, "Datei auswählen", edit.text())

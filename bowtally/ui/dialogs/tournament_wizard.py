@@ -249,7 +249,7 @@ class TournamentWizard(QWizard):
         self.date.setFixedWidth(WIZARD_COMBO_W)
         self.location = QLineEdit(self._t("location", ""))
         self.organizer = QLineEdit(self._t("organizer", ""))
-        self.description = QPlainTextEdit(self._t("description", ""))
+        self.description = QPlainTextEdit(self._t("internal_notes", ""))
         self.description.setFixedHeight(90)
         page = _Page(0, "Grunddaten", "Wie heißt das Turnier, wann und wo findet es statt? "
                      "Pflicht ist nur der Name.", lambda: bool(self.name.text().strip()))
@@ -260,7 +260,7 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Datum *"), self.date)
         form.addRow(_lbl("Ort"), self.location)
         form.addRow(_lbl("Veranstalter"), self.organizer)
-        form.addRow(_lbl("Beschreibung (intern)"), self.description)
+        form.addRow(_lbl("Notizen (intern)"), self.description)
         self._basics_dirty: set = set()
         self.organizer.textEdited.connect(lambda _: self._basics_dirty.add("organizer"))
         self.location.textEdited.connect(lambda _: self._basics_dirty.add("location"))
@@ -536,12 +536,12 @@ class TournamentWizard(QWizard):
         page.validatePage = self._validate_practice
         form = _form()
         form.addRow(_lbl("Anmeldefrist"), self.deadline)
-        form.addRow(_lbl("Maximale Teilnehmerzahl"), self.max_participants)
-        form.addRow("", QLabel("0 = keine Begrenzung", objectName="pageSubtitle"))
         form.addRow(_lbl("Einschreibung ab"), self.checkin_time)
         form.addRow(_lbl("Schießbeginn"), self.shooting_time)
         form.addRow("", self.practice)
         form.addRow(_lbl("Einschießbereich"), self.practice_location)
+        form.addRow(_lbl("Maximale Teilnehmerzahl"), self.max_participants)
+        form.addRow("", QLabel("0 = keine Begrenzung", objectName="pageSubtitle"))
         self.practice.toggled.connect(lambda on: form.setRowVisible(self.practice_location, on))
         form.setRowVisible(self.practice_location, self.practice.isChecked())
         cap_box = QGroupBox("Auslastung")
@@ -753,9 +753,6 @@ class TournamentWizard(QWizard):
         self._sum_layout = QVBoxLayout(self._sum_widget)
         self._sum_layout.setContentsMargins(2, 2, 4, 2)
         self._sum_layout.setSpacing(8)
-        self.generate = QCheckBox("Ausschreibung jetzt generieren")
-        self.generate.setChecked(self.tournament is None)
-        self.setButton(QWizard.WizardButton.CustomButton2, self.generate)
         page = _Page(7, "Zusammenfassung",
                      "Bitte prüfen. Bearbeiten-Links springen direkt zum jeweiligen Schritt.")
         page.initializePage = self._fill_summary
@@ -860,7 +857,7 @@ class TournamentWizard(QWizard):
     def _create(self) -> bool:
         data = {"name": self.name.text().strip(), "date": self.date.date().toPython(),
                 "location": self.location.text(), "organizer": self.organizer.text(),
-                "description": self.description.toPlainText(),
+                "internal_notes": self.description.toPlainText(),
                 "scoring_rule_id": (self._round_table.cellWidget(0, 1).currentData()
                                     if self._round_table.rowCount() > 0
                                     and self._round_table.cellWidget(0, 1) else None),
@@ -908,13 +905,4 @@ class TournamentWizard(QWizard):
         parent = self.parent() or self
         Toast.show(parent, f"Turnier '{t.name}' "
                    f"{'gespeichert' if self.tournament else 'erstellt'}", Toast.SUCCESS)
-        if self.generate.isChecked():
-            try:
-                from bowtally.reports.announcement import generate_announcement_pdf
-                from bowtally.ui.dialogs.export_helper import open_path
-                path = generate_announcement_pdf(t.id)
-                Toast.show(parent, "Ausschreibung erstellt", Toast.SUCCESS,
-                           ("Öffnen", lambda: open_path(parent, path)))
-            except Exception as exc:
-                show_error(self, exc, "Ausschreibung konnte nicht erstellt werden")
         return True

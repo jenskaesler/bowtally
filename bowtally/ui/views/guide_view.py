@@ -106,17 +106,23 @@ def task_done(task: Task, checks: dict, checklist: dict) -> bool | None:
     return None
 
 
+def phase_tasks(t) -> list[Task]:
+    """Tasks of the tournament's phase; the draw task only exists if a draw was chosen."""
+    return [task for task in PHASE_TASKS.get(t.phase, []) if t.use_draw or task.link != "draw"]
+
+
 def unchecked_manual_tasks(tournament_id: int, phase: str) -> list[str]:
     """Labels of manual checklist tasks for phase that are not yet ticked."""
+    t = ts.get_tournament(tournament_id)
     checklist = ts.get_checklist_state(tournament_id)
-    return [task.text for task in PHASE_TASKS.get(phase, [])
+    return [task.text for task in phase_tasks(t)
             if task.manual and not checklist.get(task.manual)]
 
 
 def next_open_task(tournament_id: int) -> Task | None:
     t = ts.get_tournament(tournament_id)
     checks, checklist = ts.get_status_checks(tournament_id), ts.get_checklist_state(tournament_id)
-    for task in PHASE_TASKS.get(t.phase, []):
+    for task in phase_tasks(t):
         if task_done(task, checks, checklist) is False:
             return task
     return None
@@ -217,7 +223,7 @@ class GuideView(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(8)
         locked = t.status == "closed" and t.phase != "closed"
-        for r, task in enumerate(PHASE_TASKS.get(t.phase, [])):
+        for r, task in enumerate(phase_tasks(t)):
             done = task_done(task, checks, checklist)
             if task.manual:
                 box = QCheckBox(task.text)
@@ -338,12 +344,6 @@ class GuideView(QWidget):
             lay.addWidget(button("Notizen speichern",
                                  lambda: self._save_note(DEBRIEF_KEY, notes.toPlainText()),
                                  "primary", tooltip="Nachbesprechung speichern"))
-            if t.internal_notes:
-                lay.addWidget(QLabel("Notizen", objectName="fieldLabel"))
-                nb = QPlainTextEdit(t.internal_notes)
-                nb.setReadOnly(True)
-                nb.setMinimumHeight(80)
-                lay.addWidget(nb, 1)
             return card
         return None
 

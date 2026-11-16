@@ -30,9 +30,9 @@ from bowtally.ui.views.schedule_view import ScheduleView
 from bowtally.ui.views.scoring_view import ScoringView
 
 HEADERS = ["Datum", "Name", "Ort", "Phase", "Teilnehmer", "Regelwerk"]
-TABS = ["participants", "course", "schedule", "checkin", "scoring", "results", "prizes", "fees", "helpers", "notes"]
-TAB_LABELS = ["Teilnehmer", "Parcours", "Zeitplan", "Einschreibung",
-              "Ergebniseingabe", "Auswertung", "Preise", "Startgebühren", "Helfer", "Notizen"]
+TABS = ["participants", "prizes", "helpers", "course", "schedule", "checkin", "scoring", "results", "fees", "notes"]
+TAB_LABELS = ["Teilnehmer", "Preise", "Helfer", "Parcours", "Zeitplan", "Einschreibung",
+              "Ergebniseingabe", "Auswertung", "Startgebühren", "Notizen"]
 CLOSED_HINT = "Abgeschlossene Turniere sind gesperrt"
 
 
@@ -199,7 +199,9 @@ class TournamentDetail(QWidget):
             self.reload()
         return True
 
-    def _update_tab_visibility(self):
+    def _update_tab_visibility(self) -> bool:
+        """Returns True if hiding tabs moved the selection (its page is not loaded yet)."""
+        old_index = self.tabs.currentIndex()
         phase = self.current.phase
         in_prep = ts.phase_index(phase) >= ts.phase_index("preparation")
         rules = {
@@ -224,6 +226,7 @@ class TournamentDetail(QWidget):
                 if self.tabs.isTabVisible(i):
                     self.tabs.setCurrentIndex(i)
                     break
+        return self.tabs.currentIndex() != old_index
 
     def _external_change(self):
         if self.current is not None:
@@ -235,7 +238,7 @@ class TournamentDetail(QWidget):
         t = self.current = ts.get_tournament(self.current.id)
         if t is None:
             return
-        self._update_tab_visibility()
+        tab_switched = self._update_tab_visibility()
         self.header.set_title(t.name)
         self.chip.set_tournament_status(t.phase)
         self.header.set_subtitle(
@@ -245,7 +248,7 @@ class TournamentDetail(QWidget):
             f"{len(t.participants)} Teilnehmer")
         edit_locked = ts.phase_index(t.phase) >= ts.phase_index("preparation")
         self.btn_edit.setVisible(not edit_locked)
-        if refresh_tab:
+        if refresh_tab or tab_switched:
             self.tabs.currentWidget().set_tournament(t)
 
     def edit(self):

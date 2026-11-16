@@ -316,6 +316,7 @@ class MainWindow(QMainWindow):
         side_lay.addWidget(self._head_widget)
         side_lay.addWidget(self.navigator)
         side_lay.addWidget(self.nav, 1)
+        side_lay.addWidget(QFrame(objectName="sidebarDivider"))
         side_lay.addWidget(self.settings_nav)
 
         content = QWidget()
@@ -626,7 +627,9 @@ class MainWindow(QMainWindow):
                else ""}
         if t.contact_name:
             ctx["kontakt_name"] = t.contact_name
-        open_mailto(ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE, None, ctx, self,
+        profile = ss.get_club_profile()
+        recipient_email = profile.get("email") or profile.get("first_board_email") or ""
+        open_mailto(ss.KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE, recipient_email, ctx, self,
                     attachment=pdf_path, bcc=",".join(emails))
 
     def _print_checkin_list(self, tournament_id: int):

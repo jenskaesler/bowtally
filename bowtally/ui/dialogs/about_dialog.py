@@ -138,7 +138,9 @@ class AboutDialog(QDialog):
             f"<p><b>Entwickler</b><br>"
             f"Jens Kaesler &lt;<a href='mailto:mail@jens-kaesler.de'>mail@jens-kaesler.de</a>&gt;</p>"
             f"<p><b>Quellcode &amp; Releases</b><br>"
-            f"<a href='{GITHUB_URL}'>{GITHUB_URL}</a></p>"
+            f"<a href='{GITHUB_URL}'>{GITHUB_URL}</a><br>"
+            f"<a href='{GITHUB_URL}/blob/main/CHANGELOG.md'>Changelog auf GitHub</a><br>"
+            f"<a href='{GITHUB_URL}/releases'>Releases</a></p>"
         )
         lay.addWidget(b, 1)
         return w
@@ -156,29 +158,8 @@ class AboutDialog(QDialog):
         w = QWidget()
         lay = QVBoxLayout(w)
         lay.setContentsMargins(16, 16, 16, 16)
-        lay.setSpacing(8)
         b = self._make_browser()
-        b.setHtml(
-            f"<h2>Changelog</h2>"
-            f"<p>Die jeweils aktuelle Version ist <b>{__version__}</b>. "
-            f"Hier findest du eine Übersicht der wichtigsten Änderungen.</p>"
-            f"<h3>Aktuelle Version – {__version__}</h3>"
-            f"<ul>"
-            f"<li>E-Mail-Vorlagen neu formuliert und um Platzhalter erweitert "
-            f"(unter anderem Startgruppe, Startnummer, Kontakt und Logo).</li>"
-            f"<li>Signatur wird automatisch aus den Vereinsdaten zusammengesetzt; "
-            f"das Vereinslogo erscheint unter der Mail, wenn eines hinterlegt ist.</li>"
-            f"<li>Warteliste steht bei Vollbelegung standardmäßig auf „automatisch“.</li>"
-            f"<li>Standardreihenfolge der linken Navigation angepasst.</li>"
-            f"<li>Lizenzinformationen und Changelog im Über-Dialog ergänzt.</li>"
-            f"</ul>"
-            f"<h3>Ältere Versionen</h3>"
-            f"<p>Alle Änderungen früherer Versionen findest du im vollständigen "
-            f"Changelog:</p>"
-            f"<p><a href='https://github.com/jenskaesler/bowtally/blob/main/CHANGELOG.md'>"
-            f"CHANGELOG.md auf GitHub</a><br>"
-            f"<a href='CHANGELOG.md'>lokale CHANGELOG.md im Installationsverzeichnis</a></p>"
-        )
+        b.setMarkdown(config.changelog_text())
         lay.addWidget(b, 1)
         return w
 
