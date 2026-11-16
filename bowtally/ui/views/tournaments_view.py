@@ -173,7 +173,7 @@ class TournamentDetail(QWidget):
         self.pages = {"participants": ParticipantsView(), "course": CourseView(),
                       "schedule": ScheduleView(), "checkin": CheckinView(),
                       "scoring": ScoringView(), "results": ResultsView(),
-                      "prizes": PrizesView(), "fees": FeesView(), "helpers": HelpersView(),
+                      "prizes": PrizesView(), "fees": FeesView(), "helpers": HelpersView(tournament_mode=True),
                       "notes": NotesView()}
         self.participants, self.scoring = self.pages["participants"], self.pages["scoring"]
         self.results = self.pages["results"]

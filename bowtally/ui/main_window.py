@@ -558,13 +558,11 @@ class MainWindow(QMainWindow):
             return
         tabs = {"participants": "participants", "fees": "fees", "checkin": "checkin",
                 "scoring": "scoring", "results": "results",
-                "course": "course", "schedule": "schedule"}
+                "course": "course", "schedule": "schedule", "helpers": "helpers"}
         if key in tabs:
             self.open_tournament(t.id, tabs[key])
         elif key == "guide":
             self.select_page(self.guide)
-        elif key == "helpers":
-            self.select_page(self.helpers)
         elif key == "revenue":
             self.select_page(self.dashboard)
             self.dashboard.show_tournament()

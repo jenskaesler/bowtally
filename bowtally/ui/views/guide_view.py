@@ -344,6 +344,12 @@ class GuideView(QWidget):
             lay.addWidget(button("Notizen speichern",
                                  lambda: self._save_note(DEBRIEF_KEY, notes.toPlainText()),
                                  "primary", tooltip="Nachbesprechung speichern"))
+            if t.internal_notes:
+                lay.addWidget(QLabel("Notizen", objectName="fieldLabel"))
+                nb = QPlainTextEdit(t.internal_notes)
+                nb.setReadOnly(True)
+                nb.setMinimumHeight(80)
+                lay.addWidget(nb, 1)
             return card
         return None
 

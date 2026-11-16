@@ -397,24 +397,21 @@ class SettingsDialog(QDialog):
         self._update_save_btn()
 
     def _close_dialog(self):
-        if self._has_unsaved_changes():
-            return
-        self.accept()
+        if self._may_close():
+            self.accept()
 
     def reject(self):
-        if not self._has_unsaved_changes():
+        if self._may_close():
             super().reject()
 
-    def closeEvent(self, event):
-        if not self._has_unsaved_changes():
-            super().closeEvent(event)
-
-    def _has_unsaved_changes(self) -> bool:
+    def _may_close(self) -> bool:
+        """True if nothing is unsaved or the user chose to discard the changes."""
         if self._state() == self._saved:
             return True
         from bowtally.ui.components.confirm_dialog import ConfirmDialog
         if ConfirmDialog.ask(self, "Ungespeicherte Änderungen",
-                             "Es gibt ungespeicherte Änderungen. Trotzdem schließen?",
+                             "Es gibt ungespeicherte Änderungen. Verwerfen und schließen?\n"
+                             "„Abbrechen“ führt zurück zu den Einstellungen.",
                              "Verwerfen", destructive=True):
             self.apply_theme()     # drop the live preview
             return True

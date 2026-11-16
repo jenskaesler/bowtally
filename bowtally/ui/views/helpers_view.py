@@ -221,7 +221,9 @@ class HelperDialog(RecordDialog):
 
 
 class HelpersView(ListView):
-    def __init__(self, parent=None):
+    def __init__(self, tournament_mode: bool = False, parent=None):
+        # Sidebar page = global master data; tab in an open tournament = assignments
+        self._tournament_mode = tournament_mode
         empty = EmptyState("users", "Keine Helfer",
                            "Lege neue Helfer an oder importiere eine Helferliste.",
                            "Neuer Helfer")
@@ -261,12 +263,16 @@ class HelpersView(ListView):
         self.table.activated.connect(self.edit_item)
         self._rows: dict[int, object] = {}
 
+    @property
+    def _tid(self):
+        return context.tournament_id if self._tournament_mode else None
+
     def set_tournament(self, _t):
         self.refresh()
 
     # ---------------------------------------------------------------- data
     def refresh(self):
-        tid = context.tournament_id
+        tid = self._tid
         has_tournament = tid is not None
 
         self._btn_from_master.setVisible(has_tournament)
@@ -321,7 +327,7 @@ class HelpersView(ListView):
         if n == 0:
             self.action_bar.set_actions("", [])
             return
-        if context.tournament_id is None:
+        if self._tid is None:
             actions = [Action("Bearbeiten", self.edit_item, tooltip="Helfer bearbeiten")]
             if n == 1:
                 h = self._rows.get(ids[0])
@@ -339,7 +345,7 @@ class HelpersView(ListView):
             self.action_bar.set_actions(self.selection_info(n, "Helfer", "Helfer"), actions)
 
     def context_entries(self, row_id):
-        if context.tournament_id is None:
+        if self._tid is None:
             h = self._rows.get(row_id)
             if h is None:
                 return []
@@ -371,7 +377,7 @@ class HelpersView(ListView):
 
     # ---------------------------------------------------------------- new / edit
     def new_item(self):
-        dlg = HelperDialog(tournament_id=context.tournament_id, parent=self)
+        dlg = HelperDialog(tournament_id=self._tid, parent=self)
         if dlg.exec() and dlg.saved_id:
             Toast.show(self, f"{dlg.saved_name} gespeichert", Toast.SUCCESS)
             self.refresh()
@@ -384,7 +390,7 @@ class HelpersView(ListView):
         record = self._rows.get(sel_ids[0])
         if record is None:
             return
-        dlg = HelperDialog(record=record, tournament_id=context.tournament_id, parent=self)
+        dlg = HelperDialog(record=record, tournament_id=self._tid, parent=self)
         if dlg.exec() and dlg.saved_id:
             Toast.show(self, f"{dlg.saved_name} gespeichert", Toast.SUCCESS)
             self.refresh()
@@ -395,7 +401,7 @@ class HelpersView(ListView):
         ids = self.table.selected_ids()
         if not ids:
             return
-        if context.tournament_id is not None:
+        if self._tid is not None:
             names = ", ".join(f"{self._rows[i].helper.first_name} {self._rows[i].helper.last_name}"
                               for i in ids if i in self._rows)
             if not ConfirmDialog.ask(self, "Helfer entfernen?",
@@ -463,7 +469,7 @@ class HelpersView(ListView):
         self.refresh()
 
     def _pick_from_master(self):
-        tid = context.tournament_id
+        tid = self._tid
         if tid is None:
             return
         dlg = _HelperPicker(set(), self)
@@ -483,7 +489,7 @@ class HelpersView(ListView):
         self.table.select_ids([a.id for a in added])
 
     def _print_list(self):
-        tid = context.tournament_id
+        tid = self._tid
         if tid is None:
             return
         from bowtally.reports.helper_list import build_helper_list

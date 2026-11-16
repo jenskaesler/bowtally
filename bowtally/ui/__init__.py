@@ -51,7 +51,8 @@ def burger_button(tooltip: str, slot=None, menu=None) -> QPushButton:
     b.setStyleSheet("QPushButton { padding: 0; } QPushButton::menu-indicator { image: none; }")
     b.setToolTip(tooltip)
     if menu is not None:
-        b.setMenu(menu)
+        # no setMenu(): Qt reserves indicator space and pushes the icon off-center
+        b.clicked.connect(lambda: menu.exec(b.mapToGlobal(b.rect().bottomLeft())))
     if slot is not None:
         b.clicked.connect(slot)
     return b

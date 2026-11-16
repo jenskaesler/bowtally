@@ -197,7 +197,6 @@ class TournamentWizard(QWizard):
         # Page-specific actions live in the wizard footer as custom buttons (left of Back/Next)
         self._footer_actions: dict[int, tuple[str, str, callable]] = {}
         self.setOption(QWizard.WizardOption.HaveCustomButton1)
-        self.setOption(QWizard.WizardOption.HaveCustomButton2)
         self.customButtonClicked.connect(
             lambda which: which == QWizard.WizardButton.CustomButton1.value  # Signal liefert int
             and self._footer_actions[self.currentId()][2]())
@@ -216,8 +215,6 @@ class TournamentWizard(QWizard):
             self.setButtonText(B.CustomButton1, text)
             self.button(B.CustomButton1).setToolTip(tooltip)
             left.append(B.CustomButton1)
-        if page_id == 7:
-            left.append(B.CustomButton2)
         self.setButtonLayout(left + [B.Stretch, B.BackButton, B.NextButton, B.FinishButton,
                                      B.CancelButton])
 
