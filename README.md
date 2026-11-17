@@ -4,7 +4,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![Language](https://img.shields.io/badge/Language-Python%203.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-NC--Copyleft-orange)](LICENSE)
+[![License](https://img.shields.io/badge/License-NC--Distribution%20Copyleft%202.0-orange)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2026.11.5-blue)](CHANGELOG.md)
 
 ---
@@ -263,9 +263,10 @@ makensis /DVERSION=2026.11.5 build\setup.nsi
 
 ## 📜 Lizenz
 
-BowTally steht unter einer eigenen **Nicht-Kommerziellen Copyleft-Lizenz**, siehe [LICENSE](LICENSE).
+BowTally steht unter der **BowTally Non-Commercial-Distribution Copyleft License 2.0**, siehe [LICENSE](LICENSE).
 
-- **Keine kommerzielle Nutzung** ohne ausdrückliche schriftliche Genehmigung.
-- **Copyleft**: Änderungen am Quellcode müssen öffentlich auf GitHub veröffentlicht werden.
+- **Nutzung frei**: Auch geschäftlich, z. B. ein Verein, der damit sein eigenes Turnier organisiert und Startgeld erhebt.
+- **Kein kommerzieller Vertrieb** (Verkauf, Lizenzierung, Hosting als Dienst, Einbau in ein bezahltes Produkt) ohne ausdrückliche schriftliche Genehmigung.
+- **Copyleft**: Wer eine geänderte Version weitergibt, muss sie unter derselben Lizenz stellen, den Quellcode öffentlich (z. B. auf GitHub) bereitstellen und die Änderungen kenntlich machen.
 
 Lizenzanfragen: [mail@jens-kaesler.de](mailto:mail@jens-kaesler.de)
