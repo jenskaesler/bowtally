@@ -34,6 +34,15 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **🔍 Einheitliche Suchfelder** — Alle Suchfelder sind gleich breit (300 px) und zeigen den
+  gleichen Text „Suche (Strg+F) …“. Was durchsucht wird, steht im Tooltip. Das Logbuch nutzt jetzt
+  das gleiche, breitere Suchfeld mit Lupe und Löschen-Button. In Einstellungen und Hilfe
+  springt Strg+F ins Suchfeld.
+- **❔ Einstellungen mit Hilfe-Links** — Die Hinweistexte bei Bankdaten, E-Mail-Vorlagen
+  (Platzhalter), Textvorlagen, Inventarkategorien und Erweitert sind durch Links zur Hilfe ersetzt.
+  Die Platzhalter stehen vollständig in der Hilfe (Referenz), neu ergänzt ist `{daten}` der
+  Datenauskunft. „Oberfläche“ steht jetzt als Block unter System → Allgemein, unter
+  System → Erweitert öffnet **Logfile öffnen** die Datei `app.log`.
 - **🎯 Parcours-Planung: „Ziele“** — „Neue Scheibe“ heißt jetzt „Neues Ziel“ (Button, Formular,
   Tab „Ziele“), der Druck „Scheibenplan“ heißt „Zielplan“. Im Formular steht statt des Hinweistexts
   zur Gruppengröße ein Link zur Hilfe. Die Formulare für Ziele und Material sind größer. In der
