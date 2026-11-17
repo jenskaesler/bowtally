@@ -13,7 +13,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **👥 Mitglieder-Stammdaten** — Die Helfer-Stammdaten sind zu Mitglieder-Stammdaten
   ausgebaut (Hauptmenü „Mitglieder"): Mitgliedsnummer, Adresse, Mitglied seit/gekündigt zum,
   Geburtstag, Einwilligung zur Datenverarbeitung (Warnung statt Sperre), Bankverbindung mit
-  IBAN-Prüfziffer und SEPA-Mandat sowie eine Helferhistorie. Bestehende Helfer und Turnier-
+  IBAN-Prüfziffer und SEPA-Mandat sowie eine Helferhistorie (Tab nur bei „Ist Helfer“), Notizen und
+  Dateien in einem eigenen Tab. Bestehende Helfer und Turnier-
   Zuordnungen werden einmalig migriert (vorher entsteht automatisch eine Kopie
   `bowtally.db.pre-migration-<Revision>`). Bankdaten erscheinen in keinem Export.
 - **📨 Datenauskunft** — Statt „E-Mail senden" öffnet die Mitgliederliste jetzt einen Mailentwurf
@@ -85,9 +86,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 - **🎯 „Pro Ziel“** — Der Wertungsmodus „Scheibenwertung“ heißt jetzt „Pro Ziel“; Meldungen und
   Hilfetexte sprechen von Zielergebnissen.
-- **💾 Backup (Format 3)** — Die Regelwerk-Optionen (Disziplin, Zähler, Gleichstand) sind im Backup
-  enthalten. Die überflüssige globale Einstellung „Tie-Break-Logik“ wurde entfernt (Migration) und
-  wird beim Wiederherstellen alter Backups ignoriert. Backups der Formate 1 und 2 lassen sich weiter
+- **💾 Backup (Format 4)** — Die Regelwerk-Optionen (Disziplin, Zähler, Gleichstand) und die Dateien der
+  Mitglieder (Ordner `member_files` im Datenordner) sind im Backup enthalten.
+  Die überflüssige globale Einstellung „Tie-Break-Logik“ wurde entfernt (Migration) und
+  wird beim Wiederherstellen alter Backups ignoriert. Backups der Formate 1 bis 3 lassen sich weiter
   wiederherstellen.
 - **🏹 Eingebaute Regelwerke** — Zonen mit eindeutiger Bedeutung (Killzone, Miss, X) haben jetzt
   einen Typ, damit „Pro Ziel“ Kills, Fehlschüsse und X automatisch zählt.

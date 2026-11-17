@@ -517,15 +517,19 @@ Einträge bleiben immer erhalten.</p>
     ("Mitglieder", """
 <h2>Mitglieder</h2>
 <p>Das Modul <b>Mitglieder</b> ist die Mitgliederkartei des Vereins. Jedes
-Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und drei Tabs:</p>
+Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und bis zu vier Tabs:</p>
 <ul>
-  <li><b>Basisdaten</b> – Name, Adresse, Kontakt, Eintritt, Notizen sowie
-      <i>Turnierhelfer</i> und Status <i>Aktiv</i> / <i>Gekündigt</i></li>
+  <li><b>Basisdaten</b> – Name, Adresse, Kontakt, Eintritt, <i>Einwilligung Datenverarbeitung</i>
+      (mit Datum: erscheint beim Ankreuzen, vorbelegt mit heute), <i>Info per E-Mail</i>,
+      <i>Ist Helfer</i> und Status <i>Aktiv</i> / <i>Gekündigt</i></li>
   <li><b>Bankverbindung</b> – Kontoinhaber, IBAN, BIC, Bank und
       SEPA-Lastschrift</li>
-  <li><b>Helferhistorie</b> – bisherige Helfereinsätze</li>
+  <li><b>Helferhistorie</b> – bisherige Helfereinsätze; der Tab erscheint nur bei <i>Ist Helfer</i></li>
+  <li><b>Notizen</b> – Freitext und Dateien (z.&nbsp;B. Mitgliedsantrag). Dateien werden in den
+      Datenordner von BowTally kopiert, lassen sich öffnen und entfernen und sind im Backup
+      enthalten. Hinzufügen geht erst nach dem ersten Speichern.</li>
 </ul>
-<p>Nur aktive Mitglieder mit gesetztem Turnierhelfer-Kennzeichen lassen sich
+<p>Nur aktive Mitglieder mit gesetztem Kennzeichen <i>Ist Helfer</i> lassen sich
 im Turnier über <b>Aus Mitgliederkartei</b> als Helfer zuweisen.</p>
 <p><b>Datenschutz:</b> Bankdaten erscheinen in keinem Export und in keiner
 Liste. Sie sind nur Bestandteil des passwortgeschützten Backups.</p>
@@ -723,7 +727,7 @@ Downloads-Ordner).</p>
 </ul>
 <p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
 jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
-Im Backup sind auch die Bankdaten der Mitglieder enthalten. Das automatische Backup beim
+Im Backup sind auch die Bankdaten und die Dateien der Mitglieder enthalten. Das automatische Backup beim
 Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
 <h3>Wiederherstellung</h3>
 <p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
