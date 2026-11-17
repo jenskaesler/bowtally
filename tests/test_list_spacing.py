@@ -27,14 +27,41 @@ def _gap(view, controls, first_list_widget) -> int:
 
 
 def test_control_bar_to_list_gap_is_the_same_in_all_views():
-    from bowtally.ui.views import BAR_BOTTOM_MARGIN
+    from bowtally.ui.views import BAR_BOTTOM_MARGIN, TABS_BAR_MARGIN
     from bowtally.ui.views.checkin_view import CheckinView
     from bowtally.ui.views.participants_view import ParticipantsView
     from bowtally.ui.views.results_view import ResultsView
     from bowtally.ui.views.scoring_view import ScoringView
-    expected = 10 + BAR_BOTTOM_MARGIN      # layout spacing + bar margin = 26 px, as under a ListView header
+    to_list = 10 + BAR_BOTTOM_MARGIN        # layout spacing + bar margin = 26 px, as under a ListView header
+    to_tabs = 10 + TABS_BAR_MARGIN          # a tab bar has about 10 px of own padding, the text ends up 26 px below
     part, check, score, results = ParticipantsView(), CheckinView(), ScoringView(), ResultsView()
-    assert _gap(part, [part.search, part.btn_add, part.group_filter, part.capacity], part.table) == expected
-    assert _gap(check, [check.not_found], check.table) == expected
-    assert _gap(score, [score.search, score.save_btn, score.group_filter], score.class_tabs) == expected
-    assert _gap(results, [results.btn_pdf, results.btn_export], results.tabs) == expected
+    assert _gap(part, [part.search, part.btn_add, part.group_filter, part.capacity], part.table) == to_list
+    assert _gap(check, [check.search, check.btn_checkin, check.btn_walkin], check.table) == to_list
+    assert _gap(score, [score.search, score.save_btn, score.group_filter], score.class_tabs) == to_tabs
+    assert _gap(results, [results.btn_pdf, results.btn_export], results.tabs) == to_tabs
+
+
+def test_filter_tabs_hang_directly_on_the_table():
+    from PySide6.QtWidgets import QApplication
+    from bowtally.ui.views.results_view import ResultsView
+    from bowtally.ui.views.scoring_view import ScoringView
+    score = ScoringView()
+    score.resize(1200, 800)
+    score.show()
+    QApplication.processEvents()
+    below_tabs = score.class_tabs.mapTo(score, score.class_tabs.rect().bottomLeft()).y() + 1
+    assert score._stack.mapTo(score, score._stack.rect().topLeft()).y() == below_tabs
+    assert "padding-top: 0" in ResultsView().tabs.styleSheet()    # no gap from the global tab padding
+
+
+def test_checkin_buttons_have_the_normal_size():
+    from PySide6.QtWidgets import QApplication
+    from bowtally.ui import button
+    from bowtally.ui.views.checkin_view import CheckinView
+    check = CheckinView()
+    check.resize(1400, 800)
+    check.show()
+    QApplication.processEvents()
+    for b in (check.btn_checkin, check.btn_walkin):
+        normal = button(b.text()).sizeHint()
+        assert b.height() <= normal.height() and b.width() <= normal.width() + 2

@@ -86,6 +86,7 @@ def menu(parent, entries) -> QMenu:
 
 
 BAR_BOTTOM_MARGIN = 16      # control bar -> list: with layout spacing 10 the 26 px under a ListView header
+TABS_BAR_MARGIN = 6         # control bar -> filter tabs: a tab brings about 10 px of its own padding
 
 
 class ListView(QWidget):

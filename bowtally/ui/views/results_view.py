@@ -20,7 +20,7 @@ from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button, open_path
 from bowtally.ui.dialogs.shoot_off_dialog import ShootOffDialog
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
-from bowtally.ui.views import BAR_BOTTOM_MARGIN
+from bowtally.ui.views import TABS_BAR_MARGIN
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
 NOT_PRINTABLE = "Ergebnisliste erst ab der Phase „Schießen“ verfügbar"
@@ -156,6 +156,7 @@ class ResultsView(QWidget):
         self._pid_to_rank: dict = {}
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
+        self.tabs.setStyleSheet("QTabWidget::pane { padding-top: 0; }")    # the tabs hang directly on the table
         self.spinner = Spinner()
         self.btn_pdf = button("Ergebnisliste erstellen", self._create_pdf, "primary",
                               "Druckfertige Ergebnisliste als PDF erstellen")
@@ -185,7 +186,7 @@ class ResultsView(QWidget):
         bar.addWidget(self.btn_send)
         bar.addWidget(self.spinner)
         bar.addWidget(self.btn_pdf)
-        bar.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
+        bar.setContentsMargins(0, 0, 0, TABS_BAR_MARGIN)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 8, 0, 0)
         lay.setSpacing(10)

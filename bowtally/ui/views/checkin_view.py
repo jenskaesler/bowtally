@@ -30,10 +30,6 @@ class CheckinView(QWidget):
         self.tournament = None
         self._results = {}
         self.search = SearchBar("Name oder Startnummer eingeben und Enter drücken …")
-        self.search.setMinimumHeight(46)
-        f = self.search.font()
-        f.setPointSize(14)
-        self.search.setFont(f)
         self.search.searchChanged.connect(self._search)
         self.counter = QLabel(objectName="bigCounter")
         self.capacity = CapacityBar()
@@ -41,12 +37,12 @@ class CheckinView(QWidget):
         self.phase_hint = QLabel(objectName="dangerText")
         self.btn_checkin = button("Einchecken", self.checkin_selected, "primary",
                                   "Ausgewählten Teilnehmer einchecken (Enter)")
-        self.btn_checkin.setMinimumHeight(46)
         self.btn_walkin = button("Als Walk-in erfassen", self.open_walk_in, "danger",
                                  "Neuen Teilnehmer vor Ort erfassen und direkt einchecken")
         self.payment_warning = QLabel(PAYMENT_WARNING, objectName="dangerText")
         self.payment_warning.hide()
         self.not_found = QLabel(objectName="pageSubtitle")
+        self.not_found.hide()               # an empty row would add a gap above the list
 
         empty = EmptyState("search", "Nicht gefunden",
                            "Kein Teilnehmer passt zur Suche. Neue Teilnehmer vor Ort als "
@@ -64,15 +60,16 @@ class CheckinView(QWidget):
         top.addStretch()
         top.addWidget(self.phase_hint)
         search_row = QHBoxLayout()
-        search_row.addWidget(self.search, 1)
+        search_row.addWidget(self.search)
         search_row.addWidget(self.btn_checkin)
         search_row.addWidget(self.btn_walkin)
+        search_row.addStretch(1)
         actions = QHBoxLayout()
         actions.addWidget(self.payment_warning)
         actions.addStretch()
         actions.addWidget(self.not_found)
 
-        actions.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
+        search_row.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         main = QVBoxLayout()
         main.setContentsMargins(0, 8, 0, 0)
         main.setSpacing(10)
@@ -149,6 +146,7 @@ class CheckinView(QWidget):
         if len(results) == 1 or (results and term):
             self.table.select_ids([results[0].id])
         self.not_found.setText("" if results or not term else f"„{term}“ nicht gefunden.")
+        self.not_found.setVisible(bool(self.not_found.text()))
         self._on_selection(self.table.selected_ids())
 
     def _selected(self):
