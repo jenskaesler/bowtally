@@ -8,13 +8,16 @@ import os as _os
 import tempfile as _tf
 
 from PySide6.QtCore import QByteArray, QObject, QRectF, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QGuiApplication, QIcon, QPainter, QPalette, QPixmap
+from PySide6.QtGui import (QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QPainter, QPalette,
+                           QPixmap)
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
 
+from bowtally import config
 from bowtally.services import settings_service as ss
 
 FONT_FALLBACKS = ["Segoe UI", "Arial", "sans-serif"]
+_fonts_loaded = False
 MODE_LIGHT, MODE_DARK, MODE_SYSTEM = "light", "dark", "system"
 
 # Fixed semantic colors (adjusted for contrast per mode in tokens())
@@ -504,8 +507,20 @@ def _palette(t: dict[str, str]) -> QPalette:
     return p
 
 
+def load_bundled_fonts() -> None:
+    """Makes the fonts from assets/fonts known to Qt (once per run)."""
+    global _fonts_loaded
+    if _fonts_loaded:
+        return
+    _fonts_loaded = True
+    for files in config.BUNDLED_FONTS.values():
+        for name in files:
+            QFontDatabase.addApplicationFont(str(config.FONTS_DIR / name))
+
+
 def apply(app: QApplication, overrides: dict[str, str] | None = None) -> dict[str, str]:
     global _current
+    load_bundled_fonts()
     family = ss.get(ss.KEY_FONT_FAMILY, "Open Sans")
     font = QFont()
     font.setFamilies([family] + FONT_FALLBACKS)

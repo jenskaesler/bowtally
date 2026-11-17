@@ -8,6 +8,8 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+from bowtally import config
+
 PAGE_SIZES = {"A4": A4, "A5": A5, "A3": A3, "LETTER": LETTER}
 
 MARGIN_LEFT = 15 * mm
@@ -67,11 +69,19 @@ def _candidates(family: str) -> list[tuple[str, str]]:
     return out
 
 
+def _bundled(family: str) -> tuple[Path, Path] | None:
+    files = config.BUNDLED_FONTS.get(family)
+    return tuple(config.FONTS_DIR / name for name in files) if files else None
+
+
 def register_fonts(families: list[str]) -> tuple[str, str]:
-    """Register the first installed TTF family. Returns (regular, bold) font names."""
+    """Register the first available TTF family (bundled, then installed). Returns (regular, bold)."""
     for family in families:
+        bundled = _bundled(family)
+        candidates = [bundled] if bundled else []
         for reg_file, bold_file in _candidates(family):
-            reg, bold = _find(reg_file), _find(bold_file)
+            candidates.append((_find(reg_file), _find(bold_file)))
+        for reg, bold in candidates:
             if reg is None:
                 continue
             name = family.replace(" ", "")

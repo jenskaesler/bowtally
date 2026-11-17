@@ -44,6 +44,33 @@ unter https://code.qt.io/cgit/pyside/pyside-setup.git/ verfügbar.
 - **Quelle:** https://openpyxl.readthedocs.io/
 - **Lizenztext:** https://foss.heptapod.net/openpyxl/openpyxl/-/blob/branch/3.1/LICENCE.rst
 
+## Mitgelieferte Schriften
+
+BowTally liefert die folgenden Schriften unverändert (statische TTF-Dateien Regular und Bold)
+im Ordner `assets/fonts` mit. Alle stehen unter der SIL Open Font License 1.1; die
+vollständigen Lizenztexte liegen in `assets/fonts/licenses`.
+
+### Open Sans
+
+- **Lizenz:** SIL Open Font License 1.1 (`assets/fonts/licenses/OFL-OpenSans.txt`)
+- **Urheber:** Copyright 2020 The Open Sans Project Authors
+- **Quelle:** https://github.com/googlefonts/opensans (`fonts/ttf`)
+
+### Inter
+
+- **Version:** 4.1
+- **Lizenz:** SIL Open Font License 1.1 (`assets/fonts/licenses/OFL-Inter.txt`)
+- **Urheber:** Copyright (c) 2016 The Inter Project Authors
+- **Quelle:** https://github.com/rsms/inter (Release 4.1, `extras/ttf`)
+
+### Source Sans 3
+
+- **Version:** 3.052R
+- **Lizenz:** SIL Open Font License 1.1 (`assets/fonts/licenses/OFL-SourceSans3.txt`)
+- **Urheber:** Copyright 2010-2024 Adobe (http://www.adobe.com/), with Reserved Font Name
+  'Source'. Source ist eine Marke von Adobe in den USA und/oder anderen Ländern.
+- **Quelle:** https://github.com/adobe-fonts/source-sans (Release 3.052R, TTF)
+
 ## Build- und Entwicklungs-Abhängigkeiten
 
 Die folgenden Werkzeuge werden ausschließlich für Build und Entwicklung verwendet und

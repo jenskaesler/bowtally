@@ -56,6 +56,7 @@ OPTIONS = {
     KEY_UI_THEME_MODE: ["system", "light", "dark"],
     "waitlist_mode": ["block", "auto"],
     KEY_LOG_LEVEL: ["info", "warning", "debug"],
+    KEY_FONT_FAMILY: [*config.BUNDLED_FONTS, "Segoe UI"],
 }
 LOG_LEVELS = {"info": logging.INFO, "warning": logging.WARNING, "debug": logging.DEBUG}
 THEME_MODE_LABELS = {"system": "System", "light": "Hell", "dark": "Dunkel"}

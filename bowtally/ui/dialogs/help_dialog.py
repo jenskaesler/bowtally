@@ -658,7 +658,11 @@ verfügbar sind, steht in der „Referenz“ unter <i>E-Mail-Vorlagen</i>. Mehr 
 <p><b>Update-Prüfung</b> (Beim Start nach Updates suchen, <b>Jetzt prüfen</b>) und
 der <b>Standard-Exportpfad</b> für erzeugte Dateien (leer = Downloads-Ordner),
 siehe „Backup &amp; Updates“. Im Block <b>Oberfläche</b> stellst du Sprache und
-Schriftart ein.</p>
+Schriftart ein. Zur Wahl stehen die mitgelieferten Schriften <b>Open Sans</b>
+(Standard), <b>Inter</b> und <b>Source Sans 3</b> sowie <b>Segoe UI</b>. Die Schrift gilt für
+die Oberfläche (nach einem Neustart der App) und sofort für PDFs. Die Schriftdateien gehören zum
+Programm und stehen nicht im Backup; die Auswahl selbst ist im Backup enthalten. Die Lizenzen
+stehen in <code>docs/THIRD-PARTY-NOTICES.md</code>.</p>
 <h3>System → Design</h3>
 <p><b>Darstellung</b> System, Hell oder Dunkel (Dark Mode), Markenfarben und
 individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> und

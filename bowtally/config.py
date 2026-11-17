@@ -42,6 +42,13 @@ MIGRATIONS_DIR = PACKAGE_DIR / "database" / "migrations"
 ALEMBIC_INI = PACKAGE_DIR / "database" / "alembic.ini"
 ASSETS_DIR = _BASE / "assets"
 ICON_PATH = ASSETS_DIR / "icon.ico"
+FONTS_DIR = ASSETS_DIR / "fonts"
+# Fonts shipped with the app (SIL OFL, licenses in assets/fonts/licenses): family -> (regular, bold)
+BUNDLED_FONTS = {
+    "Open Sans": ("OpenSans-Regular.ttf", "OpenSans-Bold.ttf"),
+    "Inter": ("Inter-Regular.ttf", "Inter-Bold.ttf"),
+    "Source Sans 3": ("SourceSans3-Regular.ttf", "SourceSans3-Bold.ttf"),
+}
 
 
 def _read_text(relative_path: str, not_found: str) -> str:

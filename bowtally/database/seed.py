@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = [
     ("color_dark_text", "#E6EAF0", "ui", "color", "Textfarbe (Dunkel)"),
     ("color_dark_text_secondary", "#8D96A3", "ui", "color", "Sekundärer Text (Dunkel)"),
     ("ui_theme_mode", "system", "ui", "string", "Darstellung: system, light oder dark"),
-    ("font_family", "Open Sans", "ui", "string", "Schriftart (Fallback: Segoe UI, Arial)"),
+    ("font_family", "Open Sans", "ui", "string", "Schriftart (Open Sans, Inter, Source Sans 3 oder Segoe UI; Fallback: Segoe UI, Arial)"),
     ("print_paper_size", "A4", "print", "string", "Papiergröße für PDF/Druck"),
     ("print_orientation", "portrait", "print", "string", "portrait oder landscape"),
     ("print_show_logo", "true", "print", "boolean", "Vereinslogo in Ergebnisliste anzeigen"),

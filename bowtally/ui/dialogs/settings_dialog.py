@@ -1279,6 +1279,9 @@ class SettingsDialog(QDialog):
             for val in ss.OPTIONS[st.key]:
                 w.addItem(display.get(val, val), val)
             idx = w.findData(value) if value else -1
+            if value and idx < 0:       # keep a value saved earlier (e.g. a free-text font name)
+                w.addItem(value, value)
+                idx = w.count() - 1
             w.setCurrentIndex(idx if idx >= 0 else 0)
             w.setFixedWidth(SETTINGS_COMBO_W)
         elif st.value_type == "path":

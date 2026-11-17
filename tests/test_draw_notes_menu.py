@@ -156,4 +156,4 @@ def test_burger_button_with_menu_has_no_qt_menu_indicator(app):
 def test_mail_html_body_is_always_10pt():
     from bowtally.ui.utils.mailto import _html_body
     assert "font-size:10pt" in _html_body("a\nb", "") and "font-family" not in _html_body("a", "")
-    assert "font-family:'Arial';font-size:10pt" in _html_body("a", "Arial")
+    assert "font-family:'Inter','Segoe UI',Arial,sans-serif;font-size:10pt" in _html_body("a", "Inter")

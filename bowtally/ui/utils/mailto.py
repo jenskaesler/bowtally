@@ -75,9 +75,9 @@ MAIL_FONT_SIZE_PT = 10
 
 
 def _html_body(body: str, font: str) -> str:
-    """HTML mail body: font size always 10 pt, font family only if installed."""
+    """HTML mail body: font size always 10 pt; the family gets fallbacks, the recipient may lack it."""
     inner = "<br>".join(html.escape(line) for line in body.split("\n"))
-    family = f"font-family:'{font}';" if font else ""
+    family = f"font-family:'{font}','Segoe UI',Arial,sans-serif;" if font else ""
     return f'<div style="{family}font-size:{MAIL_FONT_SIZE_PT}pt">{inner}</div>'
 
 
