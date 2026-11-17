@@ -5,6 +5,7 @@ All content comes from the database (tournament, club profile, app_settings text
 only section headings and the layout live in code.
 """
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -78,7 +79,9 @@ def _logo(path, max_w, max_h):
 
 
 def announcement_path(tournament_id: int) -> Path:
-    return config.export_dir() / f"announcement_{tournament_id}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
+    t = ts.get_tournament(tournament_id)
+    safe = re.sub(r"[^\w-]+", "_", t.name).strip("_") or "Turnier"
+    return config.export_dir() / f"Ausschreibung_{safe}_{datetime.now():%Y%m%d_%H%M%S}.pdf"
 
 
 def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None) -> Path:

@@ -216,16 +216,15 @@ class TournamentDetail(QWidget):
         }
         self.tabs.blockSignals(True)
         for key, visible in rules.items():
-            self.tabs.setTabVisible(TABS.index(key), visible)
             if not visible and self.tabs.currentIndex() == TABS.index(key):
-                self.tabs.setCurrentIndex(0)
+                self.tabs.setCurrentIndex(0)    # before hiding, else Qt picks the next tab itself
+            self.tabs.setTabVisible(TABS.index(key), visible)
         self.tabs.blockSignals(False)
-        # Wenn der aktuelle Tab versteckt wurde, auf den ersten sichtbaren wechseln
-        if not self.tabs.isTabVisible(self.tabs.currentIndex()):
-            for i in range(self.tabs.count()):
-                if self.tabs.isTabVisible(i):
-                    self.tabs.setCurrentIndex(i)
-                    break
+        # Qt caches tab sizes: after (un)hiding tabs while this page is hidden the bar keeps gaps.
+        # Re-setting the text clears that cache.
+        bar = self.tabs.tabBar()
+        for i in range(bar.count()):
+            bar.setTabText(i, bar.tabText(i))
         return self.tabs.currentIndex() != old_index
 
     def _external_change(self):

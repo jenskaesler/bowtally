@@ -54,5 +54,52 @@ def test_phase_change_hides_fees_and_loads_new_current_tab(tmp_path, monkeypatch
     visible = _visible_tabs(detail)
     assert "fees" not in visible and "course" in visible
     assert ("schedule" in visible) is (not use_draw)
-    assert detail.tabs.isTabVisible(detail.tabs.currentIndex())
+    assert detail.tabs.currentIndex() == 0      # hidden current tab -> first tab, not Qt's pick
     assert loaded == [list(detail.pages)[detail.tabs.currentIndex()]]
+
+
+def test_phase_change_while_page_hidden_leaves_no_gap_in_tab_bar(tmp_path, monkeypatch, app):
+    t = _announced_tournament(tmp_path, monkeypatch, use_draw=False)
+    from bowtally.services import tournament_service as ts
+    from bowtally.ui import theme
+    from bowtally.ui.views.tournaments_view import TournamentDetail
+    theme.apply(app)
+    detail = TournamentDetail()
+    detail.resize(1100, 700)
+    detail.show()
+    detail.open(t.id)
+    app.processEvents()
+
+    detail.hide()                       # user is on another page when the phase changes
+    ts.transition_phase(t.id, "preparation", force=True)
+    detail.reload()
+    detail.show()
+    app.processEvents()
+
+    bar = detail.tabs.tabBar()
+    rects = [bar.tabRect(i) for i in range(bar.count()) if bar.isTabVisible(i)]
+    assert [b.left() - a.right() - 1 for a, b in zip(rects, rects[1:])] == [0] * (len(rects) - 1)
+
+
+@pytest.mark.parametrize("page_name, expected_loads", [("guide", 0), ("tournaments", 1)])
+def test_next_phase_reloads_the_active_tab_at_most_once(tmp_path, monkeypatch, app,
+                                                        page_name, expected_loads):
+    t = _announced_tournament(tmp_path, monkeypatch, use_draw=False)
+    from bowtally.ui.components.confirm_dialog import ConfirmDialog
+    from bowtally.ui.context import context
+    from bowtally.ui.main_window import MainWindow
+    monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *a, **k: True))
+    context.set(t.id)
+    win = MainWindow()
+    win.show()
+    win.select_page(win.tournaments)
+    win.select_page(getattr(win, page_name))
+    app.processEvents()
+    loaded = []
+    for page in win.tournaments.detail.pages.values():
+        monkeypatch.setattr(page, "set_tournament", lambda _t: loaded.append(1))
+
+    win.next_phase()
+
+    assert len(loaded) == expected_loads
+    context.set(None)
