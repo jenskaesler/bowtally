@@ -2,7 +2,7 @@
 """Helpers of one tournament: members from the member register or manually entered persons."""
 from PySide6.QtCore import Qt, QTime
 from PySide6.QtWidgets import (QCheckBox, QDialog, QHBoxLayout, QLineEdit, QListWidget,
-                               QListWidgetItem, QTimeEdit, QVBoxLayout, QWidget)
+                               QListWidgetItem, QTimeEdit, QVBoxLayout)
 
 from bowtally.services import helper_service as hs
 from bowtally.services.settings_service import KEY_EMAIL_TPL_HELPER
@@ -144,21 +144,16 @@ class HelpersView(ListView):
         super().__init__("Helfer", HEADERS, empty, search_placeholder="Name oder Aufgabe …")
         empty.actionTriggered.connect(self.new_item)
 
+        # order in the header, left to right: search, export, print, from members, new helper
+        self.header.add(export_button(self, "helfer", self._export_sheets,
+                                      lambda: len(self.table.visible_ids())
+                                      if self.table.is_filtered() else None))
+        self.header.add(button("Helferliste drucken", self._print_list,
+                              tooltip="Helferliste als PDF erstellen"))
         self.header.add(button("Aus Mitgliederkartei", self._pick_from_members,
                                tooltip="Helfer aus der Mitgliederkartei zuweisen"))
         self.header.add(button("Neuer Helfer", self.new_item, "primary",
                                "Neuen Helfer nur für dieses Turnier anlegen (Strg+N)"))
-
-        footer = QWidget()
-        fl = QHBoxLayout(footer)
-        fl.setContentsMargins(0, 4, 0, 0)
-        fl.addStretch()
-        fl.addWidget(export_button(self, "helfer", self._export_sheets,
-                                   lambda: len(self.table.visible_ids())
-                                   if self.table.is_filtered() else None))
-        fl.addWidget(button("Helferliste drucken", self._print_list,
-                            tooltip="Helferliste als PDF erstellen"))
-        self.main_layout.insertWidget(2, footer)
         self.table.activated.connect(self.edit_item)
         self._rows: dict[int, object] = {}
 
