@@ -171,7 +171,7 @@ class SettingsDialog(QDialog):
         self.apply_theme = apply_theme
         self.setWindowTitle("Einstellungen")
         available = QApplication.primaryScreen().availableGeometry()
-        self.resize(min(1040, int(available.width() * 0.9)), min(780, int(available.height() * 0.9)))
+        self.resize(min(1387, int(available.width() * 0.9)), min(780, int(available.height() * 0.9)))
         restore_geom(self, "settings_v2")           # v2: sizes saved for the old, smaller default are ignored
         self.finished.connect(lambda: save_geom(self, "settings_v2"))
         self.settings = ss.all_settings()
@@ -1018,10 +1018,14 @@ class SettingsDialog(QDialog):
             except Exception as exc:
                 show_error(self, exc, "Wiederherstellung fehlgeschlagen")
                 return
-            password, accepted = QInputDialog.getText(self, "Backup-Passwort", prompt,
-                                                      QLineEdit.EchoMode.Password)
-            if not accepted:
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("Backup-Passwort")
+            dialog.setLabelText(prompt)
+            dialog.setTextEchoMode(QLineEdit.EchoMode.Password)
+            dialog.setCancelButtonText("Abbrechen")
+            if not dialog.exec():
                 return
+            password = dialog.textValue()
         from bowtally.ui.components.toast import Toast
         Toast.show(self, "Backup wiederhergestellt – bitte Anwendung neu starten", Toast.SUCCESS)
 

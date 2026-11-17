@@ -20,6 +20,7 @@ MODE_LIGHT, MODE_DARK, MODE_SYSTEM = "light", "dark", "system"
 # Fixed semantic colors (adjusted for contrast per mode in tokens())
 SUCCESS = "#2E7D32"
 WARNING = "#E65100"
+DANGER = "#C62828"
 GOLD, SILVER, BRONZE = "#D4AF37", "#A7B1BC", "#CD7F32"
 NAV_HOVER_LIGHT = "#E8F0FE"
 
@@ -142,6 +143,7 @@ def tokens(overrides: dict[str, str] | None = None) -> dict[str, str]:
         "nav_hover": NAV_HOVER_LIGHT if mode == MODE_LIGHT else _mix(surface, text, 0.08),
         "success": _readable_on(surface, SUCCESS, 0.25),
         "success_soft": _mix(surface, SUCCESS, 0.20 if mode == MODE_DARK else 0.13),
+        "danger": _readable_on(surface, DANGER, 0.25),
         "warning": _readable_on(surface, WARNING, 0.25),
         "warning_soft": _mix(surface, WARNING, 0.20 if mode == MODE_DARK else 0.13),
         "secondary": _readable_on(surface, values[ss.KEY_COLOR_SECONDARY], 0.25),
@@ -218,6 +220,12 @@ QPushButton[primary="true"]:hover {{
 QPushButton[primary="true"]:disabled {{
     background: {t['primary_soft']}; border-color: {t['primary_soft']}; color: {t['disabled']};
 }}
+QPushButton[primary="true"][dirty="true"] {{
+    background: {t['danger']}; border-color: {t['danger']}; color: {_on(t['danger'])};
+}}
+QPushButton[cancel="true"] {{ background: #111111; border-color: #111111; color: #FFFFFF; }}
+QPushButton[cancel="true"]:hover {{ background: #333333; border-color: #333333; }}
+QPushButton[cancel="true"]:disabled {{ background: #555555; border-color: #555555; color: #AAAAAA; }}
 QPushButton[danger="true"] {{ color: {t['accent']}; }}
 QPushButton[danger="true"]:hover {{
     background: {t['accent_soft']}; border-color: {t['accent']};

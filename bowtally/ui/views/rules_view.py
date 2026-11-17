@@ -297,7 +297,7 @@ class _RulesTab(ListView):
         self.table.set_rows([[Cell(r.name, tooltip=READ_ONLY_HINT if r.is_builtin else ""),
                               zone_summary(r), r.max_shots_per_target, r.allow_retry_shot,
                               builtin_chip(r.is_builtin),
-                              "★" if default_id and str(r.id) == default_id else ""]
+                              Cell("★", foreground=theme.GOLD) if default_id and str(r.id) == default_id else ""]
                              for r in visible],
                             [r.id for r in visible])
         custom = sum(not r.is_builtin for r in rules)

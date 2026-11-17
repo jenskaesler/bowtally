@@ -16,11 +16,12 @@ EXPORT_TABLE_ORDER = [
     "app_settings", "club_profile", "scoring_rules", "bow_classes", "archers",
     "tournament_phases", "tournaments", "entry_fees", "tournament_participants",
     "tournament_rounds", "scores", "members", "tournament_helpers", "member_helper_history",
-    "member_files",
+    "member_files", "archer_files",
     "score_sheet_templates", "prizes", "course_targets", "schedule_groups",
     "phase_transition_log", "inventory_items", "activity_log", "backup_log",
     "tournament_bow_classes",
 ]
+FILE_TABLES = ("member_files", "archer_files")   # table name = folder name below the app data folder
 
 
 class BackupPasswordRequired(ValueError):
@@ -146,10 +147,11 @@ def save_backup_to_zip(backup_dict: dict, path, logo_path: str | None, password:
         zf.writestr("bowtally.info", info)
         if logo_bytes is not None:
             zf.writestr(meta["logo_path"], logo_bytes)
-        for row in backup_dict.get("data", {}).get("member_files", []):   # relative path = zip name
-            source = config.APP_DATA_DIR / row["stored_path"]
-            if source.is_file():
-                zf.write(source, row["stored_path"])
+        for table in FILE_TABLES:
+            for row in backup_dict.get("data", {}).get(table, []):   # relative path = zip name
+                source = config.APP_DATA_DIR / row["stored_path"]
+                if source.is_file():
+                    zf.write(source, row["stored_path"])
 
 
 # ------------------------------------------------------------------ backup
@@ -461,29 +463,29 @@ def _open_zip(zip_path: str, password: str | None) -> zipfile.ZipFile:
     return zf
 
 
-MEMBER_FILES_DIR = "member_files"
-
-
-def _extract_member_files(zf, names: list[str]) -> Path:
-    """Unpack the member files into a staging folder next to the final one and return it."""
-    staging = config.APP_DATA_DIR / f"{MEMBER_FILES_DIR}.restoring"
-    shutil.rmtree(staging, ignore_errors=True)
-    staging.mkdir(parents=True)
+def _extract_files(zf, names: list[str]) -> dict[str, Path]:
+    """Unpack each file folder into a staging folder next to the final one: {folder: staging}."""
+    stagings = {}
     try:
-        for name in names:
-            if not name.startswith(f"{MEMBER_FILES_DIR}/") or name.endswith("/"):
-                continue
-            relative = Path(name).relative_to(MEMBER_FILES_DIR)
-            target = staging / relative
-            if ".." in relative.parts or not target.resolve().is_relative_to(staging.resolve()):
-                raise ValueError("Kein gültiges BowTally-Backup (ungültiger Dateipfad).")
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with zf.open(name) as src, open(target, "wb") as out:
-                shutil.copyfileobj(src, out)
+        for folder in FILE_TABLES:
+            staging = stagings[folder] = config.APP_DATA_DIR / f"{folder}.restoring"
+            shutil.rmtree(staging, ignore_errors=True)
+            staging.mkdir(parents=True)
+            for name in names:
+                if not name.startswith(f"{folder}/") or name.endswith("/"):
+                    continue
+                relative = Path(name).relative_to(folder)
+                target = staging / relative
+                if ".." in relative.parts or not target.resolve().is_relative_to(staging.resolve()):
+                    raise ValueError("Kein gültiges BowTally-Backup (ungültiger Dateipfad).")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(name) as src, open(target, "wb") as out:
+                    shutil.copyfileobj(src, out)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        for staging in stagings.values():
+            shutil.rmtree(staging, ignore_errors=True)
         raise
-    return staging
+    return stagings
 
 
 def restore(zip_path: str, password: str | None = None) -> None:
@@ -500,7 +502,7 @@ def restore(zip_path: str, password: str | None = None) -> None:
             backup_text = zf.read("backup.json").decode("utf-8")
             logo_entry = next((n for n in names if n.startswith("logo/")), None)
             logo_bytes = zf.read(logo_entry) if logo_entry else None
-            staging = _extract_member_files(zf, names)
+            stagings = _extract_files(zf, names)
         except (RuntimeError, zipfile.BadZipFile) as exc:  # pyzipper: bad password / HMAC mismatch
             if not password:
                 raise
@@ -523,7 +525,9 @@ def restore(zip_path: str, password: str | None = None) -> None:
     try:
         _restore_impl(backup)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        for staging in stagings.values():
+            shutil.rmtree(staging, ignore_errors=True)
         raise
-    shutil.rmtree(config.APP_DATA_DIR / MEMBER_FILES_DIR, ignore_errors=True)   # the backup is the full state
-    staging.rename(config.APP_DATA_DIR / MEMBER_FILES_DIR)
+    for folder, staging in stagings.items():
+        shutil.rmtree(config.APP_DATA_DIR / folder, ignore_errors=True)   # the backup is the full state
+        staging.rename(config.APP_DATA_DIR / folder)

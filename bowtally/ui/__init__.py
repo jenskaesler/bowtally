@@ -34,10 +34,21 @@ def button(text: str, slot=None, kind: str | None = None, tooltip: str = "") -> 
     b = QPushButton(text)
     if kind:
         b.setProperty(kind, True)
+    if text == "Abbrechen":
+        b.setProperty("cancel", True)
     b.setToolTip(tooltip or text)
     if slot is not None:
         b.clicked.connect(slot)
     return b
+
+
+def mark_dirty(save_button: QPushButton, dirty: bool) -> None:
+    """Turns a primary save button red while there are unsaved changes."""
+    if save_button.property("dirty") == dirty:
+        return
+    save_button.setProperty("dirty", dirty)
+    save_button.style().unpolish(save_button)
+    save_button.style().polish(save_button)
 
 
 def burger_button(tooltip: str, slot=None, menu=None) -> QPushButton:

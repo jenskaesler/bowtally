@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 """CRUD for archers and bow classes."""
+import re
+import shutil
+import uuid
 from datetime import date
+from pathlib import Path
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
+from bowtally import config
 from bowtally.database.engine import session_scope
-from bowtally.database.models import (Archer, BowClass, TournamentParticipant,
+from bowtally.database.models import (Archer, ArcherFile, BowClass, TournamentParticipant,
                                       tournament_bow_classes)
 from bowtally.services import ValidationError
+
+FILES_DIR = "archer_files"      # below the app data folder: archer_files/<archer id>/<file>
 
 ARCHER_FIELDS = ["first_name", "last_name", "birth_date", "club", "member_number", "email",
                  "phone", "default_bow_class_id", "notes", "active", "notify_new_tournament",
@@ -94,6 +101,46 @@ def delete_archer(archer_id: int) -> None:
             raise ValidationError(f"{archer.first_name} {archer.last_name} hat Turnierdaten und "
                                   "kann nicht gelöscht werden. Stattdessen deaktivieren.")
         s.delete(archer)
+    shutil.rmtree(config.APP_DATA_DIR / FILES_DIR / str(archer_id), ignore_errors=True)
+
+
+# ---------------------------------------------------------------- archer files
+def list_archer_files(archer_id: int) -> list[ArcherFile]:
+    with session_scope() as s:
+        return s.scalars(select(ArcherFile).where(ArcherFile.archer_id == archer_id)
+                         .order_by(ArcherFile.id)).all()
+
+
+def archer_file_path(stored: ArcherFile) -> Path:
+    return config.APP_DATA_DIR / stored.stored_path
+
+
+def add_archer_file(archer_id: int, source) -> ArcherFile:
+    """Copy a file into the app data folder and attach it to the archer."""
+    source = Path(source)
+    if not source.is_file():
+        raise ValidationError(f"Datei '{source.name}' wurde nicht gefunden.")
+    safe_name = re.sub(r"[^\w.\- ]+", "_", source.name).strip() or "datei"
+    stored_path = f"{FILES_DIR}/{archer_id}/{uuid.uuid4().hex[:8]}_{safe_name}"
+    with session_scope() as s:
+        if s.get(Archer, archer_id) is None:
+            raise ValidationError("Schütze nicht gefunden.")
+        target = config.APP_DATA_DIR / stored_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        stored = ArcherFile(archer_id=archer_id, filename=source.name, stored_path=stored_path,
+                            size_bytes=target.stat().st_size)
+        s.add(stored)
+        s.flush()
+        return stored
+
+
+def remove_archer_file(file_id: int) -> None:
+    with session_scope() as s:
+        stored = s.get(ArcherFile, file_id)
+        path = archer_file_path(stored)
+        s.delete(stored)
+    path.unlink(missing_ok=True)
 
 
 def archer_has_tournaments(archer_id: int) -> bool:

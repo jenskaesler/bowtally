@@ -19,10 +19,12 @@ def db(tmp_path, monkeypatch):
 @pytest.fixture
 def app(monkeypatch):
     from PySide6.QtWidgets import QApplication
+    from bowtally.ui.components import files_panel
     from bowtally.ui.views import members_view
     app = QApplication.instance() or QApplication([])
     app.errors = []     # a real error dialog is modal and would hang the test
-    monkeypatch.setattr(members_view, "show_error", lambda _parent, exc, *_: app.errors.append(exc))
+    for module in (members_view, files_panel):
+        monkeypatch.setattr(module, "show_error", lambda _parent, exc, *_: app.errors.append(exc))
     return app
 
 
@@ -63,7 +65,7 @@ def test_helper_history_tab_follows_the_helper_checkbox(app):
     dialog = _dialog()
     tabs = dialog._tabs
     names = [tabs.tabText(i) for i in range(tabs.count())]
-    assert names == ["Basisdaten", "Bankverbindung", "Helferhistorie", "Notizen"]
+    assert names == ["Basisdaten", "Bankverbindung", "Helferhistorie", "Notizen", "Dokumente"]
     history = names.index("Helferhistorie")
     assert not tabs.isTabVisible(history)
     dialog.form.fields["is_tournament_helper"].set_value(True)
@@ -73,7 +75,7 @@ def test_helper_history_tab_follows_the_helper_checkbox(app):
     assert _dialog(_member(is_tournament_helper=True))._tabs.isTabVisible(history)
 
 
-def test_notes_live_in_their_own_last_tab_and_are_saved(app):
+def test_notes_live_in_their_own_tab_and_are_saved(app):
     dialog = _dialog()
     assert "notes" not in dialog.form.fields and "notes" in dialog.notes_form.fields
     for key, value in (("member_number", "7"), ("first_name", "Bernd"), ("last_name", "Bau")):
@@ -93,20 +95,20 @@ def test_files_can_be_added_and_removed_for_a_saved_member(app, tmp_path, monkey
     monkeypatch.setattr(ConfirmDialog, "ask", staticmethod(lambda *a, **k: True))
     dialog = _dialog(member)
 
-    dialog._add_files()
-    assert dialog._files_table.rowCount() == 1
-    assert dialog._files_table.item(0, 0).text() == "Antrag.pdf"
+    dialog._files_panel.add_files()
+    assert dialog._files_panel.table.rowCount() == 1
+    assert dialog._files_panel.table.item(0, 0).text() == "Antrag.pdf"
     stored = ms.list_member_files(member.id)[0]
     assert ms.member_file_path(stored).read_bytes() == b"pdf"
 
-    dialog._files_table.selectRow(0)
-    dialog._remove_file()
-    assert dialog._files_table.rowCount() == 0 and ms.list_member_files(member.id) == []
+    dialog._files_panel.table.selectRow(0)
+    dialog._files_panel.remove_file()
+    assert dialog._files_panel.table.rowCount() == 0 and ms.list_member_files(member.id) == []
     assert app.errors == []
 
 
 def test_new_member_gets_a_hint_instead_of_the_file_list(app):
-    assert not hasattr(_dialog(), "_files_table")
+    assert _dialog()._files_panel.table is None
 
 
 def test_notes_have_the_label_above_and_use_the_full_width(app):
@@ -118,5 +120,5 @@ def test_notes_have_the_label_above_and_use_the_full_width(app):
 def test_list_headers_in_the_dialog_are_left_aligned(app):
     from PySide6.QtCore import Qt
     dialog = _dialog(_member())
-    for table in (dialog._files_table, dialog._history):
+    for table in (dialog._files_panel.table, dialog._history):
         assert table.horizontalHeader().defaultAlignment() & Qt.AlignmentFlag.AlignLeft

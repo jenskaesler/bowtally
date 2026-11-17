@@ -71,7 +71,9 @@ class ImportDialog(QDialog):
         self.ok = self.buttons.button(QDialogButtonBox.StandardButton.Ok)
         self.ok.setText("Importieren")
         self.ok.setProperty("primary", True)
-        self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Abbrechen")
+        cancel = self.buttons.button(QDialogButtonBox.StandardButton.Cancel)
+        cancel.setText("Abbrechen")
+        cancel.setProperty("cancel", True)
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
 

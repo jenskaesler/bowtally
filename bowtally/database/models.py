@@ -126,10 +126,24 @@ class Archer(Base):
     created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
     default_bow_class: Mapped["BowClass | None"] = relationship()
+    files: Mapped[list["ArcherFile"]] = relationship(cascade="all, delete-orphan",
+                                                     order_by="ArcherFile.id")
 
     @property
     def full_name(self) -> str:
         return f"{self.last_name}, {self.first_name}"
+
+
+class ArcherFile(Base):
+    """File attached to an archer; stored in the app data folder, `stored_path` is relative to it."""
+    __tablename__ = "archer_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    archer_id: Mapped[int] = mapped_column(ForeignKey("archers.id", ondelete="CASCADE"))
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    added_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
 
 # ---------------------------------------------------------------- tournaments

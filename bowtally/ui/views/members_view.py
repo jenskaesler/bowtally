@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """Member management (global): master data, bank data and helper history."""
 from datetime import date
-from pathlib import Path
 
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDoubleSpinBox, QFileDialog,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDoubleSpinBox,
                                QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QTabWidget,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
@@ -20,7 +19,8 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import DateField, Form, email_validator
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.constants import SETTINGS_COMBO_W, SETTINGS_LABEL_W
-from bowtally.ui.dialogs.export_helper import export_button, open_path
+from bowtally.ui.components.files_panel import FilesPanel
+from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.utils.mailto import open_mailto
@@ -74,12 +74,6 @@ class _HistoryEntryDialog(RecordDialog):
         return True
 
 
-def _size_text(size: int | None) -> str:
-    if size is None:
-        return "–"
-    return f"{size / 1024:.0f} KB" if size < 1024 * 1024 else f"{size / 1024 / 1024:.1f} MB"
-
-
 class MemberDialog(RecordDialog):
     """Create / edit a member: base data, bank data, helper history, notes and files."""
     _default_size = (698, 640)
@@ -105,13 +99,13 @@ class MemberDialog(RecordDialog):
 
     def _setup_form(self):
         f = self.form
-        f.add("member_number", "Mitgliedsnummer", QLineEdit(), required=True)
+        f.add("member_number", "Mitgliedsnummer", QLineEdit(), required=True, short=True)
         f.add("first_name", "Vorname", QLineEdit(), required=True)
         f.add("last_name", "Nachname", QLineEdit(), required=True)
         f.add("street", "Straße", QLineEdit())
-        f.add("postal_code", "PLZ", QLineEdit())
+        f.add("postal_code", "PLZ", QLineEdit(), short=True)
         f.add("city", "Ort", QLineEdit())
-        f.add("phone", "Telefon", QLineEdit())
+        f.add("phone", "Telefon", QLineEdit(), short=True)
         f.add("email", "E-Mail", QLineEdit(), validator=email_validator)
         f.add("birthday", "Geburtstag", DateField())
         f.add("member_since", "Mitglied seit", DateField())
@@ -143,6 +137,10 @@ class MemberDialog(RecordDialog):
         self._tabs.addTab(self.bank_form, "Bankverbindung")
         self._tabs.addTab(self._build_history(), "Helferhistorie")
         self._tabs.addTab(self._build_notes(), "Notizen")
+        self._files_panel = FilesPanel(
+            None if self._record is None else self._record.id, "Mitglied", ms.list_member_files,
+            ms.add_member_file, ms.remove_member_file, ms.member_file_path)
+        self._tabs.addTab(self._files_panel, "Dokumente")
         self._body_layout.addWidget(self._tabs)
 
     def _on_consent_toggled(self, on: bool):
@@ -242,7 +240,7 @@ class MemberDialog(RecordDialog):
             return
         self._reload_history()
 
-    # ---------------------------------------------------------------- notes and files
+    # ---------------------------------------------------------------- notes
     def _build_notes(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
@@ -253,86 +251,8 @@ class MemberDialog(RecordDialog):
         notes.setMinimumHeight(110)
         self.notes_form.add("notes", "Notizen", notes)
         lay.addWidget(self.notes_form)
-        lay.addWidget(QLabel("Dateien", objectName="sectionTitle"))
-        if self._record is None:
-            lay.addWidget(QLabel("Dateien können nach dem ersten Speichern hinzugefügt werden.",
-                                 objectName="pageSubtitle"))
-            lay.addStretch()
-            return page
-        self._files_table = t = QTableWidget(0, 3)
-        t.setHorizontalHeaderLabels(["Datei", "Größe", "Hinzugefügt"])
-        t.verticalHeader().hide()
-        t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
-        t.setMinimumHeight(140)
-        t.setShowGrid(False)
-        t.setAlternatingRowColors(True)
-        t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        t.horizontalHeader().setStretchLastSection(True)
-        t.horizontalHeader().setDefaultAlignment(_HEADER_ALIGN)
-        t.setColumnWidth(0, 300)
-        t.itemSelectionChanged.connect(self._update_file_buttons)
-        t.itemDoubleClicked.connect(lambda _item: self._open_file())
-        self._btn_open = button("Öffnen", self._open_file)
-        self._btn_remove = button("Entfernen", self._remove_file)
-        buttons = QHBoxLayout()
-        buttons.addWidget(button("Datei hinzufügen …", self._add_files,
-                                 tooltip="Dateien in den Datenordner von BowTally kopieren"))
-        buttons.addWidget(self._btn_open)
-        buttons.addWidget(self._btn_remove)
-        buttons.addStretch()
-        lay.addWidget(t, 1)
-        lay.addLayout(buttons)
-        self._reload_files()
+        lay.addStretch()
         return page
-
-    def _reload_files(self):
-        self._files = {f.id: f for f in ms.list_member_files(self._record.id)}
-        t = self._files_table
-        t.setRowCount(len(self._files))
-        for row, stored in enumerate(self._files.values()):
-            added = f"{stored.added_at:%d.%m.%Y}" if stored.added_at else "–"
-            for col, text in enumerate([stored.filename, _size_text(stored.size_bytes), added]):
-                item = QTableWidgetItem(text)
-                item.setData(Qt.ItemDataRole.UserRole, stored.id)
-                t.setItem(row, col, item)
-        self._update_file_buttons()
-
-    def _selected_file(self):
-        row = self._files_table.currentRow()
-        item = self._files_table.item(row, 0) if row >= 0 else None
-        return self._files[item.data(Qt.ItemDataRole.UserRole)] if item else None
-
-    def _update_file_buttons(self):
-        for btn in (self._btn_open, self._btn_remove):
-            btn.setEnabled(self._selected_file() is not None)
-
-    def _add_files(self):
-        paths, _ = QFileDialog.getOpenFileNames(self, "Dateien zum Mitglied hinzufügen")
-        try:
-            with busy():
-                for path in paths:
-                    ms.add_member_file(self._record.id, Path(path))
-        except Exception as exc:
-            show_error(self, exc, "Datei konnte nicht hinzugefügt werden")
-        self._reload_files()
-
-    def _open_file(self):
-        stored = self._selected_file()
-        if stored is not None:
-            open_path(self, ms.member_file_path(stored))
-
-    def _remove_file(self):
-        stored = self._selected_file()
-        if stored is None or not ConfirmDialog.ask(
-                self, "Datei entfernen?", f"„{stored.filename}“ wird endgültig gelöscht."):
-            return
-        try:
-            ms.remove_member_file(stored.id)
-        except Exception as exc:
-            show_error(self, exc, "Datei konnte nicht entfernt werden")
-        self._reload_files()
 
     # ---------------------------------------------------------------- save
     def _snapshot(self) -> tuple:

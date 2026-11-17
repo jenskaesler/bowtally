@@ -220,9 +220,9 @@ class Form(QWidget):
         self._lay.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
     def add(self, key: str, label: str, widget: QWidget, required: bool = False,
-            **kwargs) -> FormField:
+            short: bool = False, **kwargs) -> FormField:
         _apply_widget_policy(widget)
-        if self._combo_width is not None and isinstance(widget, (QComboBox, QAbstractSpinBox)):
+        if self._combo_width is not None and (short or isinstance(widget, (QComboBox, QAbstractSpinBox))):
             widget.setFixedWidth(self._combo_width)
         field = FormField(widget, required=required, label_text=label, **kwargs)
         h_pol = widget.sizePolicy().horizontalPolicy()

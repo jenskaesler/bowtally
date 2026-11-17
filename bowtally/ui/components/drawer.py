@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel, QPlain
                                QScrollArea, QSizePolicy, QTextEdit, QToolButton, QVBoxLayout,
                                QWidget)
 
-from bowtally.ui import button, theme
+from bowtally.ui import button, mark_dirty, theme
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.form_field import Form
 
@@ -67,6 +67,7 @@ class SideDrawer(QFrame):
         lay.addWidget(self.scroll, 1)
         lay.addWidget(footer)
 
+        form.changed.connect(self._update_dirty)
         self._anim = QPropertyAnimation(self, b"maximumWidth", self)
         self._anim.setDuration(ANIM_MS)
         self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -93,6 +94,7 @@ class SideDrawer(QFrame):
         self.save_btn.setToolTip(read_only_hint if read_only else "Speichern (Enter oder Strg+S)")
         self.cancel_btn.setText("Abbrechen")
         self._baseline = self.form.snapshot()
+        self._update_dirty()
         self.scroll.verticalScrollBar().setValue(0)
         if not self._open:
             self._open = True
@@ -100,6 +102,9 @@ class SideDrawer(QFrame):
             self._animate(WIDTH)
             QApplication.instance().installEventFilter(self)
         self.form.focus_first()
+
+    def _update_dirty(self):
+        mark_dirty(self.save_btn, self.is_dirty())
 
     def is_dirty(self) -> bool:
         return not self._read_only and self._baseline is not None \
@@ -128,6 +133,7 @@ class SideDrawer(QFrame):
     def mark_saved(self) -> None:
         """After a successful save: no dirty prompt, then close."""
         self._baseline = self.form.snapshot()
+        self._update_dirty()
         self.close_now()
 
     def _animate(self, end: int):

@@ -45,6 +45,7 @@ class Cell:
     chip: tuple | None = None        # (text, kind) -> painted as status pill
     bold: bool = False
     background: str | None = None    # color
+    foreground: str | None = None    # text color
     tooltip: str = ""
     editable: bool = False
     data: object = None              # VALUE_ROLE
@@ -266,6 +267,8 @@ class DataTable(QWidget):
             item.setFont(f)
         if cell.background:
             item.setBackground(QBrush(QColor(cell.background)))
+        if cell.foreground:
+            item.setForeground(QBrush(QColor(cell.foreground)))
         if cell.tooltip:
             item.setToolTip(cell.tooltip)
         flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable \

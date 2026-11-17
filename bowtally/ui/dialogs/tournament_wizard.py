@@ -187,6 +187,7 @@ class TournamentWizard(QWizard):
         self.setButtonText(QWizard.WizardButton.NextButton, "Weiter")
         self.setButtonText(QWizard.WizardButton.BackButton, "Zurück")
         self.setButtonText(QWizard.WizardButton.CancelButton, "Abbrechen")
+        self.button(QWizard.WizardButton.CancelButton).setProperty("cancel", True)
         self.setButtonText(QWizard.WizardButton.FinishButton,
                            "Speichern" if tournament else "Turnier erstellen")
         for which in (QWizard.WizardButton.FinishButton, QWizard.WizardButton.NextButton):

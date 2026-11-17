@@ -39,10 +39,15 @@ _CONTEXT_ICONS = {
     'Auf „Gemeldet" zurücksetzen': "clock",
     "Gebühr zuweisen": "money",
     "Gruppe ändern": "users",
+    "Datenauskunft senden": "mail",
     "E-Mail: Anmeldebestätigung senden": "mail",
     "E-Mail: Zahlungserinnerung senden": "mail",
     "E-Mail: Startunterlagen senden": "mail",
 }
+
+# new = blue (theme primary), edit = yellow, delete = red (theme accent); other icons keep the default color
+_ICON_COLORS = {"plus": lambda t: t["primary"], "edit": lambda t: "#E0A800",
+                "trash": lambda t: t["accent"]}
 
 
 def menu(parent, entries) -> QMenu:
@@ -71,7 +76,8 @@ def menu(parent, entries) -> QMenu:
         act.setEnabled(enabled)
         icon_name = _CONTEXT_ICONS.get(text.split(" …")[0])
         if icon_name:
-            act.setIcon(theme.icon(icon_name))
+            color = _ICON_COLORS.get(icon_name)
+            act.setIcon(theme.icon(icon_name, color and color(theme.current())))
         act.triggered.connect(callback)
         m.addAction(act)
     return m

@@ -104,7 +104,7 @@ class HelperDialog(RecordDialog):
     def _setup_form(self):
         self.form.add("first_name", "Vorname", QLineEdit(), required=True)
         self.form.add("last_name", "Nachname", QLineEdit(), required=True)
-        self.form.add("phone", "Telefon", QLineEdit())
+        self.form.add("phone", "Telefon", QLineEdit(), short=True)
         self.form.add("email", "E-Mail", QLineEdit(), validator=email_validator)
 
         def _time_edit():

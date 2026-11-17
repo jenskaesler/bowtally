@@ -20,7 +20,7 @@ from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout, QLabel,
                                QPlainTextEdit, QScrollArea, QTextEdit, QVBoxLayout, QWidget)
 
-from bowtally.ui import button
+from bowtally.ui import button, mark_dirty
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.form_field import Form
 from bowtally.ui.constants import SETTINGS_COMBO_W, SETTINGS_LABEL_W
@@ -39,6 +39,7 @@ class RecordDialog(QDialog):
 
         self._read_only = read_only
         self._baseline: tuple = ()
+        self._dirty_wired = False
 
         self.form = Form(label_width=SETTINGS_LABEL_W, combo_width=SETTINGS_COMBO_W)
 
@@ -109,6 +110,14 @@ class RecordDialog(QDialog):
             self.move(pg.x() + (pg.width() - sg.width()) // 2,
                       pg.y() + (pg.height() - sg.height()) // 2)
         self.form.focus_first()
+        if not self._dirty_wired:       # subclasses add more forms while building, so wire on first show
+            self._dirty_wired = True
+            for form in self.findChildren(Form):
+                form.changed.connect(self._update_dirty)
+        self._update_dirty()
+
+    def _update_dirty(self):
+        mark_dirty(self._save_btn, self._is_dirty())
 
     def done(self, result):
         s = QSettings("BowTally", "BowTally")

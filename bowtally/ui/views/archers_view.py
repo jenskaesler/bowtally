@@ -3,7 +3,8 @@
 from PySide6.QtCore import QSettings, Qt
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QCompleter, QHBoxLayout,
                                QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QScrollArea,
-                               QTabWidget, QTableWidget, QTableWidgetItem, QWidget)
+                               QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout,
+                               QWidget)
 
 from bowtally.io.importer import ARCHER_IMPORT_FIELDS
 from bowtally.services import master_data_service as md
@@ -12,7 +13,8 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
 from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import DateField, email_validator
+from bowtally.ui.components.files_panel import FilesPanel
+from bowtally.ui.components.form_field import DateField, Form, email_validator
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
@@ -32,28 +34,31 @@ class ArcherDialog(RecordDialog):
         super().__init__(
             "Neuer Schütze" if record is None else
             f"{record.first_name} {record.last_name}", parent=parent)
-        if record is not None:
-            main_lay = self.layout()
-            for i in range(main_lay.count()):
-                w = main_lay.itemAt(i).widget() if main_lay.itemAt(i) else None
-                if isinstance(w, QScrollArea):
-                    main_lay.removeWidget(w)
-                    tabs = QTabWidget()
-                    tabs.addTab(w, "Stammdaten")
+        main_lay = self.layout()
+        for i in range(main_lay.count()):
+            w = main_lay.itemAt(i).widget() if main_lay.itemAt(i) else None
+            if isinstance(w, QScrollArea):
+                main_lay.removeWidget(w)
+                tabs = QTabWidget()
+                tabs.addTab(w, "Stammdaten")
+                if record is not None:
                     tabs.addTab(self._build_history(record.id), "Turnierhistorie")
-                    main_lay.insertWidget(i, tabs, 1)
-                    break
+                tabs.addTab(self._build_notes(), "Notizen")
+                tabs.addTab(FilesPanel(
+                    None if record is None else record.id, "Schützen", md.list_archer_files,
+                    md.add_archer_file, md.remove_archer_file, md.archer_file_path), "Dokumente")
+                main_lay.insertWidget(i, tabs, 1)
+                break
         values: dict = {"active": True}
         if record:
-            values = {k: getattr(record, k) for k in self.form.fields}
+            values = {k: getattr(record, k) for k in (*self.form.fields, "notes")}
         self.form.set_values(values)
-        self._baseline = self.form.snapshot()
+        self.notes_form.set_values(values)
+        self._baseline = self._snapshot()
         self.saved_id: int | None = None
         self.saved_name: str = ""
 
     def _setup_form(self):
-        notes = QPlainTextEdit()
-        notes.setMinimumHeight(90)
         bow_class = QComboBox()
         bow_class.addItem("(keine)", None)
         for bc in md.list_bow_classes():
@@ -66,12 +71,11 @@ class ArcherDialog(RecordDialog):
         self.form.add("birth_date", "Geburtsdatum", DateField(),
                       hint="Format TT.MM.JJJJ, optional")
         self.form.add("club", "Verein", club)
-        self.form.add("member_number", "Mitgliedsnummer", QLineEdit())
+        self.form.add("member_number", "Mitgliedsnummer", QLineEdit(), short=True)
         self.form.add("default_bow_class_id", "Standardklasse", bow_class)
         email_field = QLineEdit()
         self.form.add("email", "E-Mail", email_field, validator=email_validator)
-        self.form.add("phone", "Telefon", QLineEdit())
-        self.form.add("notes", "Notizen", notes)
+        self.form.add("phone", "Telefon", QLineEdit(), short=True)
         self.form.add("active", "Aktiv", QCheckBox("Aktiv (in Auswahllisten sichtbar)"))
         notify_cb = QCheckBox("Bei neuen Turnieren per E-Mail benachrichtigen")
         self.form.add("notify_new_tournament", "Benachrichtigung", notify_cb)
@@ -88,6 +92,25 @@ class ArcherDialog(RecordDialog):
                               "Nur verfügbar wenn eine E-Mail-Adresse hinterlegt ist.")
         email_field.textChanged.connect(_update_notify)
         _update_notify()
+
+    def _build_notes(self) -> QWidget:
+        self.notes_form = Form()
+        self.notes_form.set_labels_on_top()
+        notes = QPlainTextEdit()
+        notes.setMinimumHeight(110)
+        self.notes_form.add("notes", "Notizen", notes)
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        lay.setContentsMargins(0, 8, 0, 0)
+        lay.addWidget(self.notes_form)
+        lay.addStretch()
+        return page
+
+    def _snapshot(self) -> tuple:
+        return self.form.snapshot() + self.notes_form.snapshot()
+
+    def _is_dirty(self) -> bool:
+        return self._snapshot() != self._baseline
 
     def _build_history(self, archer_id: int) -> QWidget:
         history = md.get_archer_history(archer_id)
@@ -131,7 +154,7 @@ class ArcherDialog(RecordDialog):
     def _do_save(self) -> bool:
         try:
             with busy():
-                archer = md.save_archer(self.form.values(),
+                archer = md.save_archer({**self.form.values(), **self.notes_form.values()},
                                         self._record.id if self._record else None)
         except Exception as exc:
             show_error(self, exc, "Schütze konnte nicht gespeichert werden")
