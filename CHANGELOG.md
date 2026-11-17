@@ -19,7 +19,13 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   die Liste blendet über „Aktives Inventar anzeigen“ (Standard: angehakt) inaktive aus. Inaktive
   Artikel zählen nicht im Inventar-Gesamtwert und stehen nicht im Parcours-Material. Zu einer
   Reparatur lässt sich eine Rechnung hinterlegen; sie liegt in den Dokumenten des Artikels und ist
-  in der Reparatur verlinkt.
+  in der Reparatur verlinkt. Reparaturkosten von 0 € sind nicht zulässig.
+
+### Behoben
+
+- **🪟 Kleine Fenster beim Start** — Beim Programmstart blitzten über dem Splash kurz mehrere
+  kleine Fenster auf. Sie entstanden durch Buttons der leeren Listen, die vor dem Einbau ins Layout
+  sichtbar geschaltet wurden.
 
 ### Geändert
 
@@ -33,10 +39,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Einmalposten. Das Haupt-Dashboard zeigt den Inventar-Gesamtwert, das Turnierdashboard
   „Kosten Einmalartikel“ und „Warenwert Bestandsinventar“ getrennt. Backup, Restore, Import und
   Export enthalten die neuen Daten.
-- **🎨 Dialoge und Menüs** — Speichern ist blau und Abbrechen schwarz. Bei Änderungen wird
-  Speichern rot. Die Schließen-Buttons sehen aus wie die Bearbeiten-Buttons, Preisfelder haben
-  wie die anderen Eingabefelder runde Ecken. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
-  Icon, kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
+- **🎨 Dialoge und Menüs** — Speichern ist blau und wird bei Änderungen rot. Abbrechen und
+  Schließen sehen aus wie die Bearbeiten-Buttons, Preisfelder haben wie die anderen Eingabefelder
+  runde Ecken. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
+  Icon. „Als inaktiv markieren“ und „Datenauskunft senden“ stehen in der Mitgliederliste nur noch
+  im Rechtsklick-Menü, im Inventar gibt es dort „Aktivieren/Deaktivieren“. Kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
   Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein Drittel breiter und der
   Passwortdialog beim Restore zeigt „Abbrechen“.
 
