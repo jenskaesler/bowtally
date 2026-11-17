@@ -13,6 +13,19 @@ CHANGELOG_URL = "https://github.com/jenskaesler/bowtally/releases/tag/v{version}
 MAX_LINES = 20
 
 
+def run_manual_check(parent, service) -> None:
+    """Asks the update server now; shows the update dialog or why there is nothing to update."""
+    from PySide6.QtWidgets import QMessageBox
+    info = service.check_for_update()
+    if info is None or not info.available:
+        if service.last_error:
+            QMessageBox.warning(parent, "Update-Prüfung", service.last_error)
+        else:
+            QMessageBox.information(parent, "Update-Prüfung", "Kein Update verfügbar.")
+        return
+    UpdateDialog(info, service, parent=parent).exec()
+
+
 class UpdateDialog(QDialog):
     def __init__(self, info, service, parent=None):
         super().__init__(parent)

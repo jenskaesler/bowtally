@@ -85,6 +85,9 @@ def menu(parent, entries) -> QMenu:
     return m
 
 
+BAR_BOTTOM_MARGIN = 16      # control bar -> list: with layout spacing 10 the 26 px under a ListView header
+
+
 class ListView(QWidget):
     def __init__(self, title: str, headers: list[str], empty: EmptyState,
                  form: Form | None = None, search_placeholder: str = "",

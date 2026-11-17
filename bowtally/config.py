@@ -51,8 +51,23 @@ def _read_text(relative_path: str, not_found: str) -> str:
         return not_found
 
 
+# Installed app: the installer writes the current LICENSE / CHANGELOG next to the exe
+INSTALL_DIR = Path(sys.executable).parent if getattr(sys, "frozen", False) else None
+
+
+def _first_text(candidates: list[Path | None], not_found: str) -> str:
+    for path in candidates:
+        try:
+            if path is not None:
+                return path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+    return not_found
+
+
 def license_text() -> str:
-    return _read_text("docs/license.txt", "Lizenzdatei nicht gefunden.")
+    installed = INSTALL_DIR and [INSTALL_DIR / "LICENSE.txt", INSTALL_DIR / "docs" / "LICENSE.txt"]
+    return _first_text([*(installed or []), _BASE / "LICENSE"], "Lizenzdatei nicht gefunden.")
 
 
 def changelog_text() -> str:

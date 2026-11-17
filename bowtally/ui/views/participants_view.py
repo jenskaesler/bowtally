@@ -24,7 +24,7 @@ from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.dialogs.export_helper import open_path
 from bowtally.ui.dialogs.import_dialog import run_import
-from bowtally.ui.views import menu
+from bowtally.ui.views import BAR_BOTTOM_MARGIN, menu
 
 HEADERS = ["St.-Nr.", "Name", "Verein", "Bogenklasse", "Startgruppe", "Gebühr", "Anmeldung",
            "Zahlung", "Startzeit"]
@@ -353,8 +353,10 @@ class ParticipantsView(QWidget):
                       "Startzeit bearbeitet direkt in der Tabelle. Rechtsklick für "
                       "Anmeldung, Zahlung und Status.", objectName="pageSubtitle")
         hint.setWordWrap(True)
+        bar.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 12, 0, 0)
+        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setSpacing(10)
         lay.addLayout(bar)
         lay.addWidget(self.table, 1)
         lay.addWidget(self.action_bar)

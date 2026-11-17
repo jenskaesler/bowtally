@@ -73,6 +73,8 @@ class AboutDialog(QDialog):
 
         close_row = QHBoxLayout()
         close_row.addStretch()
+        close_row.addWidget(button("Neue Version prüfen", self._check_for_update,
+                                   tooltip="Jetzt nach einer neuen Version suchen"))
         close_row.addWidget(button("Schließen", self.accept))
 
         lay = QVBoxLayout(self)
@@ -82,6 +84,11 @@ class AboutDialog(QDialog):
         self._nav.currentRowChanged.connect(self._on_nav)
         self._nav.setCurrentRow(1)
         theme.notifier.changed.connect(self._refresh_css)
+
+    def _check_for_update(self):
+        from bowtally.updater.update_dialog import run_manual_check
+        from bowtally.updater.update_service import UpdateService
+        run_manual_check(self, UpdateService(config.APP_DATA_DIR))
 
     def _on_nav(self, row: int):
         idx = row - 1  # row 0 is the group header

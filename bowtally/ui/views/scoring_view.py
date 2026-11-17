@@ -28,6 +28,7 @@ from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT
 from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.toast import Toast
+from bowtally.ui.views import BAR_BOTTOM_MARGIN
 
 FIXED = 3                                 # start number, name, class
 CELL_ROLE = Qt.ItemDataRole.UserRole + 1  # (participant_id, target, shot)
@@ -253,8 +254,10 @@ class ScoringView(QWidget):
 
         self.hint = QLabel(objectName="pageSubtitle")
         self.hint.setWordWrap(True)
+        bar.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 12, 0, 0)
+        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setSpacing(10)
         lay.addWidget(self.round_bar)
         lay.addLayout(bar)
         # class tabs hang directly on the list, like the tabs of the results view

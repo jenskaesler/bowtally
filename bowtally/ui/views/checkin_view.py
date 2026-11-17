@@ -16,6 +16,7 @@ from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.status_chip import payment_chip, registration_chip
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
+from bowtally.ui.views import BAR_BOTTOM_MARGIN
 from bowtally.ui.views.participants_view import money
 
 HEADERS = ["Nr.", "Name", "Verein", "Klasse", "Anmeldung", "Zahlung"]
@@ -71,8 +72,10 @@ class CheckinView(QWidget):
         actions.addStretch()
         actions.addWidget(self.not_found)
 
+        actions.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         main = QVBoxLayout()
-        main.setContentsMargins(0, 12, 0, 0)
+        main.setContentsMargins(0, 8, 0, 0)
+        main.setSpacing(10)
         main.addLayout(top)
         main.addLayout(search_row)
         main.addLayout(actions)

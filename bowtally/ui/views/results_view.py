@@ -20,6 +20,7 @@ from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button, open_path
 from bowtally.ui.dialogs.shoot_off_dialog import ShootOffDialog
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
+from bowtally.ui.views import BAR_BOTTOM_MARGIN
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
 NOT_PRINTABLE = "Ergebnisliste erst ab der Phase „Schießen“ verfügbar"
@@ -184,8 +185,10 @@ class ResultsView(QWidget):
         bar.addWidget(self.btn_send)
         bar.addWidget(self.spinner)
         bar.addWidget(self.btn_pdf)
+        bar.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 12, 0, 0)
+        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setSpacing(10)
         lay.addLayout(bar)
         lay.addWidget(self.tabs, 1)
         theme.notifier.changed.connect(lambda: self.tournament and self.recalculate())

@@ -48,6 +48,18 @@ def test_logfile_button_opens_the_log(dialog, monkeypatch):
     assert opened == [config.LOG_PATH]
 
 
+def test_boxes_on_the_general_page_are_equally_wide(dialog):
+    from PySide6.QtWidgets import QApplication, QGroupBox
+    dialog.resize(1200, 900)
+    dialog.show()
+    dialog._stack.setCurrentIndex(dialog._page_index["general"])
+    QApplication.processEvents()
+    general = dialog._stack.widget(dialog._page_index["general"])
+    boxes = {box.title(): box.width() for box in general.findChildren(QGroupBox)}
+    assert {"Oberfläche", "Navigation", "Update-Prüfung", "Speicherorte"} <= set(boxes)
+    assert len(set(boxes.values())) == 1
+
+
 def test_interface_settings_live_on_the_general_system_page(dialog):
     pages = [key for _title, items in dialog._NAV_GROUPS for key, _label in items]
     assert "ui" not in pages

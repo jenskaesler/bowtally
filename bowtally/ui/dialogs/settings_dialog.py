@@ -168,7 +168,6 @@ class SettingsDialog(QDialog):
         ("SYSTEM",             [("general", "Allgemein"),
                                  ("backup", "Backup"),
                                  ("design", "Design"),
-                                 ("nav", "Navigation"),
                                  ("advanced", "Erweitert")]),
     ]
 
@@ -197,7 +196,6 @@ class SettingsDialog(QDialog):
             ("email",    self._email_tab()),
             ("general", self._category_tab("ui", extra=self._general_tab())),
             ("backup",   self._backup_tab()),
-            ("nav",      self._nav_tab()),
             ("advanced", self._advanced_tab()),
         ]
         self._stack = QStackedWidget()
@@ -693,8 +691,11 @@ class SettingsDialog(QDialog):
         return w
 
     def _general_tab(self) -> QWidget:
+        """Boxes below the Oberfläche box; no own margins, so all boxes are equally wide."""
         w = QWidget()
         lay = QVBoxLayout(w)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(self._nav_box())
 
         # Update-Prüfung
         box_update = QGroupBox("Update-Prüfung")
@@ -741,17 +742,9 @@ class SettingsDialog(QDialog):
         return w
 
     def _manual_update_check(self, service):
-        info = service.check_for_update()
+        from bowtally.updater.update_dialog import run_manual_check
+        run_manual_check(self, service)
         self._last_check_label.setText(f"Letzte Prüfung: {service.last_check_str()}")
-        if info is None or not info.available:
-            from PySide6.QtWidgets import QMessageBox
-            if service.last_error:
-                QMessageBox.warning(self, "Update-Prüfung", service.last_error)
-            else:
-                QMessageBox.information(self, "Update-Prüfung", "Kein Update verfügbar.")
-            return
-        from bowtally.updater.update_dialog import UpdateDialog
-        UpdateDialog(info, service, parent=self).exec()
 
     def _backup_tab(self) -> QWidget:
         from bowtally.services import backup_service as bs
@@ -1063,6 +1056,7 @@ class SettingsDialog(QDialog):
         self.club_edits["course_description"] = edit_course
         inner = QWidget()
         lay = QVBoxLayout(inner)
+        lay.addWidget(help_link("Einstellungen & Stammdaten", "textvorlagen"))
 
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
@@ -1086,7 +1080,6 @@ class SettingsDialog(QDialog):
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
 
-        lay.addWidget(help_link("Einstellungen & Stammdaten", "textvorlagen"))
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -1304,9 +1297,9 @@ class SettingsDialog(QDialog):
         """Schmaler Button mit Hamburger-Icon (≡) für die Pfadauswahl."""
         return burger_button("Durchsuchen", slot)
 
-    def _nav_tab(self) -> QWidget:
-        w = QWidget()
-        lay = QVBoxLayout(w)
+    def _nav_box(self) -> QGroupBox:
+        box = QGroupBox("Navigation")
+        lay = QVBoxLayout(box)
         self._nav_list_widget = QListWidget()
         self._nav_list_widget.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self._nav_list_widget.setDefaultDropAction(Qt.DropAction.MoveAction)
@@ -1324,13 +1317,14 @@ class SettingsDialog(QDialog):
         ordered += [k for k in NAV_KEYS if k not in ordered]
         for key in ordered:
             self._add_nav_item(key, vis_map.get(key, True))
+        self._nav_list_widget.setMinimumHeight(len(ordered) * 38 + 8)   # all rows visible, the page scrolls
         reset_btn = button("Standardreihenfolge wiederherstellen", self._reset_nav_order)
         hint = QLabel("Änderungen werden nach Neustart der App wirksam.",
                       objectName="pageSubtitle")
-        lay.addWidget(self._nav_list_widget, 1)
+        lay.addWidget(self._nav_list_widget)
         lay.addWidget(reset_btn)
         lay.addWidget(hint)
-        return w
+        return box
 
     def _add_nav_item(self, key: str, visible: bool) -> None:
         t = theme.current()

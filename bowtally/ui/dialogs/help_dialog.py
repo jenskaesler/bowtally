@@ -29,7 +29,7 @@ _SECTIONS = [
 <p>Links in der Seitenleiste wechselst du zwischen den Modulen. Ein Klick auf das Logo
 oben führt zurück zum Dashboard. Unten findest du <b>Einstellungen</b>, <b>Hilfe</b> und
 <b>Über BowTally</b>. Reihenfolge und Sichtbarkeit der Einträge stellst du unter
-Einstellungen → System → Navigation ein.</p>
+Einstellungen → System → Allgemein → Navigation ein.</p>
 <p>Ein orangefarbener Punkt an <b>Turniere</b> weist darauf hin, dass beim aktiven Turnier die
 maximale Teilnehmerzahl erreicht ist oder dass ein Turnier in der Phase „Schießen“ läuft.</p>
 <h3>Dialoge</h3>
@@ -680,7 +680,7 @@ Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
 (Lokal / Netzwerk / Nextcloud), Aufbewahrungsdauer und Wiederherstellung aus
 einer JSON-Datei.</p>
 <h3>Navigation</h3>
-<p>Unter Einstellungen → System → <b>Navigation</b> lässt sich die Reihenfolge der
+<p>Unter Einstellungen → System → Allgemein → <b>Navigation</b> lässt sich die Reihenfolge der
 Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
 werden nach einem <b>Neustart</b> der App wirksam.</p>
 <a name="erweitert"></a><h3>System → Erweitert</h3>
