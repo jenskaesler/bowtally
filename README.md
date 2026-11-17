@@ -13,7 +13,7 @@
 
 Bogenvereine organisieren 3D-Turniere bislang mit einer Mischung aus Tabellenkalkulation, Word-Vorlagen und handgeschriebenen Listen. BowTally ersetzt das komplett: ein einziges Programm führt durch alle acht Phasen eines Turniers – von der Ausschreibung bis zur Siegerehrung.
 
-Die Anwendung läuft vollständig offline. Alle Daten bleiben lokal auf dem Gerät. Es werden keine personenbezogenen Daten oder Turnierdaten an externe Server übertragen. Der optionale Nextcloud-Sync überträgt Daten ausschließlich auf expliziten Nutzerwunsch an einen selbst betriebenen Server. Weitere Hinweise unter [docs/PRIVACY.md](docs/PRIVACY.md).
+Die Anwendung läuft vollständig offline. Alle Daten bleiben lokal auf dem Gerät. Es werden keine personenbezogenen Daten oder Turnierdaten an externe Server übertragen. Das optionale Nextcloud-Backup lädt ausschließlich auf expliziten Nutzerwunsch ein passwortgeschütztes Backup auf einen selbst betriebenen Server hoch. Nextcloud dient dabei nur als Speicherziel für Backups: Es gibt keinen Abgleich zwischen Geräten und kein Herunterladen durch BowTally. Weitere Hinweise unter [docs/PRIVACY.md](docs/PRIVACY.md).
 
 ---
 
@@ -185,7 +185,7 @@ Ergebnisliste, Urkunden und Preis- und Siegerliste erstellen, Turnier abschließ
 |---|---|
 | [Ersteinrichtung](docs/BowTally_Ersteinrichtung.md) | Installation, Stammdaten, erstes Turnier anlegen |
 | [Phasensystem](docs/BowTally_Phasensystem.md) | Turnierverwaltung Schritt für Schritt – alle acht Phasen erklärt |
-| [Datenschutz](docs/PRIVACY.md) | Datenverarbeitung, Speicherorte, optionaler Nextcloud-Sync |
+| [Datenschutz](docs/PRIVACY.md) | Datenverarbeitung, Speicherorte, optionales Nextcloud-Backup |
 | [Sicherheitshinweise](docs/SECURITY.md) | Schwachstellen melden, Kontakt, Disclosure Policy |
 | [Drittanbieter-Lizenzen](docs/THIRD-PARTY-NOTICES.md) | Verwendete Open-Source-Bibliotheken und ihre Lizenzen |
 

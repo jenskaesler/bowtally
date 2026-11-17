@@ -19,12 +19,14 @@ Folgende Daten werden nicht erfasst oder übertragen:
 - Lizenzprüfungen
 - Automatische Updates oder Versionsprüfungen
 
-## Optionaler Nextcloud-Sync
+## Optionales Nextcloud-Backup
 
 BowTally enthält eine optionale Backup-Funktion für Nextcloud (WebDAV). Diese Funktion ist
-standardmäßig deaktiviert.
+standardmäßig deaktiviert. Nextcloud dient ausschließlich als Speicherziel für Backups:
+BowTally lädt eine passwortgeschützte Backup-Datei hoch, gleicht aber keine Daten zwischen
+Geräten ab und lädt nichts von Nextcloud herunter.
 
-Wenn der Nextcloud-Sync aktiviert wird, gilt:
+Wenn das Nextcloud-Backup aktiviert wird, gilt:
 
 - Daten werden ausschließlich auf expliziten Nutzerwunsch übertragen.
 - Als Ziel wird ausschließlich die vom Nutzer selbst konfigurierte Nextcloud-Instanz verwendet.
@@ -47,7 +49,7 @@ Empfehlungen für den Umgang mit Teilnehmerdaten:
 ## Logs
 
 BowTally schreibt ein lokales Log unter `%APPDATA%\BowTally\app.log`. Das Log enthält
-Statusmeldungen, Fehlermeldungen und Sync-Ereignisse. Personenbezogene Daten werden im Log
+Statusmeldungen, Fehlermeldungen und Backup-Ereignisse. Personenbezogene Daten werden im Log
 nicht gespeichert.
 
 ## Kontakt
