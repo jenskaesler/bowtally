@@ -35,7 +35,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   JSON-Zonen lassen sich weiter importieren.
 - **🥇 Stechen eintragen** — Bei Regelwerken mit „Stechen erforderlich“ erscheint in der Auswertung
   der Button „Stechen eintragen“: Punkte des Stechens je Teilnehmer, der höhere Wert gewinnt den
-  Gleichstand. Gespeichert im Backup, bis zur Ergebnisliste änderbar; die Rückfrage beim Erstellen
+  Gleichstand. Sobald Werte eingetragen sind, zeigen Ergebnisansicht, Excel-Exporte und PDF eine
+  Spalte „Stechen“. Gespeichert im Backup, bis zur Ergebnisliste änderbar; die Rückfrage beim Erstellen
   der Ergebnisliste warnt vor offenen Gleichständen.
 - **🤝 Turnier-Helfer** — Neben „Neuer Helfer" (nur für das Turnier) gibt es „Aus
   Mitgliederkartei" (nur aktive Mitglieder mit Flag „Turnierhelfer"). Beim Abschluss eines
@@ -68,6 +69,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **🧭 Menü „Regeln“** — Der Eintrag „Regelwerke“ in der Seitenleiste heißt jetzt „Regeln“.
+- **🪟 Dialoge** — Formulare öffnen standardmäßig so groß, dass der gesamte Inhalt zu sehen ist
+  (gespeicherte Dialoggrößen werden dafür einmalig zurückgesetzt). Im Mitglieder-Dialog steht der
+  Button „Aus Basisdaten übernehmen“ in der Zeile „Kontoinhaber“.
+
 - **📏 Standard-Regelwerke nach den Verbandsregeln** — Gleichstandsregeln der eingebauten Regelwerke
   entsprechen jetzt WA, IBO, IFAA und DBSV (z. B. WA Halle: 10er, dann 9er, ohne X; IBO: 11er und
   Stechen; IFAA Feld: Stechen). Bei jedem Start werden die eingebauten Regelwerke daran angeglichen.
@@ -87,8 +93,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **🎯 Auslosung nur bei Bedarf** — „Auslosung durchführen" im Leitfaden, in der Rückfrage
   beim Phasenwechsel und „Auslosung …" im ⋮-Menü der Teilnehmer erscheinen nur, wenn die
   Auslosung im Turnierdialog gewählt wurde.
-- **🙋 Helfer** — Der Eintrag „Helfer" in der Seitenleiste zeigt immer die Stammdaten, auch bei
-  geöffnetem Turnier; die erweiterte Einteilung gibt es nur im Tab „Helfer" des Turniers.
+- **🙋 Helfer** — Der Tab „Helfer“ im Turnier zeigt nur noch die Helfer dieses Turniers; die
+  Stammdaten stehen unter „Mitglieder“ in der Seitenleiste.
 - **📑 Turnierdetails** — Die Tabs „Preise" und „Helfer" stehen direkt hinter „Teilnehmer".
 - **🧙 Turnierdialog** — Seite 4: „Einschreibung ab", „Schießbeginn" und Einschießen stehen
   über der maximalen Teilnehmerzahl. Die Checkbox „Ausschreibung jetzt generieren" samt
@@ -104,13 +110,24 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Behoben
 
+- **📦 Excel „Turnier komplett“** — Das Blatt „Ergebnisse“ enthält jetzt auch bei „Rundenwertung“ und
+  „Nur Gesamtpunkte“ die Werte, bei mehreren Runden alle Runden, dazu die Kill-/X-Spalten; die
+  „Rangliste“ nennt Kills/X.
+- **💾 Wiederherstellung** — Eingebaute Regelwerke werden über ihren Namen zugeordnet (ihre Nummern
+  unterscheiden sich zwischen Versionen), Turniere und das Standard-Regelwerk behalten ihr Regelwerk.
+  Entfernte Regelwerke kommen nur zurück, wenn ein Turnier sie nutzt; eigene Regelwerke
+  überschreiben keine eingebauten mehr.
+
+- **⚙️ Backup-Einstellungen** — Die Box „Backup-Speicherort“ staucht bei Nextcloud nicht mehr die
+  Zeilen und schneidet keine Buttons mehr ab; der Tab scrollt bei kleinem Fenster.
+
 - **⚙️ Einstellungen schließen** — „Schließen" ohne Änderungen tat nichts, und „Abbrechen" der
   Rückfrage schloss den Dialog trotzdem.
 - **🎯 `use_draw` wurde nicht gespeichert** — Die Auslosungs-Option aus dem Turnierdialog
   ging beim Speichern verloren.
 - **📑 Phasenwechsel** — Nach dem Ausblenden des aktiven Tabs bleibt dessen Nachfolger nicht
   mehr leer.
-- **🎯 Ergebniseingabe** — Der Hinweis „unvollständige Scheibenergebnisse" beim Wechsel nach
+- **🎯 Ergebniseingabe** — Der Hinweis „unvollständige Zielergebnisse" beim Wechsel nach
   „Auswertung" und der Fortschritt in Leitfaden und Dashboard berücksichtigen jetzt die
   Wertungsart (Gesamtwertung: ein Wert, pro Runde: ein Wert je Runde) und mehrere Runden.
   Gesamt- und Rundenwerte akzeptieren nur Ziffern, ein abgelehnter Wert zeigt wieder den

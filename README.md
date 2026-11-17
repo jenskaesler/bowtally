@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![Language](https://img.shields.io/badge/Language-Python%203.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-NC--Copyleft-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2026.11.3-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2026.11.4-blue)](CHANGELOG.md)
 
 ---
 
@@ -56,7 +56,7 @@ flowchart LR
 
 - 📄 **Ausschreibungs-PDF** – Termin, Ablauf, Klassen, Startgeld, Bankverbindung und Kontakt aus den Turnierdaten; BowTally zeigt an, wenn die Ausschreibung nach Änderungen veraltet ist. Nach dem Erzeugen öffnet sich ein E-Mail-Entwurf mit dem PDF im Anhang. Allgemeine Turnierregeln und Teilnahmebedingungen (global unter Regelwerke → Turnierregeln gepflegt) werden als Zusatzseite angehängt.
 - 💶 **Startgebühren** – je Turnier, vorbelegt aus Vorlagen; Einnahmenübersicht mit erwarteten, eingegangenen und ausstehenden Beträgen.
-- ✉️ **E-Mail-Vorlagen** – Ausschreibung, Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Helfer-Bestätigung, Ergebnisversand; Platzhalter und Vereinslogo in der Signatur, Schriftart aus den Einstellungen. Schützen können einzeln für den Ergebnisversand per E-Mail vorgemerkt werden.
+- ✉️ **E-Mail-Vorlagen** – Ausschreibung, Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Helfer-Bestätigung, Datenauskunft, Ergebnisversand; Platzhalter und Vereinslogo in der Signatur, Schriftart aus den Einstellungen. Schützen können einzeln für den Ergebnisversand per E-Mail vorgemerkt werden.
 - ✅ **Anmelde- und Zahlungsstatus** – je Teilnehmer; Schnellaktionen per Rechtsklick und Aktionsleiste.
 - 🔢 **Maximale Teilnehmerzahl** – Auslastungsbalken; bei voller Belegung sind Zuweisen und Import gesperrt, Walk-ins bleiben möglich.
 
@@ -71,18 +71,19 @@ flowchart LR
 
 ### Auswertung
 
-- 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand, einstellbarer Tie-Break.
+- 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand; Gleichstandsregeln je Regelwerk (Kills, X-Treffer, Treffer in der höchsten Wertung), Hinweis und Ergebniseingabe für ein nötiges Stechen (Spalte „Stechen“ in Liste, Export und PDF).
 - 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse; mit dem Erstellen wird die Ergebniseingabe gesperrt. Versand per E-Mail mit PDF im Anhang an die vorgemerkten Schützen.
 - 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
 - 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand) als PDF.
 - 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
-- 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung je Scheibe, je Runde oder als Gesamtwertung.
+- 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung „Pro Ziel“, „Rundenwertung“ oder „Nur Gesamtpunkte“ (bei den beiden letzten mit Spalte für Kills/X neben den Punkten).
 
 ### Stammdaten
 
 - 🏹 **Schützen** – Suche, aktiv/inaktiv; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
 - 📏 **Regelwerke** – 9 eingebaute Regelwerke mit Gleichstandsregeln nach WA, IBO, IFAA und DBSV (3D Hunter, IBO 3D Standard/12-Ring, WA 3D, DBSV Waldrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m) plus eigene durch Klonen; Kills/X, Disziplin, Gleichstand und Stechen je Regelwerk einstellbar, Regelwerke lesbar exportier-/importierbar.
-- 🙋 **Helfer** – Stammdaten mit aktiv/inaktiv; je Turnier Einteilung mit Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung.
+- 👥 **Mitglieder** – Mitgliederkartei mit Mitgliedsnummer, Adresse, Einwilligung, Bankverbindung (IBAN-Prüfziffer, SEPA-Mandat) und Helferhistorie; Datenauskunft per E-Mail mit maskierter IBAN; Excel-Export/-Import ohne Bankdaten.
+- 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
 - 📦 **Inventar und Logbuch** – Scheiben und 3D-Ziele verwalten; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
@@ -91,7 +92,7 @@ flowchart LR
 - 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
 - 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
 - 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar.
-- 💾 **Backup** – lokales ZIP-Backup mit allen Daten (JSON), Vereinslogo und Prüfdatei `bowtally.info` (Typ, Version, Zeitstempel), Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung aus der ZIP-Datei.
+- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Mitglieder-Bankdaten), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
 - 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
 - ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
 
@@ -246,7 +247,7 @@ Das Skript baut mit PyInstaller und danach den Installer mit NSIS. Die Version k
 Nur den Installer neu bauen:
 
 ```bat
-makensis /DVERSION=2026.11.3 build\setup.nsi
+makensis /DVERSION=2026.11.4 build\setup.nsi
 ```
 
 ### Release

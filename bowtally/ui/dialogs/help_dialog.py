@@ -375,7 +375,8 @@ Regelwerk bei Gleichstand ein <b>Stechen</b> (z.&nbsp;B. IBO, IFAA), schaltest d
 „Abgeschlossen“ weisen dann auf Gleichstände auf Platz 1–3 hin. Das Ergebnis des Stechens trägst
 du in der <b>Auswertung</b> über <b>Stechen eintragen</b> ein (Punkte je Teilnehmer, wer mehr hat,
 steht vorn; gleiche Werte bleiben gleichauf, z.&nbsp;B. wenn das Stechen weitergeht). Das geht,
-bis die Ergebnisliste erstellt ist.
+bis die Ergebnisliste erstellt ist. Eingetragene Werte erscheinen als Spalte <b>Stechen</b> in der
+Ergebnisansicht, in den Exporten und in der Ergebnisliste.
 Bei <b>Pro Ziel</b> werden Kills und X-Treffer aus den gewählten Zonen gezählt, bei
 <b>Nur Gesamtpunkte</b> und <b>Rundenwertung</b> trägst du die Anzahl in der Spalte neben den
 Punkten ein (erst die Punkte, dann die Anzahl).</p>
@@ -728,8 +729,12 @@ Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.<
 <p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
 nach Rückfrage ersetzt – das lässt sich nicht rückgängig machen. Danach die App neu starten.
 </p>
+<p>Vor jeder Datenbank-Migration (z.&nbsp;B. nach einem Update) legt BowTally automatisch eine
+Kopie der Datenbank neben der Datenbankdatei ab (<code>bowtally.db.pre-migration-…</code>).</p>
 <p>Backups älterer Versionen lassen sich ebenfalls wiederherstellen: Helfer werden dabei zu
-Mitgliedern, Regelwerke ohne Disziplin bekommen sie aus ihrem Namen, und die frühere globale
+Mitgliedern, eingebaute Regelwerke werden über ihren Namen zugeordnet (nicht mehr mitgelieferte
+bleiben nur erhalten, wenn ein Turnier sie nutzt), Regelwerke ohne Disziplin bekommen sie aus ihrem
+Namen, und die frühere globale
 Einstellung „Tie-Break-Logik“ entfällt (die Regel gilt jetzt je Regelwerk).</p>
 <h3>Updates</h3>
 <p>Unter Einstellungen → System → Allgemein sucht BowTally auf Wunsch <b>beim Start nach
