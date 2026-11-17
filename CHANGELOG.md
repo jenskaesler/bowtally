@@ -72,10 +72,14 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **🖼️ Vereinslogo im Unterordner „logo“** — Das Logo liegt jetzt wie im Backup in `logo/` im Datenordner
+  (Migration verschiebt ein vorhandenes Logo). Beim Wiederherstellen eines Backups zeigt das
+  Vereinsprofil auf das wiederhergestellte Logo.
+
 - **🧭 Menü „Regeln“** — Der Eintrag „Regelwerke“ in der Seitenleiste heißt jetzt „Regeln“.
 - **🪟 Dialoge** — Formulare öffnen standardmäßig so groß, dass der gesamte Inhalt zu sehen ist
   (gespeicherte Dialoggrößen werden dafür einmalig zurückgesetzt). Im Mitglieder-Dialog steht der
-  Button „Aus Basisdaten übernehmen“ in der Zeile „Kontoinhaber“.
+  Button „Basisdaten übernehmen“ in der Zeile „Kontoinhaber“.
 
 - **📏 Standard-Regelwerke nach den Verbandsregeln** — Gleichstandsregeln der eingebauten Regelwerke
   entsprechen jetzt WA, IBO, IFAA und DBSV (z. B. WA Halle: 10er, dann 9er, ohne X; IBO: 11er und
@@ -120,6 +124,7 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   zeigen die vollen Klassennamen; die Tabelle nutzt dieselben Abstände und Ausrichtungen.
 - **👥 Mitglieder-Notizen** — Im Tab „Notizen“ steht das Label über dem Textfeld, das die volle Breite
   nutzt.
+  Die Überschriften der Dateiliste und der Helferhistorie sind linksbündig.
 
 - **📦 Excel „Turnier komplett“** — Das Blatt „Ergebnisse“ enthält jetzt auch bei „Rundenwertung“ und
   „Nur Gesamtpunkte“ die Werte, bei mehreren Runden alle Runden, dazu die Kill-/X-Spalten; die
