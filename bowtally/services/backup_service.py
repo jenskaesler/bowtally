@@ -325,11 +325,46 @@ def test_nextcloud(url: str, user: str, password: str, remote_path: str) -> None
 OBSOLETE_SETTINGS = {"result_tiebreak_mode"}     # tie-break is a per-rule option now
 
 
+def _import_rules(conn, inspector, rows: list[dict], used_ids: set[int]) -> dict[int, int]:
+    """Restore scoring rules; returns {id in backup: id in the new database}.
+
+    Built-in rules are matched by name (their ids differ between versions). Rules the app no longer
+    ships are kept as own rules only if a tournament (used_ids) still uses them; own rules are
+    inserted with a new id, so nothing is overwritten.
+    """
+    from sqlalchemy import text as _text
+    columns = {c["name"] for c in inspector.get_columns("scoring_rules")} - {"id"}
+    ids = {}
+    for row in rows:
+        existing = conn.execute(_text("SELECT id FROM scoring_rules WHERE name = :n"),
+                                {"n": row["name"]}).scalar()
+        if existing is not None and row.get("is_builtin"):
+            ids[row["id"]] = existing
+            continue
+        if existing is None and row.get("is_builtin") and row["id"] not in used_ids:
+            continue
+        values = {k: v for k, v in row.items() if k in columns}
+        values["is_builtin"] = 0
+        if existing is not None:                    # an own rule named like a built-in rule
+            values["name"] = f"{row['name']} (Backup)"
+        cols = ", ".join(values)
+        placeholders = ", ".join(f":{k}" for k in values)
+        ids[row["id"]] = conn.execute(
+            _text(f"INSERT INTO scoring_rules ({cols}) VALUES ({placeholders})"), values).lastrowid
+    return ids
+
+
 def _import_data(conn, inspector, data: dict) -> None:
     from sqlalchemy import text as _text
+    # rules first: settings and tournaments point to them by id
+    used = {row.get("scoring_rule_id") for table in ("tournaments", "tournament_rounds")
+            for row in data.get(table, [])}
+    used |= {int(row["value"]) for row in data.get("app_settings", [])
+             if row.get("key") == "default_scoring_rule_id" and str(row.get("value") or "").isdigit()}
+    rule_ids = _import_rules(conn, inspector, data["scoring_rules"], used)         if data.get("scoring_rules") else {}
     for table in EXPORT_TABLE_ORDER:
         rows = data.get(table, [])
-        if not rows:
+        if not rows or table == "scoring_rules":
             continue
         try:
             schema_cols = {c["name"] for c in inspector.get_columns(table)}
@@ -339,6 +374,10 @@ def _import_data(conn, inspector, data: dict) -> None:
             if row.get("is_builtin") or (table == "app_settings"
                                          and row.get("key") in OBSOLETE_SETTINGS):
                 continue
+            if table in ("tournaments", "tournament_rounds") and row.get("scoring_rule_id") in rule_ids:
+                row = {**row, "scoring_rule_id": rule_ids[row["scoring_rule_id"]]}
+            if table == "app_settings" and row.get("key") == "default_scoring_rule_id":
+                row = {**row, "value": str(rule_ids.get(int(row["value"] or 0), row["value"]))}
             filtered = {k: v for k, v in row.items() if k in schema_cols}
             if not filtered:
                 continue

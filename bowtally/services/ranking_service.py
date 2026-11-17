@@ -25,6 +25,7 @@ class RankRow:
     rank: int = 0
     specials: dict = field(default_factory=dict)  # {zone_type_key: count}
     shoot_off: int = 0                            # shoot-off result, decides remaining ties only
+    shoot_off_entered: int | None = None          # the entered value (None = no shoot-off), for display
 
 
 def tiebreak_key(row: RankRow, mode: str, point_levels: list[int],
@@ -85,7 +86,8 @@ def compute_ranking(tournament_id: int, mode: str | None = None, overall: bool =
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
                           target_totals=[], total=total,
-                          specials=dict(sc.specials or {}) if sc else {}, shoot_off=shoot_off(p))
+                          specials=dict(sc.specials or {}) if sc else {}, shoot_off=shoot_off(p),
+                          shoot_off_entered=p.shoot_off_points)
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     elif scoring_mode == "per_round":
@@ -107,7 +109,8 @@ def compute_ranking(tournament_id: int, mode: str | None = None, overall: bool =
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
                           target_totals=[], round_totals=rtotals, total=grand,
-                          specials=spec_total, shoot_off=shoot_off(p))
+                          specials=spec_total, shoot_off=shoot_off(p),
+                          shoot_off_entered=p.shoot_off_points)
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     else:  # per_target (single or multi-round)
@@ -132,7 +135,8 @@ def compute_ranking(tournament_id: int, mode: str | None = None, overall: bool =
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
                           target_totals=totals, shot_points=shots, total=sum(shots),
-                          specials=spec_total, shoot_off=shoot_off(p))
+                          specials=spec_total, shoot_off=shoot_off(p),
+                          shoot_off_entered=p.shoot_off_points)
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     if overall:
@@ -140,6 +144,11 @@ def compute_ranking(tournament_id: int, mode: str | None = None, overall: bool =
                                    top_first)}
     return {cid: rank_rows(rows, mode, levels, tiebreak_specials, top_first)
             for cid, rows in by_class.items()}
+
+
+def has_shoot_off_values(ranking: dict) -> bool:
+    """True if any participant has a shoot-off result (then lists get a 'Stechen' column)."""
+    return any(r.shoot_off_entered is not None for rows in ranking.values() for r in rows)
 
 
 PODIUM_PLACES = 3

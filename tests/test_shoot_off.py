@@ -100,3 +100,35 @@ def test_results_view_offers_the_button_only_for_rules_with_a_shoot_off(app):
         view = ResultsView()
         view.set_tournament(ts.get_tournament(t.id))
         assert view.btn_shoot_off.isVisibleTo(view) is shoot_off
+
+
+def _tables_of_the_pdf(t, tmp_path, monkeypatch):
+    from bowtally.reports import result_list
+    tables, original = [], result_list.Table
+    monkeypatch.setattr(result_list, "Table", lambda data, *a, **k: tables.append(data)
+                        or original(data, *a, **k))
+    result_list.build_result_list(t.id, tmp_path / "r.pdf")
+    return [data for data in tables if data and data[0] and data[0][0] == "Rang"]
+
+
+def test_shoot_off_column_appears_in_view_exports_and_pdf_once_values_exist(app, tmp_path, monkeypatch):
+    from bowtally.ui.dialogs.export_helper import tournament_sheets
+    from bowtally.ui.views.results_view import ResultsView
+    t, first, second = _tied_tournament()
+
+    def view_headers():
+        view = ResultsView()
+        view.set_tournament(ts.get_tournament(t.id))
+        return view.sheets[0][1], view.sheets[0][2]
+
+    assert "Stechen" not in view_headers()[0]
+    assert all("Stechen" not in tbl[0] for tbl in _tables_of_the_pdf(t, tmp_path, monkeypatch))
+    sc.set_shoot_off(first, 0)                 # a real 0 is shown, not mistaken for "no value"
+    sc.set_shoot_off(second, 4)
+    headers, rows = view_headers()
+    assert headers[-2:] == ["Stechen", "Gesamt"] and [r[-2] for r in rows] == [4, 0]
+    sheet = {name: (h, r) for name, h, r in tournament_sheets(t.id)}["Rangliste"]
+    assert sheet[0][-2:] == ["Stechen", "Gesamt"] and [r[-2] for r in sheet[1]] == [4, 0]
+    tables = _tables_of_the_pdf(t, tmp_path, monkeypatch)
+    assert tables and all(tbl[0][-2:] == ["Stechen", "Gesamt"] for tbl in tables)
+    assert [row[-2] for row in tables[0][1:]] == ["4", "0"]

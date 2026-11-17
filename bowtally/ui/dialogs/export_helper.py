@@ -58,8 +58,39 @@ def run_export(parent, default_name: str, file_filter: str, sheets: list) -> Non
                ("Öffnen", lambda: open_path(parent, written[0])))
 
 
+def _result_sheet(t, parts, counters, scores) -> tuple[list, list]:
+    """Header + rows of the 'Ergebnisse' sheet for the scoring mode (key: participant, round, target, shot)."""
+    rounds = range(1, (t.num_rounds or 1) + 1)
+
+    def counts(p, rnd):
+        row = scores.get((p.id, rnd, 0, 1))
+        return [(row.specials or {}).get(sp["key"]) if row else None for sp in counters]
+
+    if t.scoring_mode == "total_only":
+        headers = ["Gesamt"] + [sp["label"] for sp in counters]
+        rows = [[scores[(p.id, 0, 0, 1)].points if (p.id, 0, 0, 1) in scores else None] + counts(p, 0)
+                for p in parts]
+    elif t.scoring_mode == "per_round":
+        labels = [r.label for r in sorted(t.rounds, key=lambda r: r.round_number)] \
+            or [f"{i}. Runde" for i in rounds]
+        headers = [h for label in labels for h in [label] + [f"{label} {sp['label']}" for sp in counters]]
+        rows = [[v for rnd in rounds
+                 for v in [scores[(p.id, rnd, 0, 1)].points if (p.id, rnd, 0, 1) in scores else None]
+                 + counts(p, rnd)] for p in parts]
+    else:
+        cols = [(rnd, tg, shot) for rnd in rounds for tg in range(1, t.num_targets + 1)
+                for shot in range(1, t.shots_per_target + 1)]
+        headers = [("R%d " % rnd if len(rounds) > 1 else "")
+                   + (str(tg) if t.shots_per_target == 1 else f"{tg}.{shot}") for rnd, tg, shot in cols]
+        rows = [[scores[(p.id, rnd, tg, shot)].points if (p.id, rnd, tg, shot) in scores else None
+                 for rnd, tg, shot in cols] for p in parts]
+    return (["Nr.", "Name"] + headers,
+            [[p.start_number, f"{p.archer.last_name}, {p.archer.first_name}"] + row
+             for p, row in zip(parts, rows)])
+
+
 def tournament_sheets(tournament_id: int) -> list:
-    """All data of one tournament: participants, scores, ranking, fees."""
+    """All data of one tournament: participants, scores (any scoring mode), ranking, fees."""
     from bowtally.services import ranking_service as rs
     from bowtally.services import scoring_service as sc
     from bowtally.services import tournament_service as ts
@@ -74,23 +105,22 @@ def tournament_sheets(tournament_id: int) -> list:
                      p.payment_date, p.registration_date, p.confirmation_date,
                      p.checkin_time.strftime("%d.%m.%Y %H:%M") if p.checkin_time else None,
                      p.notes] for p in parts]
-    scores = sc.get_scores(tournament_id)
-    cols = [(tg, s) for tg in range(1, t.num_targets + 1)
-            for s in range(1, t.shots_per_target + 1)]
-    score_rows = [[p.start_number, f"{p.archer.last_name}, {p.archer.first_name}"]
-                  + [scores[(p.id, tg, s)].points if (p.id, tg, s) in scores else None
-                     for tg, s in cols] for p in parts]
+    counters = sc.counter_specials(t.scoring_rule)
+    result_headers, score_rows = _result_sheet(t, parts, counters, sc.get_all_scores(tournament_id))
     ranking = rs.compute_ranking(tournament_id, overall=True)[rs.OVERALL]
+    shoot_off = rs.has_shoot_off_values({0: ranking})
     debrief = ts.get_checklist_state(t.id).get("debrief_notes", "") or ""
     notes = [["Notizen", t.internal_notes or ""], ["Nachbesprechung", debrief]]
     return [
         ("Teilnehmer", ["Nr.", "Nachname", "Vorname", "Verein", "Klasse", "Gruppe", "Anmeldung",
                         "Zahlung", "Startgebühr", "Bezahlt (EUR)", "Zahlungsdatum",
                         "Anmeldedatum", "Bestätigt am", "Eingecheckt", "Notizen"], participants),
-        ("Ergebnisse", ["Nr.", "Name"] + [str(tg) if t.shots_per_target == 1 else f"{tg}.{s}"
-                                          for tg, s in cols], score_rows),
-        ("Rangliste", ["Rang", "Nr.", "Name", "Verein", "Klasse", "Gesamt"],
-         [[r.rank, r.start_number, r.name, r.club, r.bow_class, r.total] for r in ranking]),
+        ("Ergebnisse", result_headers, score_rows),
+        ("Rangliste", ["Rang", "Nr.", "Name", "Verein", "Klasse"] + [sp["label"] for sp in counters]
+         + (["Stechen"] if shoot_off else []) + ["Gesamt"],
+         [[r.rank, r.start_number, r.name, r.club, r.bow_class]
+          + [r.specials.get(sp["key"]) or None for sp in counters]
+          + ([r.shoot_off_entered] if shoot_off else []) + [r.total] for r in ranking]),
         ("Startgebühren", ["Name", "Betrag (EUR)", "Beschreibung"],
          [[f.name, f.amount, f.description] for f in t.fees]),
         ("Notizen", ["Feld", "Inhalt"], notes),

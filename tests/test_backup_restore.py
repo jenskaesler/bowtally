@@ -230,3 +230,37 @@ def test_builtin_rules_count_kill_miss_and_x_per_target(tmp_path, monkeypatch):
     assert types["DBSV 3D-Waldrunde"]["Miss"] == "miss"
     assert types["WA Halle 18m"]["X (10 innen)"] == "x" and types["WA Halle 18m"]["10"] == ""
     assert types["3D Hunter (IBO)"]["Vital innen"] == ""        # not unambiguous: left to the user
+
+
+def test_restore_maps_builtin_rules_by_name_and_keeps_removed_ones_as_own_rules(tmp_path, monkeypatch):
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+    zones = json.dumps([{"zone": "Treffer", "points": 10}])
+
+    def rule(rule_id, name, builtin):
+        return {"id": rule_id, "name": name, "is_builtin": builtin, "ring_values": zones,
+                "max_shots_per_target": 1, "tracked_specials": "[]", "rules_json": "{}"}
+
+    def tournament(tid, rule_id):
+        return {"id": tid, "name": f"T{tid}", "date": "2026-01-01", "num_targets": 1,
+                "scoring_rule_id": rule_id}
+    backup = {"meta": {"format_version": "2"}, "data": {
+        "app_settings": [{"key": "default_scoring_rule_id", "value": "99", "value_type": "string"}],
+        # ids 99/77 do not exist in a fresh database; id 5 belongs to another built-in rule there
+        "scoring_rules": [rule(99, "3D Standard 3-Pfeil", 1), rule(77, "WA 3D", 1),
+                          rule(5, "Mein Regelwerk", 0), rule(88, "ASA 3D", 1)],
+        "tournaments": [tournament(1, 99), tournament(2, 77), tournament(3, 5)]}}
+
+    backup_service._restore_impl(backup)
+
+    with sqlite3.connect(db_path) as con:
+        used = dict(con.execute("SELECT t.name, r.name FROM tournaments t "
+                                "JOIN scoring_rules r ON r.id = t.scoring_rule_id"))
+        assert used == {"T1": "3D Standard 3-Pfeil", "T2": "WA 3D", "T3": "Mein Regelwerk"}
+        flags = dict(con.execute("SELECT name, is_builtin FROM scoring_rules"))
+        assert (flags["3D Standard 3-Pfeil"], flags["Mein Regelwerk"], flags["WA 3D"]) == (0, 0, 1)
+        assert sum(flags.values()) == 9                      # no built-in rule was overwritten
+        assert "ASA 3D" not in flags                         # removed and unused: not brought back
+        default = con.execute("SELECT r.name FROM app_settings s JOIN scoring_rules r "
+                              "ON r.id = s.value WHERE s.key = 'default_scoring_rule_id'").fetchone()
+        assert default == ("3D Standard 3-Pfeil",)

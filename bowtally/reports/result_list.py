@@ -127,13 +127,14 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
     round_labels = ([r.label for r in sorted(rounds, key=lambda r: r.round_number)]
                     if rounds else [f"{i}. Runde" for i in range(1, num_rounds + 1)])
     ties = ranking_service.podium_ties(tournament_id)
+    show_shoot_off = ranking_service.has_shoot_off_values(ranking)
     for cid in classes_with_people:
         story += [PageBreak(),
                   Paragraph(_esc(class_names.get(cid, "Ohne Klasse")), st["heading"]),
                   _class_table(ranking[cid], t.num_targets, show_targets, width, st, font,
                                bold, primary, secondary, border,
                                scoring_mode=scoring_mode, round_labels=round_labels,
-                               tracked_specials=tracked_spec)]
+                               tracked_specials=tracked_spec, show_shoot_off=show_shoot_off)]
         class_ties = ranking_service.describe_ties([g for g in ties if g.class_id == cid])
         if class_ties:
             story += [Spacer(1, 4 * mm), Paragraph(_esc(class_ties), st["muted"])]
@@ -148,32 +149,47 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
 def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary, secondary,
                  border, scoring_mode: str = "per_target",
                  round_labels: list | None = None,
-                 tracked_specials: list | None = None) -> Table:
+                 tracked_specials: list | None = None,
+                 show_shoot_off: bool = False) -> Table:
     fixed = {"rank": 11 * mm, "no": 12 * mm, "total": 15 * mm}
     rest = width - sum(fixed.values())
-
-    # per_round / total_only only know the active Kill / X counters
-    tie_specials = [sp for sp in (tracked_specials or []) if sp.get("key") in COUNTER_KEYS]
     spec_w = 12 * mm
-    rest -= spec_w * len(tie_specials) if scoring_mode != "per_target" else 0
 
-    if scoring_mode == "total_only":
-        name_w = rest * 0.55
-        club_w = rest - name_w
-        header = ["Rang", "St.-Nr.", "Name", "Verein"] + [sp["label"] for sp in tie_specials]             + ["Gesamt"]
-        widths = [fixed["rank"], fixed["no"], name_w, club_w] + [spec_w] * len(tie_specials)             + [fixed["total"]]
+    # per_round / total_only only know the active Kill / X counters; per_target all tracked specials
+    specials = [sp for sp in (tracked_specials or [])
+                if scoring_mode == "per_target" or sp.get("key") in COUNTER_KEYS]
+    extra_headers = [sp["label"] for sp in specials] + (["Stechen"] if show_shoot_off else [])
+    extra_widths = [spec_w] * len(extra_headers)
+    rest -= spec_w * len(extra_headers)
+
+    def extra_cells(r) -> list:
+        cells = [str(r.specials.get(sp["key"]) or "") for sp in specials]
+        if show_shoot_off:
+            cells.append("" if r.shoot_off_entered is None else str(r.shoot_off_entered))
+        return cells
+
+    def build(header, widths, line_of, compact=False) -> Table:
         data = [header]
         style = _base_style(font, bold, secondary, border)
+        if compact:
+            style.append(("ALIGN", (4, 0), (4, -1), "LEFT"))
         for i, r in enumerate(rows, start=1):
             podium = r.rank <= tpl.PODIUM_PLACES and r.total > 0
             cell = st["cell_podium"] if podium else st["cell"]
-            line = [f"{r.rank}.", r.start_number or "",
-                    Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell)]                 + [str(r.specials.get(sp["key"]) or "") for sp in tie_specials] + [r.total]
-            data.append(line)
+            data.append([f"{r.rank}.", r.start_number or "", Paragraph(_esc(r.name), cell),
+                         Paragraph(_esc(r.club), cell)] + line_of(r, cell) + extra_cells(r)
+                        + [r.total])
             _add_podium_style(style, i, r.rank, r.total, primary, bold)
         table = Table(data, colWidths=widths, repeatRows=1)
         table.setStyle(TableStyle(style))
         return table
+
+    head = ["Rang", "St.-Nr.", "Name", "Verein"]
+    if scoring_mode == "total_only":
+        name_w = rest * 0.55
+        return build(head + extra_headers + ["Gesamt"],
+                     [fixed["rank"], fixed["no"], name_w, rest - name_w] + extra_widths
+                     + [fixed["total"]], lambda r, cell: [])
 
     if scoring_mode == "per_round":
         labels = round_labels or []
@@ -181,73 +197,35 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
         rnd_w = min((rest * 0.4) / max(n_rounds, 1), 20 * mm)
         name_w = (rest - rnd_w * n_rounds) * 0.55
         club_w = rest - rnd_w * n_rounds - name_w
-        header = ["Rang", "St.-Nr.", "Name", "Verein"] + labels             + [sp["label"] for sp in tie_specials] + ["Gesamt"]
-        widths = [fixed["rank"], fixed["no"], name_w, club_w] + [rnd_w] * n_rounds             + [spec_w] * len(tie_specials) + [fixed["total"]]
-        data = [header]
-        style = _base_style(font, bold, secondary, border)
-        for i, r in enumerate(rows, start=1):
-            podium = r.rank <= tpl.PODIUM_PLACES and r.total > 0
-            cell = st["cell_podium"] if podium else st["cell"]
-            rnd_scores = ["" if v is None else str(v) for v in (r.round_totals or [])]
-            line = ([f"{r.rank}.", r.start_number or "",
-                     Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell)]
-                    + rnd_scores + [str(r.specials.get(sp["key"]) or "") for sp in tie_specials]
-                    + [r.total])
-            data.append(line)
-            _add_podium_style(style, i, r.rank, r.total, primary, bold)
-        table = Table(data, colWidths=widths, repeatRows=1)
-        table.setStyle(TableStyle(style))
-        return table
+        return build(head + labels + extra_headers + ["Gesamt"],
+                     [fixed["rank"], fixed["no"], name_w, club_w] + [rnd_w] * n_rounds
+                     + extra_widths + [fixed["total"]],
+                     lambda r, cell: ["" if v is None else str(v) for v in (r.round_totals or [])])
 
     # per_target (default)
-    tracked_specials = tracked_specials or []
-    spec_w_each = 12 * mm
-    total_spec_w = len(tracked_specials) * spec_w_each
-    rest_layout = rest - total_spec_w
     target_w = 0
     compact = False
     if show_targets:
-        target_w = (rest_layout * 0.55) / num_targets
+        target_w = (rest * 0.55) / num_targets
         if target_w < MIN_TARGET_COL:
             compact, target_w = True, 0
-    name_w = (rest_layout - target_w * num_targets) * (0.35 if compact else 0.55)
-    club_w = (rest_layout - target_w * num_targets) * (0.25 if compact else 0.45)
-    detail_w = rest_layout - name_w - club_w if compact else 0
-
-    header = ["Rang", "St.-Nr.", "Name", "Verein"]
-    widths = [fixed["rank"], fixed["no"], name_w, club_w]
+    name_w = (rest - target_w * num_targets) * (0.35 if compact else 0.55)
+    club_w = (rest - target_w * num_targets) * (0.25 if compact else 0.45)
+    header, widths = head, [fixed["rank"], fixed["no"], name_w, club_w]
     if show_targets and compact:
-        header.append("Einzelwertungen")
-        widths.append(detail_w)
+        header, widths = header + ["Einzelwertungen"], widths + [rest - name_w - club_w]
     elif show_targets:
-        header += [str(i) for i in range(1, num_targets + 1)]
-        widths += [target_w] * num_targets
-    header += [sp["label"] for sp in tracked_specials] + ["Gesamt"]
-    widths += [spec_w_each] * len(tracked_specials) + [fixed["total"]]
+        header = header + [str(i) for i in range(1, num_targets + 1)]
+        widths = widths + [target_w] * num_targets
 
-    data = [header]
-    style = _base_style(font, bold, secondary, border)
-    if compact:
-        style.append(("ALIGN", (4, 0), (4, -1), "LEFT"))
-    for i, r in enumerate(rows, start=1):
-        podium = r.rank <= tpl.PODIUM_PLACES and r.total > 0
-        cell = st["cell_podium"] if podium else st["cell"]
-        line = [f"{r.rank}.", r.start_number or "", Paragraph(_esc(r.name), cell),
-                Paragraph(_esc(r.club), cell)]
+    def per_target_cells(r, cell) -> list:
         scores = ["" if v is None else str(v) for v in r.target_totals]
         if show_targets and compact:
-            line.append(Paragraph(" ".join(s or "–" for s in scores), cell))
-        elif show_targets:
-            line += scores
-        for sp in tracked_specials:
-            v = r.specials.get(sp["key"], 0)
-            line.append(str(v) if v else "")
-        line.append(r.total)
-        data.append(line)
-        _add_podium_style(style, i, r.rank, r.total, primary, bold)
-    table = Table(data, colWidths=widths, repeatRows=1)
-    table.setStyle(TableStyle(style))
-    return table
+            return [Paragraph(" ".join(sc or "–" for sc in scores), cell)]
+        return scores if show_targets else []
+
+    return build(header + extra_headers + ["Gesamt"], widths + extra_widths + [fixed["total"]],
+                 per_target_cells, compact)
 
 
 def _base_style(font, bold, secondary, border=None) -> list:

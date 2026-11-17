@@ -193,12 +193,13 @@ class ResultsView(QWidget):
     def _counter_specials(self) -> list[dict]:
         return sc.counter_specials(self.tournament.scoring_rule)
 
-    def headers(self) -> list[str]:
+    def headers(self, show_shoot_off: bool = False) -> list[str]:
         t = self.tournament
         mode = getattr(t, "scoring_mode", "per_target") or "per_target"
         num_rounds = getattr(t, "num_rounds", 1) or 1
         base = ["Rang", "Nr.", "Name", "Verein", "Klasse"]
-        specials = [sp["label"] for sp in self._counter_specials()] + ["Gesamt"]
+        specials = [sp["label"] for sp in self._counter_specials()] \
+            + (["Stechen"] if show_shoot_off else []) + ["Gesamt"]
         if mode == "total_only":
             return base + specials
         if mode == "per_round":
@@ -243,7 +244,8 @@ class ResultsView(QWidget):
         self._pid_to_rank = {r.participant_id: r
                              for rows in per_class.values() for r in rows}
         mode = getattr(t, "scoring_mode", "per_target") or "per_target"
-        hdrs = self.headers()
+        show_shoot_off = rs.has_shoot_off_values(per_class)
+        hdrs = self.headers(show_shoot_off)
         special_keys = [sp["key"] for sp in self._counter_specials()]
         for title, rows in [("Gesamt", overall)] + [
                 (names.get(cid, "Ohne Klasse"), rows) for cid, rows in per_class.items() if rows]:
@@ -261,7 +263,10 @@ class ResultsView(QWidget):
                           r.start_number, r.name, r.club, r.bow_class] + \
                     [Cell(v, text="" if v is None else str(v), sort=-1 if v is None else v)
                      for v in detail] +                     [Cell(r.specials.get(k, 0), text=str(r.specials.get(k) or ""))
-                     for k in special_keys] + [Cell(r.total, bold=True)]
+                     for k in special_keys] + \
+                    ([Cell(r.shoot_off_entered, text="" if r.shoot_off_entered is None
+                           else str(r.shoot_off_entered))] if show_shoot_off else []) + \
+                    [Cell(r.total, bold=True)]
                 if bg:
                     values = [(v if isinstance(v, Cell) else Cell(v)) for v in values]
                     for v in values:
@@ -269,7 +274,8 @@ class ResultsView(QWidget):
                 table_rows.append(values)
                 export_rows.append([rank_text(r.rank, counts), r.start_number, r.name, r.club,
                                     r.bow_class] + list(detail)
-                                   + [r.specials.get(k) or "" for k in special_keys] + [r.total])
+                                   + [r.specials.get(k) or "" for k in special_keys]
+                                   + ([r.shoot_off_entered] if show_shoot_off else []) + [r.total])
             empty = EmptyState("target", "Noch keine Teilnehmer",
                                "Sobald Teilnehmer zugewiesen sind, erscheint hier die Rangliste.")
             table = DataTable(hdrs, empty)
