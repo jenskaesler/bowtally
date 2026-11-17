@@ -18,6 +18,7 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.spinner import Spinner
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button, open_path
+from bowtally.ui.dialogs.shoot_off_dialog import ShootOffDialog
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
 
 PODIUM = {1: "gold_soft", 2: "silver_soft", 3: "bronze_soft"}
@@ -167,12 +168,16 @@ class ResultsView(QWidget):
                                         extra_actions=(("PDF (.pdf)", self._save_pdf),))
         self._tips = {b: b.toolTip() for b in
                       (self.btn_send, self.btn_certs, self.btn_prizes, self.btn_export)}
+        self.btn_shoot_off = button("Stechen eintragen", self._enter_shoot_off,
+                                    tooltip="Ergebnis des Stechens bei Gleichstand auf Platz 1–3 eintragen")
+        self.btn_shoot_off.setVisible(False)
         self.info = QLabel(objectName="pageSubtitle")
         bar = QHBoxLayout()
         bar.addWidget(button("Neu berechnen", self.recalculate,
                              tooltip="Rangliste neu berechnen (F5)"))
         bar.addWidget(self.info)
         bar.addStretch()
+        bar.addWidget(self.btn_shoot_off)
         bar.addWidget(self.btn_export)
         bar.addWidget(self.btn_prizes)
         bar.addWidget(self.btn_certs)
@@ -211,6 +216,9 @@ class ResultsView(QWidget):
         self.btn_pdf.setEnabled(printable and self._worker is None)
         self.btn_pdf.setToolTip(self.btn_pdf.toolTip() if printable else NOT_PRINTABLE)
         created = t.results_generated_at is not None
+        shoot_off = bool(t.scoring_rule and (t.scoring_rule.rules_json or {}).get("shoot_off"))
+        self.btn_shoot_off.setVisible(shoot_off)
+        self.btn_shoot_off.setEnabled(shoot_off and not ts.scoring_locked(t))
         for b in (self.btn_send, self.btn_certs, self.btn_prizes, self.btn_export):
             b.setEnabled(created and printable and self._worker is None)
             b.setToolTip(self._tips[b] if created else NOT_CREATED)
@@ -275,10 +283,16 @@ class ResultsView(QWidget):
                           + (f" · {ties}" if ties else ""))
 
     # ------------------------------------------------------------ PDF
+    def _enter_shoot_off(self):
+        if ShootOffDialog(self.tournament.id, self).exec():
+            self.recalculate()
+
     def _create_pdf(self):
         if self.tournament.results_generated_at is None:
+            open_ties = rs.describe_ties(rs.podium_ties(self.tournament.id))
             if not confirm(self, "Die Auswertung wird nun geschlossen. Dieser Schritt kann "
-                                 "nicht rückgängig gemacht werden. Sicher?",
+                                 "nicht rückgängig gemacht werden. Sicher?"
+                           + (f"\n\nAchtung, noch nicht entschieden – {open_ties}" if open_ties else ""),
                            "Ergebnisliste erstellen", "Ja, schließen", destructive=True):
                 return
             ts.mark_results_generated(self.tournament.id)  # locks score entry for good

@@ -275,6 +275,7 @@ class TournamentParticipant(Base):
     confirmation_date: Mapped[date | None] = mapped_column(Date)
     checkin_time: Mapped[datetime | None] = mapped_column(DateTime)
     notes: Mapped[str | None] = mapped_column(Text)
+    shoot_off_points: Mapped[int | None] = mapped_column(Integer)    # result of a shoot-off, higher wins
 
     tournament: Mapped["Tournament"] = relationship(back_populates="participants")
     archer: Mapped["Archer"] = relationship()

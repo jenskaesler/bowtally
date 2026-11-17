@@ -116,10 +116,10 @@ def test_rule_dialog_switches_are_saved_as_specials_and_tie_break(app):
 
 
 def test_builtin_rule_shows_its_switches_but_stays_read_only(app):
-    hunter = next(r for r in sc.list_rules() if r.name == "3D Hunter (IBO)")
+    hunter = next(r for r in sc.list_rules() if r.name == "DBSV 3D-Waldrunde")
     dialog = _dialog(hunter)
     fields = dialog.form.fields
-    assert fields["count_kill"].widget.isChecked() and fields["tie_kill"].widget.isChecked()
+    assert fields["count_kill"].widget.isChecked() and not fields["tie_kill"].widget.isChecked()
     assert not fields["count_kill"].widget.isEnabled() and not fields["tie_kill"].widget.isEnabled()
 
 
@@ -173,8 +173,8 @@ def _tied_total_only(shoot_off: bool, tie_breaking_kills=(3, 3)):
 
 def test_podium_ties_are_reported_when_the_rule_requires_a_shoot_off():
     t = _tied_total_only(shoot_off=True)
-    ((_cid, _name, rank, names),) = rs.podium_ties(t.id)
-    assert rank == 1 and len(names) == 2
+    (group,) = rs.podium_ties(t.id)
+    assert group.rank == 1 and len(group.names) == 2
     warnings = [c.message for c in ts.get_phase_conditions(t.id, "closed") if not c.ok]
     assert any("Stechen" in w for w in warnings)
     assert "Stechen" in rs.describe_ties(rs.podium_ties(t.id))

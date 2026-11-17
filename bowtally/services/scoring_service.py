@@ -350,6 +350,14 @@ def _open_participant(s, participant_id: int) -> TournamentParticipant:
     return part
 
 
+def set_shoot_off(participant_id: int, points: int | None) -> None:
+    """Result of a shoot-off (higher wins); None clears it. Locked together with the results."""
+    if points is not None and points < 0:
+        raise ValidationError("Negative Punktzahlen sind nicht erlaubt.")
+    with session_scope() as s:
+        _open_participant(s, participant_id).shoot_off_points = points
+
+
 def set_special(participant_id: int, round_number: int, key: str, count: int | None) -> None:
     """Kill-style counter of a per_round / total_only result (round 0 = total_only).
 

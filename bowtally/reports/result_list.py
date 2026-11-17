@@ -134,7 +134,7 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
                                bold, primary, secondary, border,
                                scoring_mode=scoring_mode, round_labels=round_labels,
                                tracked_specials=tracked_spec)]
-        class_ties = ranking_service.describe_ties([x for x in ties if x[0] == cid])
+        class_ties = ranking_service.describe_ties([g for g in ties if g.class_id == cid])
         if class_ties:
             story += [Spacer(1, 4 * mm), Paragraph(_esc(class_ties), st["muted"])]
     if not classes_with_people:

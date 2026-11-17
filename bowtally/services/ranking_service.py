@@ -24,6 +24,7 @@ class RankRow:
     total: int = 0
     rank: int = 0
     specials: dict = field(default_factory=dict)  # {zone_type_key: count}
+    shoot_off: int = 0                            # shoot-off result, decides remaining ties only
 
 
 def tiebreak_key(row: RankRow, mode: str, point_levels: list[int],
@@ -33,7 +34,8 @@ def tiebreak_key(row: RankRow, mode: str, point_levels: list[int],
     specials = tuple(row.specials.get(k, 0) for k in tiebreak_specials)
     top_hits = tuple(row.shot_points.count(v) for v in point_levels) \
         if mode == TIEBREAK_MOST_TOP else ()
-    return (row.total,) + (top_hits + specials if top_hits_first else specials + top_hits)
+    order = top_hits + specials if top_hits_first else specials + top_hits
+    return (row.total,) + order + (row.shoot_off,)
 
 
 def rank_rows(rows: list[RankRow], mode: str, point_levels: list[int],
@@ -53,8 +55,8 @@ def rank_rows(rows: list[RankRow], mode: str, point_levels: list[int],
 OVERALL = "all"
 
 
-def compute_ranking(tournament_id: int, mode: str | None = None,
-                    overall: bool = False) -> dict[int | str | None, list]:
+def compute_ranking(tournament_id: int, mode: str | None = None, overall: bool = False,
+                    use_shoot_off: bool = True) -> dict[int | str | None, list]:
     """Returns {bow_class_id: [RankRow, ...]} ranked within each class, ordered by class.
 
     overall=True ranks everybody together: {OVERALL: [RankRow, ...]}.
@@ -71,6 +73,7 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
     tiebreak_specials = [sp["key"] for sp in _tracked if sp.get("tiebreak")]
 
     by_class: dict[int | None, list[RankRow]] = {bc.id: [] for bc in t.bow_classes}
+    shoot_off = lambda p: (p.shoot_off_points or 0) if use_shoot_off else 0  # noqa: E731
 
     if scoring_mode == "total_only":
         scores = get_all_scores(tournament_id)
@@ -82,7 +85,7 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
                           target_totals=[], total=total,
-                          specials=dict(sc.specials or {}) if sc else {})
+                          specials=dict(sc.specials or {}) if sc else {}, shoot_off=shoot_off(p))
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     elif scoring_mode == "per_round":
@@ -104,7 +107,7 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
                           target_totals=[], round_totals=rtotals, total=grand,
-                          specials=spec_total)
+                          specials=spec_total, shoot_off=shoot_off(p))
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     else:  # per_target (single or multi-round)
@@ -129,7 +132,7 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
                           target_totals=totals, shot_points=shots, total=sum(shots),
-                          specials=spec_total)
+                          specials=spec_total, shoot_off=shoot_off(p))
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     if overall:
@@ -142,24 +145,37 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
 PODIUM_PLACES = 3
 
 
-def podium_ties(tournament_id: int) -> list[tuple[int | None, str, int, list[str]]]:
-    """(class id, class name, rank, names) for ties on places 1-3 if the rule demands a shoot-off."""
+@dataclass
+class TieGroup:
+    class_id: int | None
+    class_name: str
+    rank: int
+    rows: list[RankRow]
+
+    @property
+    def names(self) -> list[str]:
+        return [r.name for r in self.rows]
+
+
+def podium_ties(tournament_id: int, include_resolved: bool = False) -> list[TieGroup]:
+    """Ties on places 1-3 if the rule demands a shoot-off. By default only the still open ones;
+    include_resolved also lists ties already decided by shoot-off points (to correct them)."""
     t = get_tournament(tournament_id)
     if not t.scoring_rule or not (t.scoring_rule.rules_json or {}).get("shoot_off"):
         return []
     class_names = {bc.id: bc.name for bc in t.bow_classes}
-    ties = []
-    for cid, rows in compute_ranking(tournament_id).items():
+    groups = []
+    for cid, rows in compute_ranking(tournament_id, use_shoot_off=not include_resolved).items():
         for rank in sorted({r.rank for r in rows if r.rank <= PODIUM_PLACES and r.total > 0}):
-            names = [r.name for r in rows if r.rank == rank]
-            if len(names) > 1:
-                ties.append((cid, class_names.get(cid, "Ohne Klasse"), rank, names))
-    return ties
+            tied = [r for r in rows if r.rank == rank]
+            if len(tied) > 1:
+                groups.append(TieGroup(cid, class_names.get(cid, "Ohne Klasse"), rank, tied))
+    return groups
 
 
-def describe_ties(ties: list) -> str:
+def describe_ties(groups: list[TieGroup]) -> str:
     """'Stechen laut Regelwerk: Recurve Platz 1 (A, B); ...' (empty without ties)."""
-    if not ties:
+    if not groups:
         return ""
     return "Stechen laut Regelwerk: " + "; ".join(
-        f"{name} Platz {rank} ({', '.join(names)})" for _cid, name, rank, names in ties)
+        f"{g.class_name} Platz {g.rank} ({', '.join(g.names)})" for g in groups)
