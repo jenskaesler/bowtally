@@ -178,3 +178,41 @@ def test_results_view_and_pdf_show_the_kill_column(app, tmp_path, monkeypatch, m
                         or original(data, *a, **k))
     result_list.build_result_list(t.id, tmp_path / "r.pdf")
     assert any(data[0][-2:] == ["Kill", "Gesamt"] and data[1][-2] == "5" for data in tables)
+
+
+def _grouped_tournament(mode):
+    rule = _kill_rule()
+    t = ts.save_tournament({"name": "G", "date": date(2026, 5, 1), "num_targets": 1,
+                            "shots_per_target": 1, "scoring_rule_id": rule.id, "scoring_mode": mode,
+                            "start_groups": "A, B"}, [md.list_bow_classes()[0].id])
+    ts.add_participants(t.id, [md.save_archer({"first_name": n, "last_name": "Test"}).id
+                               for n in ("Anna", "Bernd")])
+    return t
+
+
+@pytest.mark.parametrize("mode", ["total_only", "per_round", "per_target"])
+def test_every_scoring_mode_has_search_save_group_and_incomplete_filter(app, mode):
+    t = _grouped_tournament(mode)
+    view = _view_for(t, app)
+    for widget in (view.search, view.save_btn, view.group_filter, view.incomplete_only, view.class_tabs):
+        assert widget.isVisibleTo(view), mode
+    assert view.group_filter.count() == 3                      # Alle Gruppen, A, B
+    table = view._simple_table if mode != "per_target" else view.mid
+    hidden = lambda: [table.isRowHidden(r) for r in range(2)]  # noqa: E731
+    assert hidden() == [False, False]
+    view.group_filter.setCurrentIndex(view.group_filter.findData("B"))
+    assert hidden().count(True) == 1
+    view.group_filter.setCurrentIndex(0)
+    view.search.setText("bernd")
+    view.search.searchChanged.emit("bernd")                    # skip the debounce timer
+    assert hidden().count(True) == 1
+    view.search.clear()
+    view.search.searchChanged.emit("")
+    assert hidden() == [False, False]
+
+
+def test_save_button_works_in_the_simple_table(app):
+    t, _ = _tournament_with_starter("total_only")
+    view = _view_for(t, app)
+    view.save()
+    assert app.errors == []

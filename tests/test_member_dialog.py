@@ -107,3 +107,9 @@ def test_files_can_be_added_and_removed_for_a_saved_member(app, tmp_path, monkey
 
 def test_new_member_gets_a_hint_instead_of_the_file_list(app):
     assert not hasattr(_dialog(), "_files_table")
+
+
+def test_notes_have_the_label_above_and_use_the_full_width(app):
+    from PySide6.QtWidgets import QFormLayout
+    dialog = _dialog()
+    assert dialog.notes_form._lay.rowWrapPolicy() == QFormLayout.RowWrapPolicy.WrapAllRows

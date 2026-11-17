@@ -14,7 +14,7 @@ from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QRegularExpressio
 from PySide6.QtGui import QBrush, QColor, QRegularExpressionValidator, QStandardItem, \
     QStandardItemModel
 from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QCheckBox, QComboBox,
-                               QCompleter,
+                               QCompleter, QFrame,
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMenu,
                                QStackedWidget, QStyledItemDelegate, QTabBar, QTableView,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
@@ -192,6 +192,7 @@ class ScoringView(QWidget):
 
         self.class_tabs = QTabBar()
         self.class_tabs.setDrawBase(False)
+        self.class_tabs.setDocumentMode(True)
         self.class_tabs.setExpanding(False)
         self.class_tabs.currentChanged.connect(lambda _i: self._apply_filter())
         self.group_filter = QComboBox()
@@ -215,7 +216,7 @@ class ScoringView(QWidget):
         bar = QHBoxLayout()
         bar.addWidget(self.group_filter)
         bar.addWidget(self.incomplete_only)
-        bar.addWidget(self.class_tabs, 1)
+        bar.addStretch()
         bar.addWidget(self.search)
         bar.addWidget(self.save_btn)
 
@@ -230,7 +231,6 @@ class ScoringView(QWidget):
         gl = QVBoxLayout(self._grid_widget)
         gl.setContentsMargins(0, 0, 0, 0)
         gl.setSpacing(0)
-        gl.addLayout(bar)
         gl.addLayout(grid, 1)
 
         # simple table for per_round / total_only (page 1)
@@ -239,28 +239,34 @@ class ScoringView(QWidget):
         self._simple_table.horizontalHeader().setStretchLastSection(True)
         self._simple_table.setAlternatingRowColors(True)
         self._simple_table.setWordWrap(False)
+        self._simple_table.setShowGrid(False)               # same look as the results table
+        self._simple_table.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+        self._simple_table.horizontalHeader().setHighlightSections(False)
+        self._simple_table.horizontalHeader().setDefaultAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._simple_table.setItemDelegate(_NumberDelegate(self._simple_table))
         self._simple_table.itemChanged.connect(self._on_simple_changed)
 
-        self.simple_incomplete_only = QCheckBox("Nur unvollständige")
-        self.simple_incomplete_only.setToolTip("Nur Teilnehmer mit fehlenden Ergebnissen")
-        self.simple_incomplete_only.toggled.connect(lambda _v: self._apply_simple_filter())
-        self._simple_page = QWidget()
-        simple_lay = QVBoxLayout(self._simple_page)
-        simple_lay.setContentsMargins(0, 0, 0, 0)
-        simple_lay.addWidget(self.simple_incomplete_only, 0, Qt.AlignmentFlag.AlignLeft)
-        simple_lay.addWidget(self._simple_table, 1)
-
         self._stack = QStackedWidget()
         self._stack.addWidget(self._grid_widget)
-        self._stack.addWidget(self._simple_page)
+        self._stack.addWidget(self._simple_table)
 
         self.hint = QLabel(objectName="pageSubtitle")
         self.hint.setWordWrap(True)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 12, 0, 0)
         lay.addWidget(self.round_bar)
-        lay.addWidget(self._stack, 1)
+        lay.addLayout(bar)
+        # class tabs hang directly on the list, like the tabs of the results view
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setObjectName("separator")
+        attached = QVBoxLayout()
+        attached.setSpacing(0)
+        attached.addWidget(self.class_tabs)
+        attached.addWidget(line)
+        attached.addWidget(self._stack, 1)
+        lay.addLayout(attached, 1)
         lay.addWidget(self.hint)
         theme.notifier.changed.connect(self._recolor_all)
 
@@ -405,6 +411,16 @@ class ScoringView(QWidget):
             | QAbstractItemView.EditTrigger.DoubleClicked)
         self.save_btn.setEnabled(not locked)
 
+        self._build_filters(parts)
+
+        self.hint.setText(
+            "Turnier abgeschlossen – Eingaben gesperrt." if locked else
+            "Zahl tippen oder Zone wählen · Enter/↓ nächster Teilnehmer · ↑ vorheriger · "
+            "Tab nächste Scheibe · Esc verwirft die Eingabe · jede Zelle wird sofort gespeichert")
+
+    def _build_filters(self, parts: list):
+        """Class tabs and group drop-down for the current participants (all scoring modes)."""
+        t = self.tournament
         current_cls = self.class_tabs.tabData(self.class_tabs.currentIndex()) \
             if self.class_tabs.count() else ALL
         self.class_tabs.blockSignals(True)
@@ -415,9 +431,8 @@ class ScoringView(QWidget):
         for bc in t.bow_classes:
             n = sum(p.bow_class_id == bc.id for p in parts)
             if n:
-                i = self.class_tabs.addTab(f"{bc.abbreviation or bc.name} ({n})")
+                i = self.class_tabs.addTab(f"{bc.name} ({n})")
                 self.class_tabs.setTabData(i, bc.id)
-                self.class_tabs.setTabToolTip(i, bc.name)
         for i in range(self.class_tabs.count()):
             if self.class_tabs.tabData(i) == current_cls:
                 self.class_tabs.setCurrentIndex(i)
@@ -433,11 +448,6 @@ class ScoringView(QWidget):
         self.group_filter.setVisible(bool(groups))
         self.group_filter.blockSignals(False)
         self._apply_filter()
-
-        self.hint.setText(
-            "Turnier abgeschlossen – Eingaben gesperrt." if locked else
-            "Zahl tippen oder Zone wählen · Enter/↓ nächster Teilnehmer · ↑ vorheriger · "
-            "Tab nächste Scheibe · Esc verwirft die Eingabe · jede Zelle wird sofort gespeichert")
 
     # ------------------------------------------------------------ cell logic
     def _score_columns(self):
@@ -548,13 +558,22 @@ class ScoringView(QWidget):
         table.blockSignals(True)
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
+        for col in range(4, len(headers)):          # number columns: header above the right-aligned values
+            table.horizontalHeaderItem(col).setTextAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         table.setRowCount(len(parts))
         for row, p in enumerate(parts):
             for col, txt in enumerate([str(p.start_number or ""),
                                        f"{p.archer.last_name}, {p.archer.first_name}",
                                        p.archer.club or "",
                                        p.bow_class.name if p.bow_class else "–"]):
-                table.setItem(row, col, self._simple_item(txt))
+                item = self._simple_item(txt)
+                if col == 0:
+                    item.setData(CLASS_ROLE, p.bow_class_id)
+                    item.setData(GROUP_ROLE, p.start_group or "")
+                else:       # text left, numbers right (like the results table)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                table.setItem(row, col, item)
             for rn, col in zip(rounds, self._simple_points_cols):
                 entry = all_sc.get((p.id, rn, 0, 1))
                 table.setItem(row, col, self._simple_item(
@@ -574,7 +593,7 @@ class ScoringView(QWidget):
         for col in self._simple_points_cols:
             table.setColumnWidth(col, max(80, table.columnWidth(col)))
         self.save_btn.setEnabled(not locked)
-        self._apply_simple_filter()
+        self._build_filters(parts)
         kills = f" · {', '.join(sp['label'] for sp in specials)} nach den Punkten eintragen"             if specials else ""
         self.hint.setText("Turnier abgeschlossen – Eingaben gesperrt." if locked else
                           "Gesamtpunkte direkt eintragen · jede Zelle wird sofort gespeichert" + kills)
@@ -585,12 +604,6 @@ class ScoringView(QWidget):
 
     def _load_total_only(self):
         self._fill_simple_table([0], ["Gesamt"], "Gesamt")
-
-    def _apply_simple_filter(self):
-        """Hide complete rows while 'Nur unvollständige' is on (per_round / total_only tables)."""
-        for r in range(self._simple_table.rowCount()):
-            complete = all(self._simple_table.item(r, c).text() for c in self._simple_points_cols)
-            self._simple_table.setRowHidden(r, self.simple_incomplete_only.isChecked() and complete)
 
     def _on_simple_changed(self, item: QTableWidgetItem):
         if self._simple_table.signalsBlocked():
@@ -663,20 +676,32 @@ class ScoringView(QWidget):
 
     # ------------------------------------------------------------ filter
     def _apply_filter(self):
+        """Class tab, group, search text and 'only incomplete' for whichever table is shown."""
         cls = self.class_tabs.tabData(self.class_tabs.currentIndex()) \
             if self.class_tabs.count() else ALL
         group = self.group_filter.currentData() or ALL
         term = self.search.term().lower()
-        for r in range(self.model.rowCount()):
-            first = self.model.item(r, 0)
-            hay = f"{first.text()} {self.model.item(r, 1).text()}".lower()
-            complete = all(self.model.item(r, c).text() for c in self._score_columns())
-            hidden = (cls != ALL and first.data(CLASS_ROLE) != cls) or \
-                (group != ALL and first.data(GROUP_ROLE) != group) or \
-                (bool(term) and term not in hay) or \
-                (self.incomplete_only.isChecked() and complete)
-            for v in (self.left, self.mid, self.right):
-                v.setRowHidden(r, hidden)
+        only_incomplete = self.incomplete_only.isChecked()
+
+        def hidden(class_id, start_group, text: str, complete: bool) -> bool:
+            return (cls != ALL and class_id != cls) or (group != ALL and start_group != group) \
+                or (bool(term) and term not in text.lower()) or (only_incomplete and complete)
+
+        if self._scoring_mode() == "per_target":
+            for r in range(self.model.rowCount()):
+                first = self.model.item(r, 0)
+                complete = all(self.model.item(r, c).text() for c in self._score_columns())
+                is_hidden = hidden(first.data(CLASS_ROLE), first.data(GROUP_ROLE),
+                                   f"{first.text()} {self.model.item(r, 1).text()}", complete)
+                for v in (self.left, self.mid, self.right):
+                    v.setRowHidden(r, is_hidden)
+            return
+        table = self._simple_table
+        for r in range(table.rowCount()):
+            first = table.item(r, 0)
+            complete = all(table.item(r, c).text() for c in self._simple_points_cols)
+            table.setRowHidden(r, hidden(first.data(CLASS_ROLE), first.data(GROUP_ROLE),
+                                         f"{first.text()} {table.item(r, 1).text()}", complete))
 
     def _visible_rows(self):
         return [r for r in range(self.model.rowCount()) if not self.mid.isRowHidden(r)]
@@ -721,15 +746,11 @@ class ScoringView(QWidget):
         """Cells are persisted on commit; this commits an open editor and confirms."""
         if self.tournament is None or ts.scoring_locked(self.tournament):
             return
-        self.mid.setFocus()   # closes an open editor -> commit
+        (self._simple_table if self._scoring_mode() != "per_target" else self.mid).setFocus()  # commits an open editor
         self._mark_saved()
         Toast.show(self, "Alle Eingaben sind gespeichert", Toast.SUCCESS)
 
     def show_incomplete(self):
-        if self._scoring_mode() != "per_target":
-            self.simple_incomplete_only.setChecked(True)
-            self._apply_simple_filter()
-            return
         if self.class_tabs.count():
             self.class_tabs.setCurrentIndex(0)
         self.incomplete_only.setChecked(True)

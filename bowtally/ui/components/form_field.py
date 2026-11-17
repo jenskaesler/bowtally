@@ -244,6 +244,11 @@ class Form(QWidget):
     def add_widget(self, widget: QWidget) -> None:
         self._lay.addRow(widget)
 
+    def set_labels_on_top(self) -> None:
+        """Label above the field, field in full width."""
+        self._lay.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        self._lay.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+
     def set_row_visible(self, key: str, visible: bool) -> None:
         """Show or hide a field together with its label."""
         self._lay.setRowVisible(self.fields[key], visible)
