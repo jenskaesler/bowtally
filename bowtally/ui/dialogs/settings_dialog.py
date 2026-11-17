@@ -15,7 +15,8 @@ from bowtally import config
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.help_link import help_link
 from bowtally.services import ValidationError, inventory_service as inv, settings_service as ss
-from bowtally.ui import burger_button, button, restore_geom, save_geom, show_error, theme
+from bowtally.ui import (burger_button, button, mark_dirty, restore_geom, save_geom, show_error,
+                         theme)
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
                    "templates": "Textvorlagen"}
@@ -157,12 +158,11 @@ class SettingsDialog(QDialog):
                                  ("contacts", "Vereinsvorstand"),
                                  ("bank", "Bankdaten")]),
         ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
-                                 ("print", "Druck & Listen"),
-                                 ("email", "E-Mail-Vorlagen"),
-                                 ("inventory_categories", "Inventarkategorien")]),
+                                 ("print", "Textvorlagen"),
+                                 ("email", "E-Mail-Vorlagen")]),
         ("SYSTEM",             [("general", "Allgemein"),
-                                 ("backup", "Backup")]),
-        ("DARSTELLUNG",        [("design", "Design"),
+                                 ("backup", "Backup"),
+                                 ("design", "Design"),
                                  ("ui", "Oberfläche"),
                                  ("nav", "Navigation")]),
     ]
@@ -187,10 +187,10 @@ class SettingsDialog(QDialog):
             ("bank",     self._bank_tab()),
             ("design",   self._design_tab()),
             ("ui",       self._category_tab("ui")),
-            ("behavior", self._category_tab("behavior")),
+            ("behavior", self._category_tab("behavior", "print",
+                                            extra=self._inventory_categories_box())),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
-            ("inventory_categories", self._inventory_categories_tab()),
             ("general", self._general_tab()),
             ("backup",   self._backup_tab()),
             ("nav",      self._nav_tab()),
@@ -257,7 +257,7 @@ class SettingsDialog(QDialog):
         body.addWidget(vline)
         body.addWidget(self._stack, 1)
 
-        self._save_btn = button("Speichern", self._save_settings, "danger",
+        self._save_btn = button("Speichern", self._save_settings, "primary",
                                 "Ungespeicherte Änderungen speichern")
         self._save_btn.setEnabled(False)
         close_btn = button("Schließen", self._close_dialog)
@@ -385,7 +385,9 @@ class SettingsDialog(QDialog):
                 "backup": self._backup_values()}
 
     def _update_save_btn(self):
-        self._save_btn.setEnabled(self._state() != self._saved)
+        changed = self._state() != self._saved
+        self._save_btn.setEnabled(changed)
+        mark_dirty(self._save_btn, changed)
 
     def _save_settings(self):
         try:
@@ -1042,23 +1044,20 @@ class SettingsDialog(QDialog):
         inner = QWidget()
         lay = QVBoxLayout(inner)
 
-        # Collect print/templates boxes without adding to lay yet
-        cat_boxes: dict[str, QGroupBox] = {}
         groups: dict[str, QFormLayout] = {}
         for st in self.settings:
             if st.value_type == "color" or st.key == ss.KEY_UI_THEME_MODE \
                     or st.key in HIDDEN_KEYS \
-                    or st.category not in ("print", "templates") \
+                    or st.category != "templates" \
                     or st.category in HIDDEN_CATEGORIES:
                 continue
             if st.category not in groups:
                 box = QGroupBox(CATEGORY_LABELS.get(st.category, st.category or "Allgemein"))
-                cat_boxes[st.category] = box
+                lay.addWidget(box)
                 groups[st.category] = self._form(box)
-                if st.category == "templates":
-                    lbl = self._flbl("Parcours-Beschreibung")
-                    lbl.setWordWrap(True)
-                    groups["templates"].addRow(lbl, _with_grip(edit_course))
+                lbl = self._flbl("Parcours-Beschreibung")
+                lbl.setWordWrap(True)
+                groups["templates"].addRow(lbl, _with_grip(edit_course))
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
             display = _with_grip(widget) if isinstance(widget, QPlainTextEdit) else widget
@@ -1067,21 +1066,15 @@ class SettingsDialog(QDialog):
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
 
-        if "print" in cat_boxes:
-            lay.addWidget(cat_boxes["print"])
-        if "templates" in cat_boxes:
-            lay.addWidget(cat_boxes["templates"])
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(inner)
         return scroll
 
-    # ------------------------------------------------------------ inventory categories tab
-    def _inventory_categories_tab(self) -> QWidget:
+    # ------------------------------------------------------------ inventory categories box
+    def _inventory_categories_box(self) -> QGroupBox:
         """Categories are stored right away; they do not use the Speichern button."""
-        w = QWidget()
-        lay = QVBoxLayout(w)
         box = QGroupBox("Inventarkategorien")
         box_lay = QVBoxLayout(box)
         box_lay.addWidget(QLabel("Kategorien für das Dropdown und den Filter im Inventar.",
@@ -1095,9 +1088,8 @@ class SettingsDialog(QDialog):
         buttons.addWidget(button("Löschen", self._delete_category))
         buttons.addStretch()
         box_lay.addLayout(buttons)
-        lay.addWidget(box, 1)
         self._reload_categories()
-        return w
+        return box
 
     def _reload_categories(self):
         self._category_list.clear()
@@ -1205,7 +1197,7 @@ class SettingsDialog(QDialog):
         scroll.setWidget(inner)
         return scroll
 
-    def _category_tab(self, *categories: str) -> QWidget:
+    def _category_tab(self, *categories: str, extra: QWidget | None = None) -> QWidget:
         inner = QWidget()
         lay = QVBoxLayout(inner)
         groups: dict[str, QFormLayout] = {}
@@ -1225,6 +1217,8 @@ class SettingsDialog(QDialog):
             label.setWordWrap(True)
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
+        if extra is not None:
+            lay.addWidget(extra)
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)

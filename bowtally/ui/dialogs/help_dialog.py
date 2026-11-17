@@ -28,7 +28,7 @@ _SECTIONS = [
 <p>Links in der Seitenleiste wechselst du zwischen den Modulen. Ein Klick auf das Logo
 oben führt zurück zum Dashboard. Unten findest du <b>Einstellungen</b>, <b>Hilfe</b> und
 <b>Über BowTally</b>. Reihenfolge und Sichtbarkeit der Einträge stellst du unter
-Einstellungen → Navigation ein.</p>
+Einstellungen → System → Navigation ein.</p>
 <p>Ein orangefarbener Punkt an <b>Turniere</b> weist darauf hin, dass beim aktiven Turnier die
 maximale Teilnehmerzahl erreicht ist oder dass ein Turnier in der Phase „Schießen“ läuft.</p>
 <h3>Dialoge</h3>
@@ -201,7 +201,7 @@ Verwendungszweck mit den Platzhaltern <code>{name}</code> und
 Vereinsprofil, Vorstand und Bankdaten.</p>
 <h3>7 Hinweise und Texte</h3>
 <p>Einleitungstext, Hinweise zum Parcours, wichtige Hinweise (eine Zeile je
-Hinweis; vorbelegt aus Einstellungen → Druck &amp; Listen) und Abschlusstext.
+Hinweis; vorbelegt aus Einstellungen → Turnierverwaltung → Textvorlagen) und Abschlusstext.
 Sie erscheinen in der Ausschreibung.</p>
 <h3>8 Zusammenfassung</h3>
 <p>Prüfe die Angaben und speichere mit <b>Turnier erstellen</b> bzw.
@@ -464,7 +464,7 @@ nicht zum Inventarwert. Import und Export sind möglich.</p>
 <i>Aktives Inventar anzeigen</i> unten links ist standardmäßig angehakt und zeigt dann nur
 aktive Artikel; ohne Haken siehst du alle. Inaktive Artikel zählen nicht zum Inventarwert und
 stehen nicht im Parcoursplan zur Auswahl.</p>
-<p>Die <b>Kategorien</b> pflegst du unter Einstellungen → Inventarkategorien. Eine Kategorie
+<p>Die <b>Kategorien</b> pflegst du unter Einstellungen → Turnierverwaltung → Allgemein. Eine Kategorie
 lässt sich nur löschen, wenn keine Artikel mehr darin sind; sonst bietet das Programm an, die
 Artikel in eine andere Kategorie zu verschieben.</p>
 <p>Artikel mit <i>Für Parcoursplanung verwenden</i> stehen im Parcoursplan eines Turniers zur
@@ -637,19 +637,20 @@ Im Verwendungszweck können Platzhalter genutzt werden (z. B.
 <code>{name}</code>).</p>
 <h3>Turnierverwaltung → Allgemein</h3>
 <p><i>Automatisch neu berechnen</i> (Rang) und <i>Warteliste bei Vollbelegung</i>. Die
-Gleichstandsregeln stellst du je Regelwerk ein.</p>
-<h3>Turnierverwaltung → Druck &amp; Listen</h3>
-<p>Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
-und Einzelwertung je Scheibe auf Ausdrucken sowie Textvorlagen für
-Ausschreibungen: Parcours-Beschreibung, Überweisungshinweis, Gruppenhinweis und
-Wichtige Hinweise.</p>
+Gleichstandsregeln stellst du je Regelwerk ein. Im Block <b>Druck</b> stellst du
+Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
+und Einzelwertung je Scheibe auf Ausdrucken ein. Im Block <b>Inventarkategorien</b>
+pflegst du die Kategorien des Inventars.</p>
+<h3>Turnierverwaltung → Textvorlagen</h3>
+<p>Textvorlagen für Ausschreibungen: Parcours-Beschreibung, Überweisungshinweis,
+Gruppenhinweis und Wichtige Hinweise.</p>
 <h3>Turnierverwaltung → E-Mail-Vorlagen</h3>
 <p>Betreff und Text für die sieben E-Mail-Vorlagen, siehe „E-Mail-Funktionen“.</p>
 <h3>System → Allgemein</h3>
 <p><b>Update-Prüfung</b> (Beim Start nach Updates suchen, <b>Jetzt prüfen</b>) und
 der <b>Standard-Exportpfad</b> für erzeugte Dateien (leer = Downloads-Ordner),
 siehe „Backup &amp; Updates“.</p>
-<h3>Darstellung → Design</h3>
+<h3>System → Design</h3>
 <p><b>Darstellung</b> System, Hell oder Dunkel (Dark Mode), Markenfarben und
 individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> und
 <b>Zurücksetzen auf Standard</b>. <b>Oberfläche</b>: Sprache und Schriftart.</p>
@@ -670,7 +671,7 @@ Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
 (Lokal / Netzwerk / Nextcloud), Aufbewahrungsdauer und Wiederherstellung aus
 einer JSON-Datei.</p>
 <h3>Navigation</h3>
-<p>Unter Einstellungen → <b>Navigation</b> lässt sich die Reihenfolge der
+<p>Unter Einstellungen → System → <b>Navigation</b> lässt sich die Reihenfolge der
 Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
 werden nach einem <b>Neustart</b> der App wirksam.</p>
 """),

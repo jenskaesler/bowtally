@@ -164,7 +164,7 @@ class InventoryItemDialog(RecordDialog):
     def _build_notes(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
-        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setContentsMargins(0, 0, 0, 0)
         self.notes_form = Form()
         self.notes_form.set_labels_on_top()
         notes = QPlainTextEdit()
@@ -179,7 +179,7 @@ class InventoryItemDialog(RecordDialog):
     def _build_repairs(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
-        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setContentsMargins(0, 0, 0, 0)
         if self._record is None:
             lay.addWidget(QLabel("Reparaturen können nach dem ersten Speichern erfasst werden.",
                                  objectName="pageSubtitle"))

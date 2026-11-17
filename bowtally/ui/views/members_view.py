@@ -181,7 +181,7 @@ class MemberDialog(RecordDialog):
     def _build_history(self) -> QWidget:
         page = self._history_page = QWidget()
         lay = QVBoxLayout(page)
-        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setContentsMargins(0, 0, 0, 0)
         if self._record is None:
             lay.addWidget(QLabel("Die Helferhistorie kann nach dem ersten Speichern gepflegt "
                                  "werden.", objectName="pageSubtitle"))
@@ -261,7 +261,7 @@ class MemberDialog(RecordDialog):
     def _build_notes(self) -> QWidget:
         page = QWidget()
         lay = QVBoxLayout(page)
-        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setContentsMargins(0, 0, 0, 0)
         self.notes_form = Form()
         self.notes_form.set_labels_on_top()
         notes = QPlainTextEdit()

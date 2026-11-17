@@ -276,7 +276,7 @@ QTableCornerButton::section {{ background: {t['surface']}; border: none; }}
 
 /* tabs: underline style */
 QTabWidget::pane {{ border: none; border-top: 1px solid {t['border']}; top: -1px;
-    background: transparent; }}
+    padding-top: 12px; background: transparent; }}
 QTabBar {{ qproperty-drawBase: 0; background: transparent; }}
 QTabBar::tab {{
     background: transparent; border: none; border-bottom: 2px solid transparent;

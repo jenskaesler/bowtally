@@ -28,7 +28,7 @@ class FilesPanel(QWidget):
         self._list, self._add, self._remove, self._path = list_fn, add_fn, remove_fn, path_fn
         self.table = None
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setContentsMargins(0, 0, 0, 0)
         if owner_id is None:
             lay.addWidget(QLabel("Dateien können nach dem ersten Speichern hinzugefügt werden.",
                                  objectName="pageSubtitle"))

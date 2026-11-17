@@ -101,7 +101,7 @@ class ArcherDialog(RecordDialog):
         self.notes_form.add("notes", "Notizen", notes)
         page = QWidget()
         lay = QVBoxLayout(page)
-        lay.setContentsMargins(0, 8, 0, 0)
+        lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.notes_form)
         lay.addStretch()
         keep_half_height(page, notes)

@@ -21,6 +21,12 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Reparatur lässt sich eine Rechnung hinterlegen; sie liegt in den Dokumenten des Artikels und ist
   in der Reparatur verlinkt. Reparaturkosten von 0 € sind nicht zulässig.
 
+### Geändert (Einstellungen)
+
+- **⚙️ Einstellungen neu gegliedert** — „Druck“ und „Inventarkategorien“ stehen jetzt unter
+  Turnierverwaltung → Allgemein, „Druck & Listen“ heißt „Textvorlagen“. Design, Oberfläche und
+  Navigation stehen unter „System“.
+
 ### Behoben
 
 - **🪟 Kleine Fenster beim Start** — Beim Programmstart blitzten über dem Splash kurz mehrere
@@ -43,7 +49,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Schließen sehen aus wie die Bearbeiten-Buttons, Preisfelder haben wie die anderen Eingabefelder
   runde Ecken. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
   Icon. „Als inaktiv markieren“ und „Datenauskunft senden“ stehen in der Mitgliederliste nur noch
-  im Rechtsklick-Menü, im Inventar gibt es dort „Aktivieren/Deaktivieren“. Kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
+  im Rechtsklick-Menü, im Inventar gibt es dort „Aktivieren/Deaktivieren“. Dialoge mit mehreren
+  Tabs haben einheitlich Abstand zwischen Tab-Leiste und erstem Feld. Der Speichern-Button in den
+  Einstellungen ist blau und wird bei Änderungen rot. Kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
   Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein Drittel breiter und der
   Passwortdialog beim Restore zeigt „Abbrechen“.
 
