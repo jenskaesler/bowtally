@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """CRUD for app_settings and club_profile."""
+import shutil
+from pathlib import Path
+
 from sqlalchemy import select
 
+from bowtally import config
 from bowtally.database.engine import session_scope
 from bowtally.database.models import AppSetting, ClubProfile
 from bowtally.database.seed import DEFAULT_SETTINGS
@@ -108,6 +112,19 @@ def set_value(key: str, value: str) -> None:
 
 def color_defaults() -> dict[str, str]:
     return {k: v for k, v in DEFAULTS.items() if k.startswith(COLOR_PREFIX)}
+
+
+LOGO_DIR = "logo"       # below the app data folder, also the folder name inside a backup
+
+
+def store_logo(source) -> Path:
+    """Copy a logo into <app data>/logo/ and return its path there."""
+    source = Path(source)
+    dest = config.APP_DATA_DIR / LOGO_DIR / source.name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if source.resolve() != dest.resolve():
+        shutil.copy2(source, dest)
+    return dest
 
 
 def get_club_profile() -> dict:

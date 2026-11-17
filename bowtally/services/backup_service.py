@@ -514,10 +514,12 @@ def restore(zip_path: str, password: str | None = None) -> None:
         raise ValueError("Kein gültiges BowTally-Backup (Typ fehlt oder falsch).")
     backup = json.loads(backup_text)
     if logo_entry and logo_bytes:
-        config.APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
-        dest = config.APP_DATA_DIR / Path(logo_entry).name
+        dest = config.APP_DATA_DIR / ss.LOGO_DIR / Path(logo_entry).name
+        dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(logo_bytes)
         backup.setdefault("meta", {})["logo_path"] = str(dest)
+        for row in backup.get("data", {}).get("club_profile") or []:   # the profile must find it here
+            row["logo_path"] = str(dest)
     try:
         _restore_impl(backup)
     except Exception:

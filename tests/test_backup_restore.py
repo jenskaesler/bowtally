@@ -58,7 +58,8 @@ def test_restore_zip_with_logo(tmp_path, monkeypatch):
     with sqlite3.connect(db_path) as con:
         row = con.execute("SELECT logo_path FROM club_profile").fetchone()
     assert row and row[0]
-    logo_file = config.APP_DATA_DIR / Path(row[0]).name
+    logo_file = Path(row[0])
+    assert logo_file == config.APP_DATA_DIR / "logo" / "logo.png"
     assert logo_file.read_bytes() == b"PNGDATA"
 
 

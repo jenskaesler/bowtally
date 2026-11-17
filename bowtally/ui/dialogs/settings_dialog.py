@@ -566,15 +566,11 @@ class SettingsDialog(QDialog):
         return scroll
 
     def _browse_logo(self):
-        import shutil
-        from bowtally import config
         path, _ = QFileDialog.getOpenFileName(self, "Logo auswählen", "",
                                               "Bilder (*.png *.jpg *.jpeg)")
         if not path:
             return
-        dest = config.APP_DATA_DIR / Path(path).name
-        shutil.copy2(path, dest)
-        self._logo_path = str(dest)
+        self._logo_path = str(ss.store_logo(path))
         self._update_logo(self._logo_path)
 
     def _remove_logo(self):
