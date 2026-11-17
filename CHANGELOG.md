@@ -34,6 +34,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **🎯 Parcours-Planung: „Ziele“** — „Neue Scheibe“ heißt jetzt „Neues Ziel“ (Button, Formular,
+  Tab „Ziele“), der Druck „Scheibenplan“ heißt „Zielplan“. Im Formular steht statt des Hinweistexts
+  zur Gruppengröße ein Link zur Hilfe. Die Formulare für Ziele und Material sind größer. In der
+  Teilnehmerliste hat der Burger-Button zum Suchfeld den normalen Abstand.
 - **📜 Logbuch als Tabelle** — Das Logbuch zeigt die Einträge als kompakte Tabelle (Zeit, Typ,
   Meldung, Kontext) mit einer Zeile je Eintrag, damit mehr auf eine Seite passt (100 je Seite).
 - **⚙️ Einstellungen neu gegliedert** — „Druck“ und „Inventarkategorien“ stehen jetzt unter
