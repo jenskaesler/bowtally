@@ -6,6 +6,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.11.4] – 2026-11-17
+
 ### Hinzugefügt
 
 - **👥 Mitglieder-Stammdaten** — Die Helfer-Stammdaten sind zu Mitglieder-Stammdaten
@@ -572,7 +574,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   mit Vereinsprofil und Farbschema. SQLite-Datenbank mit Alembic-Migrationen, Build mit
   PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.11.1...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.11.4...HEAD
+[2026.11.4]: https://github.com/jenskaesler/bowtally/compare/v2026.11.3...v2026.11.4
 [2026.11.1]: https://github.com/jenskaesler/bowtally/compare/v2026.10.9...v2026.11.1
 [2026.10.9]: https://github.com/jenskaesler/bowtally/compare/v2026.10.7...v2026.10.9
 [2026.10.7]: https://github.com/jenskaesler/bowtally/compare/v2026.10.6...v2026.10.7
