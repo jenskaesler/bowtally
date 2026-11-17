@@ -40,11 +40,17 @@ PARTICIPANT_IMPORT_FIELDS = [
     ImportField("start_group", "Startgruppe", aliases=["gruppe", "group"]),
 ]
 
-HELPER_IMPORT_FIELDS = [
+MEMBER_IMPORT_FIELDS = [
+    ImportField("member_number", "Mitgliedsnummer", aliases=["mitgliedsnr", "mitglieds-nr",
+                                                             "member number"]),
     ImportField("first_name", "Vorname", True, aliases=["firstname", "first name"]),
     ImportField("last_name", "Nachname", True, aliases=["name", "lastname", "last name"]),
+    ImportField("street", "Straße", aliases=["strasse", "street"]),
+    ImportField("postal_code", "PLZ", aliases=["postleitzahl", "postal code"]),
+    ImportField("city", "Ort", aliases=["stadt", "city"]),
     ImportField("phone", "Telefon", aliases=["phone", "tel"]),
     ImportField("email", "E-Mail", aliases=["email", "mail"]),
+    ImportField("member_since", "Mitglied seit", type="date", aliases=["eintritt", "member since"]),
     ImportField("notes", "Notizen", aliases=["bemerkung", "notes"]),
 ]
 

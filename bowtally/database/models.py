@@ -328,34 +328,83 @@ class Score(Base):
     participant: Mapped["TournamentParticipant"] = relationship(back_populates="scores")
 
 
-class Helper(Base):
-    __tablename__ = "helpers"
+class Member(Base):
+    """Club member master data (formerly `helpers`); also the source of tournament helpers."""
+    __tablename__ = "members"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    member_number: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     first_name: Mapped[str] = mapped_column(Text, nullable=False)
     last_name: Mapped[str] = mapped_column(Text, nullable=False)
+    street: Mapped[str | None] = mapped_column(Text)
+    postal_code: Mapped[str | None] = mapped_column(Text)
+    city: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(Text)
     email: Mapped[str | None] = mapped_column(Text)
+    member_since: Mapped[date | None] = mapped_column(Date)
+    cancelled_on: Mapped[date | None] = mapped_column(Date)
+    birthday: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    info_by_mail: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    is_tournament_helper: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    consent_given: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    consent_date: Mapped[date | None] = mapped_column(Date)
+    # bank data: never part of general exports, only of the password-protected backup
+    account_holder: Mapped[str | None] = mapped_column(Text)
+    iban: Mapped[str | None] = mapped_column(Text)
+    bic: Mapped[str | None] = mapped_column(Text)
+    bank_name: Mapped[str | None] = mapped_column(Text)
+    sepa_direct_debit: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    sepa_mandate_ref: Mapped[str | None] = mapped_column(Text)
+    sepa_mandate_date: Mapped[date | None] = mapped_column(Date)
+
+    history: Mapped[list["MemberHelperHistory"]] = relationship(
+        back_populates="member", cascade="all, delete-orphan",
+        order_by="MemberHelperHistory.date.desc()")
 
     @property
     def full_name(self) -> str:
         return f"{self.last_name}, {self.first_name}"
 
 
+class MemberHelperHistory(Base):
+    """One helper service of a member: written automatically when a tournament is closed."""
+    __tablename__ = "member_helper_history"
+    __table_args__ = (UniqueConstraint("member_id", "tournament_id",
+                                       name="uq_member_history_tournament"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    member_id: Mapped[int] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"))
+    tournament_id: Mapped[int | None] = mapped_column(ForeignKey("tournaments.id",
+                                                                 ondelete="SET NULL"))
+    tournament_name: Mapped[str] = mapped_column(Text, nullable=False)
+    date: Mapped[date] = mapped_column(Date, nullable=True)
+    role: Mapped[str | None] = mapped_column(Text)
+    hours: Mapped[float | None] = mapped_column(Float)
+
+    member: Mapped["Member"] = relationship(back_populates="history")
+
+
 class TournamentHelper(Base):
+    """Helper of one tournament: either linked to a member, or entered manually (own name fields)."""
     __tablename__ = "tournament_helpers"
+    __table_args__ = (UniqueConstraint("tournament_id", "member_id",
+                                       name="uq_tournament_helpers_member"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id", ondelete="CASCADE"))
-    helper_id: Mapped[int] = mapped_column(ForeignKey("helpers.id", ondelete="CASCADE"))
+    member_id: Mapped[int | None] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"))
+    first_name: Mapped[str | None] = mapped_column(Text)
+    last_name: Mapped[str | None] = mapped_column(Text)
+    phone: Mapped[str | None] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(Text)
     task: Mapped[str | None] = mapped_column(Text)
     time_from: Mapped[str | None] = mapped_column(Text)
     time_to: Mapped[str | None] = mapped_column(Text)
-    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
-    helper: Mapped["Helper"] = relationship()
+    member: Mapped["Member | None"] = relationship()
 
 
 class ScoreSheetTemplate(Base):

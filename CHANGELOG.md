@@ -8,6 +8,19 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Hinzugefügt
 
+- **👥 Mitglieder-Stammdaten** — Die Helfer-Stammdaten sind zu Mitglieder-Stammdaten
+  ausgebaut (Hauptmenü „Mitglieder"): Mitgliedsnummer, Adresse, Mitglied seit/gekündigt zum,
+  Geburtstag, Einwilligung zur Datenverarbeitung (Warnung statt Sperre), Bankverbindung mit
+  IBAN-Prüfziffer und SEPA-Mandat sowie eine Helferhistorie. Bestehende Helfer und Turnier-
+  Zuordnungen werden einmalig migriert (vorher entsteht automatisch eine Kopie
+  `bowtally.db.pre-migration-<Revision>`). Bankdaten erscheinen in keinem Export.
+- **🤝 Turnier-Helfer** — Neben „Neuer Helfer" (nur für das Turnier) gibt es „Aus
+  Mitgliederkartei" (nur aktive Mitglieder mit Flag „Turnierhelfer"). Beim Abschluss eines
+  Turniers wird die Helferhistorie der verknüpften Mitglieder automatisch ergänzt.
+- **🔐 Backup mit Passwort** — Backups sind AES-256-verschlüsselte ZIP-Dateien. Das Passwort
+  ist ein Pflichtfeld (manuell oder per „Passwort vorschlagen") und wird bei jeder
+  Wiederherstellung abgefragt. Alte unverschlüsselte Backups und Backups mit Helfer-Struktur
+  lassen sich weiterhin wiederherstellen (Format 2, alte Backups werden automatisch migriert).
 - **📜 Urkunden – neues Layout** — Genau eine A4-Seite je Podiumsplatz und Klasse mit
   Doppelrahmen, Vereinslogo und -name, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten,
   Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand). Zu lange Namen werden

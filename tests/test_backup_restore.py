@@ -4,8 +4,12 @@ import sqlite3
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from bowtally import config
 from bowtally.services import backup_service
+
+PASSWORD = "Geheim-1234"
 
 
 def test_restore_archer_with_builtin_bow_class(tmp_path, monkeypatch):
@@ -29,6 +33,7 @@ def test_restore_archer_with_builtin_bow_class(tmp_path, monkeypatch):
 
 
 def _make_zip_backup(tmp_path, with_logo):
+    pytest.importorskip("pyzipper")
     logo_src = None
     if with_logo:
         logo_src = tmp_path / "logo.png"
@@ -39,7 +44,7 @@ def _make_zip_backup(tmp_path, with_logo):
                                    str(logo_src) if logo_src else None}]},
     }
     zip_path = tmp_path / "backup.zip"
-    backup_service.save_backup_to_zip(backup, zip_path, str(logo_src) if logo_src else None)
+    backup_service.save_backup_to_zip(backup, zip_path, str(logo_src) if logo_src else None, PASSWORD)
     return zip_path, backup
 
 
@@ -48,7 +53,7 @@ def test_restore_zip_with_logo(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DB_PATH", db_path)
     zip_path, _ = _make_zip_backup(tmp_path, with_logo=True)
 
-    backup_service.restore(str(zip_path))
+    backup_service.restore(str(zip_path), PASSWORD)
 
     with sqlite3.connect(db_path) as con:
         row = con.execute("SELECT logo_path FROM club_profile").fetchone()
@@ -60,7 +65,9 @@ def test_restore_zip_with_logo(tmp_path, monkeypatch):
 def test_save_backup_to_zip_meta_and_info(tmp_path):
     zip_path, backup = _make_zip_backup(tmp_path, with_logo=False)
     assert backup["meta"]["logo_path"] is None
-    with zipfile.ZipFile(zip_path) as zf:
+    import pyzipper
+    with pyzipper.AESZipFile(zip_path) as zf:
+        zf.setpassword(PASSWORD.encode())
         names = zf.namelist()
         assert "backup.json" in names and "bowtally.info" in names
         assert not any(n.startswith("logo/") for n in names)
@@ -92,3 +99,99 @@ def test_restore_rejects_invalid_zip(tmp_path, monkeypatch):
         assert "JSON" in str(exc) or "ZIP" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def _format1_backup():
+    return {
+        "meta": {"format_version": "1"},
+        "data": {
+            "helpers": [{"id": 7, "first_name": "Maid", "last_name": "Marian",
+                         "phone": "123", "email": "m@example.org", "active": 1}],
+            "tournaments": [{"id": 1, "name": "Cup", "date": "2026-05-01", "num_targets": 20}],
+            "tournament_helpers": [{"id": 1, "tournament_id": 1, "helper_id": 7,
+                                    "task": "Kasse", "confirmed": 1}],
+        },
+    }
+
+
+def test_restore_format1_helpers_become_members(tmp_path, monkeypatch):
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+
+    backup_service._restore_impl(_format1_backup())
+
+    with sqlite3.connect(db_path) as con:
+        member = con.execute("SELECT id, member_number, first_name, is_tournament_helper "
+                             "FROM members").fetchall()
+        assignment = con.execute("SELECT member_id, task, confirmed FROM tournament_helpers").fetchall()
+    assert member == [(7, "1", "Maid", 1)]
+    assert assignment == [(7, "Kasse", 1)]
+
+
+def test_format2_round_trip_keeps_member_with_iban(tmp_path, monkeypatch):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+    backup = {"meta": {"format_version": "2"}, "data": {"members": [
+        {"id": 3, "member_number": "42", "first_name": "Robin", "last_name": "Hood",
+         "iban": "DE89370400440532013000", "bic": "COBADEFFXXX", "sepa_direct_debit": 1}]}}
+
+    backup_service._restore_impl(backup)
+
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}")
+    with Session(engine) as session:
+        exported = backup_service.create_backup(session, "test")
+    engine.dispose()
+    assert exported["meta"]["format_version"] == "2"
+    assert "helpers" not in exported["data"]
+    (member,) = exported["data"]["members"]
+    assert member["iban"] == "DE89370400440532013000" and member["member_number"] == "42"
+
+
+def test_restore_rejects_unknown_format(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "bowtally.db")
+    with pytest.raises(ValueError, match="Unbekanntes Backup-Format"):
+        backup_service._restore_impl({"meta": {"format_version": "3"}, "data": {}})
+
+
+def test_backup_without_password_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setattr(backup_service, "_get_password", lambda key: "")
+    monkeypatch.setattr(backup_service.ss, "get", lambda key, default=None: str(tmp_path))
+    with pytest.raises(ValueError, match="Kein Backup-Passwort gesetzt"):
+        backup_service.save_backup_to_zip({"meta": {}, "data": {}}, tmp_path / "x.zip", None, "")
+    for backup in (backup_service.backup_local, backup_service.backup_network,
+                   backup_service.backup_nextcloud):
+        with pytest.raises(ValueError, match="Kein Backup-Passwort gesetzt"):
+            backup()
+    assert not list(tmp_path.glob("*.zip"))
+
+
+def _legacy_zip(tmp_path):
+    """Unencrypted ZIP as written by older BowTally versions."""
+    zip_path = tmp_path / "legacy.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("backup.json", json.dumps(_format1_backup()))
+        zf.writestr("bowtally.info", "type: bowtally_backup\n")
+    return zip_path
+
+
+def test_legacy_unencrypted_zip_restores_without_password(tmp_path, monkeypatch):
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+
+    backup_service.restore(str(_legacy_zip(tmp_path)))
+
+    with sqlite3.connect(db_path) as con:
+        assert con.execute("SELECT first_name FROM members").fetchone() == ("Maid",)
+
+
+def test_encrypted_zip_needs_correct_password(tmp_path, monkeypatch):
+    zip_path, _ = _make_zip_backup(tmp_path, with_logo=False)
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "bowtally.db")
+
+    with pytest.raises(backup_service.BackupPasswordRequired):
+        backup_service.restore(str(zip_path))
+    with pytest.raises(ValueError, match="Das Passwort ist falsch."):
+        backup_service.restore(str(zip_path), "falsch")
+    assert not (tmp_path / "bowtally.db").exists()

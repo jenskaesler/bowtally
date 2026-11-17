@@ -3,13 +3,13 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import selectinload
 
 from bowtally.database.engine import session_scope
-from bowtally.database.models import (Archer, BowClass, EntryFee, PhaseTransitionLog, Score,
-                                      ScoringRule, Tournament, TournamentParticipant,
-                                      TournamentRound)
+from bowtally.database.models import (Archer, BowClass, EntryFee, MemberHelperHistory,
+                                      PhaseTransitionLog, Score, ScoringRule, Tournament,
+                                      TournamentHelper, TournamentParticipant, TournamentRound)
 from bowtally.database.seed import TOURNAMENT_PHASES
 from bowtally.services import ValidationError
 from bowtally.services.master_data_service import _bow_class_lookup, _clean_archer, find_archer
@@ -496,7 +496,32 @@ def transition_phase(tournament_id: int, target_phase: str,
         t.phase = target_phase
         t.phase_changed_at = datetime.now()
         t.status = PHASE_STATUS.get(target_phase, "draft")
+        if target_phase == "closed":
+            _write_helper_history(s, t)
     return TransitionResult(True, warnings, [], applied=True)
+
+
+def _helper_hours(time_from: str | None, time_to: str | None) -> float | None:
+    try:
+        start = datetime.strptime(time_from, "%H:%M")
+        end = datetime.strptime(time_to, "%H:%M")
+    except (TypeError, ValueError):
+        return None
+    return (end - start).total_seconds() / 3600 if end > start else None
+
+
+def _write_helper_history(s, t: Tournament) -> None:
+    """One history entry per member-linked helper; upsert so re-closing creates no duplicates."""
+    existing = {h.member_id: h for h in s.scalars(
+        select(MemberHelperHistory).where(MemberHelperHistory.tournament_id == t.id))}
+    for th in s.scalars(select(TournamentHelper).where(
+            TournamentHelper.tournament_id == t.id, TournamentHelper.member_id.is_not(None))):
+        entry = existing.get(th.member_id)
+        if entry is None:
+            entry = MemberHelperHistory(member_id=th.member_id, tournament_id=t.id)
+            s.add(entry)
+        entry.tournament_name, entry.date, entry.role = t.name, t.date, th.task
+        entry.hours = _helper_hours(th.time_from, th.time_to)
 
 
 def transition_phase_backward(tournament_id: int) -> None:
@@ -507,6 +532,7 @@ def transition_phase_backward(tournament_id: int) -> None:
         raise ValidationError("Bereits in der ersten Phase.")
     with session_scope() as s:
         t = s.get(Tournament, tournament_id)
+        was_closed = t.phase == "closed"
         s.add(PhaseTransitionLog(
             tournament_id=tournament_id, from_phase=t.phase, to_phase=target,
             transitioned_at=datetime.now(), forced=True,
@@ -514,6 +540,9 @@ def transition_phase_backward(tournament_id: int) -> None:
         t.phase = target
         t.phase_changed_at = datetime.now()
         t.status = PHASE_STATUS.get(target, "draft")
+        if was_closed:
+            s.execute(delete(MemberHelperHistory)
+                      .where(MemberHelperHistory.tournament_id == tournament_id))
 
 
 def list_phase_log(tournament_id: int) -> list[PhaseTransitionLog]:

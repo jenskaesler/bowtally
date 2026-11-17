@@ -9,7 +9,7 @@ from PySide6.QtGui import QDrag, QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
-from bowtally.services import helper_service as hs
+from bowtally.services import member_service as ms
 from bowtally.services import inventory_service as inv_svc
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
@@ -204,11 +204,11 @@ class GlobalDashboard(QWidget):
         lay.addStretch()
         self._cards["bow_classes"] = c
 
-        c, lay = _dcard("helpers", "Helfer")
+        c, lay = _dcard("helpers", "Mitglieder")
         self.helpers_count = QLabel("0", objectName="cardValue")
         lay.addWidget(self.helpers_count)
-        lay.addWidget(_link("Helfer öffnen →", lambda: self.navigate.emit("helpers"),
-                            "Helfer verwalten"))
+        lay.addWidget(_link("Mitglieder öffnen →", lambda: self.navigate.emit("helpers"),
+                            "Mitglieder verwalten"))
         lay.addStretch()
         self._cards["helpers"] = c
 
@@ -316,7 +316,8 @@ class GlobalDashboard(QWidget):
         self.next_chip.setVisible(nxt is not None)
         self.rules_count.setText(str(len(sc.list_rules())))
         self.bow_count.setText(str(len(md.list_bow_classes())))
-        self.helpers_count.setText(str(len(hs.list_helpers())))
+        helpers = ms.list_members(include_inactive=False, only_helpers=True)
+        self.helpers_count.setText(str(len(helpers)))
         self.inventory_count.setText(str(len(inv_svc.list_items())))
         upcoming_cal = [t for t in tournaments if t.date >= date.today()]
         self.upcoming_count.setText(str(len(upcoming_cal)))

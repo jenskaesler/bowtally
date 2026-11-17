@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QSize, QTimer
 from PySide6.QtGui import QColor, QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QFileDialog, QFormLayout, QFrame, QGridLayout,
-                               QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
+                               QGroupBox, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QPlainTextEdit, QPushButton,
                                QScrollArea, QSpinBox, QStackedWidget, QToolButton,
                                QVBoxLayout, QWidget)
@@ -61,7 +61,7 @@ NAV_KEYS = ["dashboard", "tournaments", "calendar", "archers",
             "helpers", "rules", "bow_classes", "inventory", "logbuch"]
 NAV_LABELS = {
     "dashboard": "Dashboard", "logbuch": "Logbuch",
-    "calendar": "Kalender", "archers": "Schützen", "helpers": "Helfer",
+    "calendar": "Kalender", "archers": "Schützen", "helpers": "Mitglieder",
     "rules": "Regelwerke", "bow_classes": "Bogenklassen", "inventory": "Inventar",
     "tournaments": "Turniere",
 }
@@ -386,10 +386,11 @@ class SettingsDialog(QDialog):
     def _save_settings(self):
         try:
             state = self._state()
+            # first: refuses an empty backup password before anything is saved (only if auto backup is on)
+            self._save_backup_settings(password_required=self._backup_on_close.isChecked())
             ss.set_many(state["values"])
             ss.set_value("nav_order", state["nav"])
             ss.save_club_profile(state["club"])
-            self._save_backup_settings()
         except Exception as exc:
             show_error(self, exc, "Einstellungen konnten nicht gespeichert werden")
             return
@@ -443,6 +444,8 @@ class SettingsDialog(QDialog):
             self._backup_retention_days.valueChanged.connect(self._update_save_btn)
         if hasattr(self, '_backup_target_combo'):
             self._backup_target_combo.currentIndexChanged.connect(self._update_save_btn)
+        if hasattr(self, '_backup_zip_password'):
+            self._backup_zip_password.textChanged.connect(self._update_save_btn)
         if hasattr(self, '_nav_list_widget'):
             self._nav_list_widget.model().rowsMoved.connect(self._update_save_btn)
 
@@ -753,8 +756,27 @@ class SettingsDialog(QDialog):
         self._backup_retention_days.setValue(int(ss.get("backup_retention_days", "30") or 30))
         self._backup_retention_days.setSuffix(" Tage")
         self._backup_retention_days.setFixedWidth(SETTINGS_COMBO_W)
+        self._backup_zip_password = QLineEdit(bs._get_password("backup_zip_password"))
+        self._backup_zip_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self._backup_zip_password.setPlaceholderText("Pflichtfeld")
+        show_password = QCheckBox("Anzeigen")
+        show_password.toggled.connect(lambda on: self._backup_zip_password.setEchoMode(
+            QLineEdit.EchoMode.Normal if on else QLineEdit.EchoMode.Password))
+        suggest_btn = button("Passwort vorschlagen", lambda: self._suggest_backup_password(show_password),
+                             tooltip="Zufälliges Passwort erzeugen")
+        password_row = QHBoxLayout()
+        password_row.setContentsMargins(0, 0, 0, 0)
+        password_row.addWidget(self._backup_zip_password, 1)
+        password_row.addWidget(show_password)
+        password_row.addWidget(suggest_btn)
+        password_widget = QWidget()
+        password_widget.setLayout(password_row)
         settings_form.addRow("", self._backup_on_close)
         settings_form.addRow(self._flbl("Aufbewahrungsdauer"), self._backup_retention_days)
+        settings_form.addRow(self._flbl("Backup-Passwort *"), password_widget)
+        settings_form.addRow("", QLabel("Backups sind mit diesem Passwort verschlüsselt. Es wird bei jeder "
+                                        "Wiederherstellung benötigt und kann nicht wiederhergestellt werden "
+                                        "– bitte notieren.", objectName="pageSubtitle", wordWrap=True))
         lay.addWidget(settings_box)
 
         # ---- Box 2: Backup-Speicherort
@@ -889,6 +911,12 @@ class SettingsDialog(QDialog):
         lay.addStretch()
         return w
 
+    def _suggest_backup_password(self, show_password: QCheckBox):
+        import secrets
+        alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"  # no 0/O/1/l/I
+        self._backup_zip_password.setText("".join(secrets.choice(alphabet) for _ in range(20)))
+        show_password.setChecked(True)
+
     def _browse_backup_path(self):
         path = QFileDialog.getExistingDirectory(self, "Backup-Ordner auswählen",
                                                 self._backup_path_edit.text())
@@ -910,19 +938,23 @@ class SettingsDialog(QDialog):
             "backup_nextcloud_path": self._nc_path.text().strip(),
             "backup_network_password": self._net_pass.text(),
             "backup_nextcloud_password": self._nc_pass.text(),
+            "backup_zip_password": self._backup_zip_password.text(),
         }
 
-    def _save_backup_settings(self):
+    def _save_backup_settings(self, password_required: bool = True):
         from bowtally.services import backup_service as bs
         values = self._backup_values()
+        if password_required and not values["backup_zip_password"]:
+            raise ValidationError("Bitte unter Backup ein Backup-Passwort festlegen.")
+        bs._set_password("backup_zip_password", values.pop("backup_zip_password"))
         bs._set_password("backup_network_password", values.pop("backup_network_password"))
         bs._set_password("backup_nextcloud_password", values.pop("backup_nextcloud_password"))
         ss.set_many(values)
 
     def _test_backup(self, bs, target: str):
-        self._save_backup_settings()
         from bowtally.ui.components.toast import Toast
         try:
+            self._save_backup_settings()
             if target == "local":
                 bs.test_local(self._backup_path_edit.text().strip())
             elif target == "network":
@@ -945,9 +977,9 @@ class SettingsDialog(QDialog):
         Toast.show(self, "Verbindung erfolgreich", Toast.SUCCESS)
 
     def _do_backup_now(self, bs, target: str):
-        self._save_backup_settings()
         from bowtally.ui.components.toast import Toast
         try:
+            self._save_backup_settings()
             if target == "local":
                 result = bs.backup_local()
                 Toast.show(self, f"Backup erstellt: {result}", Toast.SUCCESS)
@@ -971,11 +1003,22 @@ class SettingsDialog(QDialog):
                                  "Dieser Vorgang kann nicht rückgängig gemacht werden.",
                                  "Wiederherstellen", destructive=True):
             return
-        try:
-            bs.restore(path)
-        except Exception as exc:
-            show_error(self, exc, "Wiederherstellung fehlgeschlagen")
-            return
+        password, prompt = None, ""
+        while True:
+            try:
+                bs.restore(path, password)
+                break
+            except bs.BackupPasswordRequired:
+                prompt = "Passwort des Backups:"
+            except bs.BackupPasswordWrong:
+                prompt = "Das Passwort ist falsch. Bitte erneut eingeben:"
+            except Exception as exc:
+                show_error(self, exc, "Wiederherstellung fehlgeschlagen")
+                return
+            password, accepted = QInputDialog.getText(self, "Backup-Passwort", prompt,
+                                                      QLineEdit.EchoMode.Password)
+            if not accepted:
+                return
         from bowtally.ui.components.toast import Toast
         Toast.show(self, "Backup wiederhergestellt – bitte Anwendung neu starten", Toast.SUCCESS)
 

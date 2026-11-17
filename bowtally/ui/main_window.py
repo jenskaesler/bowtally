@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Main window: sidebar (tournament navigator + navigation) and content stack."""
 import json
-from PySide6.QtCore import QRectF, QSettings, QSize, Qt
+from PySide6.QtCore import QRectF, QSettings, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
@@ -27,7 +27,7 @@ from bowtally.ui.views.logbuch_view import LogbuchView
 from bowtally.ui.views.dashboard import DashboardView
 from bowtally.ui.views.guide_view import GuideView, unchecked_manual_tasks
 from bowtally.ui.views.calendar_view import CalendarView
-from bowtally.ui.views.helpers_view import HelpersView
+from bowtally.ui.views.members_view import MembersView
 from bowtally.ui.views.rules_view import RulesView
 from bowtally.ui.utils.mailto import open_mailto
 from bowtally.ui.views.tournaments_view import TournamentsView
@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
         self.inventory = InventoryView()
         self.logbuch = LogbuchView()
         self.tournaments = TournamentsView()
-        self.helpers = HelpersView()
+        self.members = MembersView()
         self.calendar = CalendarView()
         self.stack = QStackedWidget()
         self.stack.setObjectName("contentArea")
@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
             "tournaments": ("Turniere", "target", self.tournaments),
             "calendar":    ("Kalender", "calendar", self.calendar),
             "archers":     ("Schützen", "users", self.archers),
-            "helpers":     ("Helfer", "users", self.helpers),
+            "helpers":     ("Mitglieder", "users", self.members),
             "rules":       ("Regelwerke", "file", self.rules),
             "bow_classes": ("Bogenklassen", "layers", self.bow_classes),
             "inventory":   ("Inventar", "inbox", self.inventory),
@@ -367,6 +367,14 @@ class MainWindow(QMainWindow):
         self._refresh_chrome()
         self._context_changed(context.tournament_id, initial=True)
         self._refresh_title()
+        self._warn_if_backup_password_missing()
+
+    def _warn_if_backup_password_missing(self):
+        from bowtally.services import backup_service as bs
+        if ss.get_bool("backup_on_close") and not bs._get_password("backup_zip_password"):
+            QTimer.singleShot(0, lambda: Toast.show(
+                self, "Das automatische Backup ist ohne Passwort deaktiviert. "
+                      "Bitte unter Einstellungen > Backup ein Passwort festlegen.", Toast.WARNING))
 
     @staticmethod
     def _nav_list() -> QListWidget:
@@ -542,7 +550,7 @@ class MainWindow(QMainWindow):
     def _navigate_to(self, key: str):
         targets = {"rules": self.rules, "bow_classes": self.bow_classes,
                    "archers": self.archers, "tournaments": self.tournaments,
-                   "logbuch": self.logbuch, "helpers": self.helpers,
+                   "logbuch": self.logbuch, "helpers": self.members,
                    "inventory": self.inventory, "calendar": self.calendar}
         if key in targets:
             self.select_page(targets[key])

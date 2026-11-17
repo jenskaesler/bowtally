@@ -15,11 +15,19 @@ from bowtally.services import settings_service as ss
 EXPORT_TABLE_ORDER = [
     "app_settings", "club_profile", "scoring_rules", "bow_classes", "archers",
     "tournament_phases", "tournaments", "entry_fees", "tournament_participants",
-    "tournament_rounds", "scores", "helpers", "tournament_helpers",
+    "tournament_rounds", "scores", "members", "tournament_helpers", "member_helper_history",
     "score_sheet_templates", "prizes", "course_targets", "schedule_groups",
     "phase_transition_log", "inventory_items", "activity_log", "backup_log",
     "tournament_bow_classes",
 ]
+
+
+class BackupPasswordRequired(ValueError):
+    """The backup ZIP is encrypted and no password was given."""
+
+
+class BackupPasswordWrong(ValueError):
+    """The given password does not open the encrypted backup ZIP."""
 
 
 def _zip_name() -> str:
@@ -71,6 +79,14 @@ def _set_password(key: str, value: str) -> None:
     ss.set_many({f"{key}_b64": base64.b64encode(value.encode("utf-8")).decode()})
 
 
+def _backup_password() -> str:
+    password = _get_password("backup_zip_password")
+    if not password:
+        raise ValueError("Kein Backup-Passwort gesetzt. "
+                         "Bitte unter Einstellungen > Backup ein Passwort festlegen.")
+    return password
+
+
 # ------------------------------------------------------------------ export
 
 def create_backup(session, app_version: str) -> dict:
@@ -79,7 +95,7 @@ def create_backup(session, app_version: str) -> dict:
         "type": "bowtally_backup",
         "bowtally_version": app_version,
         "backup_created_at": datetime.now().isoformat(),
-        "format_version": "1",
+        "format_version": "2",
         "logo_path": None,
     }
     try:
@@ -101,9 +117,13 @@ def create_backup(session, app_version: str) -> dict:
     return {"meta": meta, "data": data}
 
 
-def save_backup_to_zip(backup_dict: dict, path, logo_path: str | None) -> None:
-    """Write backup as ZIP: backup.json + bowtally.info (+ logo/<name> if present)."""
+def save_backup_to_zip(backup_dict: dict, path, logo_path: str | None, password: str) -> None:
+    """Write backup as AES-256 encrypted ZIP: backup.json + bowtally.info (+ logo/<name>)."""
     from bowtally import __version__
+    if not password:
+        raise ValueError("Kein Backup-Passwort gesetzt. "
+                         "Bitte unter Einstellungen > Backup ein Passwort festlegen.")
+    import pyzipper  # lazy: only needed when writing/reading encrypted backups
     meta = backup_dict.setdefault("meta", {})
     if logo_path and os.path.exists(logo_path):
         logo_file = Path(logo_path)
@@ -118,7 +138,9 @@ def save_backup_to_zip(backup_dict: dict, path, logo_path: str | None) -> None:
         f"schema_version: {meta.get('schema_version')}\n"
         f"backup_created_at: {meta.get('backup_created_at')}\n"
     )
-    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+    with pyzipper.AESZipFile(path, "w", compression=zipfile.ZIP_DEFLATED,
+                             encryption=pyzipper.WZ_AES) as zf:
+        zf.setpassword(password.encode("utf-8"))
         zf.writestr("backup.json", json.dumps(backup_dict, ensure_ascii=False, indent=2))
         zf.writestr("bowtally.info", info)
         if logo_bytes is not None:
@@ -145,12 +167,13 @@ def backup_local() -> str:
     path = (ss.get("backup_local_path") or "").strip()
     if not path:
         raise ValueError("Kein Backup-Pfad konfiguriert.")
+    password = _backup_password()
     dest = Path(path)
     dest.mkdir(parents=True, exist_ok=True)
     file_path = dest / _zip_name()
     with session_scope() as session:
         backup = create_backup(session, __version__)
-    save_backup_to_zip(backup, file_path, _logo_from_backup(backup))
+    save_backup_to_zip(backup, file_path, _logo_from_backup(backup), password)
     _prune_by_days(dest, _retention_days())
     _log_backup(file_path.name, "local", os.path.getsize(file_path), True)
     return str(file_path)
@@ -162,6 +185,7 @@ def backup_network() -> str:
     path = (ss.get("backup_network_path") or "").strip()
     if not path:
         raise ValueError("Kein Netzwerkpfad konfiguriert.")
+    password = _backup_password()
     if ss.get_bool("backup_network_requires_auth"):
         user = ss.get("backup_network_user") or ""
         pwd = _get_password("backup_network_password")
@@ -177,7 +201,7 @@ def backup_network() -> str:
     file_path = dest / _zip_name()
     with session_scope() as session:
         backup = create_backup(session, __version__)
-    save_backup_to_zip(backup, file_path, _logo_from_backup(backup))
+    save_backup_to_zip(backup, file_path, _logo_from_backup(backup), password)
     _prune_by_days(dest, _retention_days())
     _log_backup(file_path.name, "network", os.path.getsize(file_path), True)
     return str(file_path)
@@ -224,13 +248,14 @@ def backup_nextcloud() -> str:
     remote_path = (ss.get("backup_nextcloud_path") or "BowTally/Backups").strip("/")
     if not url or not user:
         raise ValueError("Nextcloud-URL und Benutzername erforderlich.")
+    password = _backup_password()
     auth = _nc_auth(user, pwd)
     with session_scope() as session:
         backup = create_backup(session, __version__)
     filename = _zip_name()
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp_path = tmp.name
-    save_backup_to_zip(backup, tmp_path, _logo_from_backup(backup))
+    save_backup_to_zip(backup, tmp_path, _logo_from_backup(backup), password)
     try:
         dav_base = _nc_dav_base(url, user)
         folder_url = f"{dav_base}{remote_path}/"
@@ -326,9 +351,13 @@ def _restore_impl(backup: dict) -> None:
     from bowtally.database import seed
 
     meta = backup.get("meta", {})
-    if meta.get("format_version") != "1":
+    if meta.get("format_version") not in ("1", "2"):
         raise ValueError(f"Unbekanntes Backup-Format (format_version={meta.get('format_version')})")
     data = backup.get("data", {})
+    if "helpers" in data:  # format 1: helpers -> members
+        from bowtally.database.member_migration import helpers_to_members
+        data["members"], data["tournament_helpers"] = helpers_to_members(
+            data.pop("helpers"), data.get("tournament_helpers", []))
 
     db_path = config.DB_PATH
     if db_path.exists():
@@ -358,10 +387,10 @@ def _restore_impl(backup: dict) -> None:
         raise
 
 
-def restore_from_json(backup_path: str) -> None:
+def restore_from_json(backup_path: str, password: str | None = None) -> None:
     path = Path(backup_path)
     if zipfile.is_zipfile(path):
-        restore(str(path))
+        restore(str(path), password)
         return
     _restore_impl(json.loads(path.read_text(encoding="utf-8")))
 
@@ -370,25 +399,46 @@ def restore_from_json(backup_path: str) -> None:
 restore_json = restore_from_json
 
 
-def restore(zip_path: str) -> None:
+def _open_zip(zip_path: str, password: str | None) -> zipfile.ZipFile:
+    """Plain ZipFile for legacy unencrypted backups, AES ZipFile otherwise."""
+    with zipfile.ZipFile(zip_path) as probe:
+        encrypted = any(info.flag_bits & 0x1 for info in probe.infolist())
+    if not encrypted:
+        return zipfile.ZipFile(zip_path)
+    if not password:
+        raise BackupPasswordRequired("Das Backup ist passwortgeschützt.")
+    import pyzipper
+    zf = pyzipper.AESZipFile(zip_path)
+    zf.setpassword(password.encode("utf-8"))
+    return zf
+
+
+def restore(zip_path: str, password: str | None = None) -> None:
     """Restore from a ZIP backup: checks bowtally.info, imports backup.json, restores logo."""
     if not zipfile.is_zipfile(zip_path):
         raise ValueError("Alte JSON-Backups werden nicht mehr unterstützt. "
                          "Bitte ein ZIP-Backup (.zip) verwenden.")
-    with zipfile.ZipFile(zip_path) as zf:
+    with _open_zip(zip_path, password) as zf:
         names = zf.namelist()
         if "backup.json" not in names or "bowtally.info" not in names:
             raise ValueError("Kein gültiges BowTally-Backup (ZIP-Format erwartet).")
-        info = {}
-        for line in zf.read("bowtally.info").decode("utf-8").splitlines():
-            if ": " in line:
-                key, value = line.split(": ", 1)
-                info[key.strip()] = value.strip()
-        if info.get("type") != "bowtally_backup":
-            raise ValueError("Kein gültiges BowTally-Backup (Typ fehlt oder falsch).")
-        backup = json.loads(zf.read("backup.json").decode("utf-8"))
-        logo_entry = next((n for n in names if n.startswith("logo/")), None)
-        logo_bytes = zf.read(logo_entry) if logo_entry else None
+        try:
+            info_text = zf.read("bowtally.info").decode("utf-8")
+            backup_text = zf.read("backup.json").decode("utf-8")
+            logo_entry = next((n for n in names if n.startswith("logo/")), None)
+            logo_bytes = zf.read(logo_entry) if logo_entry else None
+        except (RuntimeError, zipfile.BadZipFile) as exc:  # pyzipper: bad password / HMAC mismatch
+            if not password:
+                raise
+            raise BackupPasswordWrong("Das Passwort ist falsch.") from exc
+    info = {}
+    for line in info_text.splitlines():
+        if ": " in line:
+            key, value = line.split(": ", 1)
+            info[key.strip()] = value.strip()
+    if info.get("type") != "bowtally_backup":
+        raise ValueError("Kein gültiges BowTally-Backup (Typ fehlt oder falsch).")
+    backup = json.loads(backup_text)
     if logo_entry and logo_bytes:
         config.APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
         dest = config.APP_DATA_DIR / Path(logo_entry).name

@@ -76,19 +76,15 @@ def test_certificates_one_page_per_place(make_tournament, monkeypatch, tmp_path)
     assert pdf.read_bytes().count(b"/Type /Page\n") + pdf.read_bytes().count(b"/Type /Page ") == 3
 
 
-def test_sidebar_helpers_stay_global_with_open_tournament(make_tournament):
+def test_sidebar_members_stay_global_with_open_tournament(make_tournament):
     from bowtally.ui.context import context
-    from bowtally.ui.views.helpers_view import GLOBAL_HEADERS, HelpersView
+    from bowtally.ui.views.members_view import HEADERS, MembersView
     t = make_tournament()
     context.set(t.id)
     try:
-        sidebar, tab = HelpersView(), HelpersView(tournament_mode=True)
+        sidebar = MembersView()
         sidebar.refresh()
-        tab.refresh()
-        assert sidebar._tid is None and sidebar._btn_from_master.isHidden()
-        assert sidebar.table.headers == GLOBAL_HEADERS
-        assert tab._tid == t.id and not tab._btn_from_master.isHidden()
-        assert tab.table.headers != GLOBAL_HEADERS
+        assert sidebar.table.headers == HEADERS
     finally:
         context.set(None)
 

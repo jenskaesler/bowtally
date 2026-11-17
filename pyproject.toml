@@ -25,6 +25,7 @@ dependencies = [
     "reportlab>=4.0",
     "requests>=2.31",
     "packaging>=23.0",
+    "pyzipper>=0.3.6",
 ]
 
 [project.optional-dependencies]

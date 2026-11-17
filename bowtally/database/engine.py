@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """SQLAlchemy engine, session factory and first-start logic."""
 import logging
+import shutil
 from contextlib import contextmanager
+from pathlib import Path
 
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -72,7 +74,23 @@ def _prepare_schema(engine) -> None:
             command.stamp(cfg, "head")
         _backfill_missing_seed_data(engine)
         return
+    _copy_db_before_migration(engine)
     _upgrade_to_head(engine)
+
+
+def _copy_db_before_migration(engine) -> None:
+    """Keep a copy of the database file (<db>.pre-migration-<revision>) before pending migrations run."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    db_file = engine.url.database
+    current = _stamped_revision(engine)
+    if not db_file or not Path(db_file).is_file() or current is None:
+        return
+    cfg = Config(str(config.ALEMBIC_INI))
+    cfg.set_main_option("script_location", str(config.MIGRATIONS_DIR))
+    if current != ScriptDirectory.from_config(cfg).get_current_head():
+        shutil.copy2(db_file, f"{db_file}.pre-migration-{current}")
 
 
 def _backfill_missing_seed_data(engine) -> None:

@@ -18,7 +18,7 @@ _SECTIONS = [
   <li><b>Dashboard</b> – Überblick über Turniere und Stammdaten</li>
   <li><b>Turniere</b> – anlegen, bearbeiten, phasenweise durchführen</li>
   <li><b>Kalender</b> – alle Turniere im Jahres-, Monats-, Wochen- und Tagesraster</li>
-  <li><b>Schützen</b> und <b>Helfer</b> – Stammdaten und Einsatzplanung</li>
+  <li><b>Schützen</b> und <b>Mitglieder</b> – Stammdaten; Helfer plant man im Turnier (Tab <b>Helfer</b>)</li>
   <li><b>Regelwerke &amp; Klassen</b> – Punktverteilung und Wertungsgruppen</li>
   <li><b>Inventar</b> – Scheiben und 3D-Ziele des Vereins</li>
   <li><b>Logbuch</b> – Protokoll der Aktivitäten</li>
@@ -449,22 +449,48 @@ Beim Anlegen neuer Turniere wird dieses Regelwerk automatisch vorausgewählt.</p
 """),
     ("Helfer", """
 <h2>Helfer</h2>
-<h3>Helfer-Stammdaten</h3>
-<p>Das Modul <b>Helfer</b> (Seitenleiste) verwaltet Helfer mit Name, Telefon,
-E-Mail, Notizen und Status. Neue Helfer legst du mit <b>Neuer Helfer</b>
-(Strg+N) an; im Bearbeiten-Dialog zeigt der Tab <b>Turnierbeteiligung</b>
-frühere Einsätze. <i>Inaktive anzeigen</i> blendet inaktive Einträge ein;
-Import und Export sind möglich.</p>
-<h3>Einsatzplanung im Turnier</h3>
-<p>Mit geöffnetem Turnier (Modul <b>Helfer</b> oder Tab <b>Helfer</b>) siehst du
-die Einsätze dieses Turniers: Name, Aufgabe, Von, Bis, Bestätigt und
-Kontaktdaten. <b>Aus Stammdatei</b> weist vorhandene Helfer zu,
-<b>Neuer Helfer</b> legt einen neuen an. Im Einsatz-Dialog trägst du Aufgabe
-und Zeit ein und kannst <i>Bestätigung versendet</i> abhaken.</p>
+<h3>Helfer im Turnier</h3>
+<p>Im geöffneten Turnier zeigt der Tab <b>Helfer</b> die Einsätze dieses
+Turniers: Name, Aufgabe, Von, Bis, Bestätigt und Kontaktdaten. Es gibt zwei
+Wege, einen Helfer hinzuzufügen:</p>
+<ul>
+  <li><b>Aus Mitgliederkartei</b> weist aktive Mitglieder zu, die als
+      <i>Turnierhelfer</i> markiert sind (bereits zugewiesene werden nicht
+      angeboten). Name und Kontaktdaten kommen aus der Mitgliederkartei und
+      lassen sich hier nicht ändern.</li>
+  <li><b>Neuer Helfer</b> legt eine Person nur für dieses Turnier an – ohne
+      Eintrag in der Mitgliederkartei und ohne Helferhistorie.</li>
+</ul>
+<p>Im Einsatz-Dialog trägst du Aufgabe und Zeit ein und kannst
+<i>Bestätigung versendet</i> abhaken.</p>
 <p>Im Kontextmenü: <b>Bestätigung senden</b> (öffnet die Helfer-Vorlage als
 E-Mail, nur mit E-Mail-Adresse), <b>Als bestätigt markieren</b>,
-<b>Bestätigung zurücksetzen</b>, <b>Als inaktiv markieren</b> und
-<b>Entfernen</b>. <b>Helferliste drucken</b> erstellt eine PDF-Liste.</p>
+<b>Bestätigung zurücksetzen</b> und <b>Entfernen</b>.
+<b>Helferliste drucken</b> erstellt eine PDF-Liste, <b>Exportieren</b> eine
+Tabelle (CSV, Excel, OpenDocument) – ohne Bankdaten.</p>
+<h3>Helferhistorie</h3>
+<p>Beim Abschluss des Turniers (Phase <i>Abgeschlossen</i>) wird für jedes
+Mitglied unter den Helfern automatisch ein Eintrag in dessen Helferhistorie
+geschrieben: Turnier, Datum, Aufgabe und – wenn Von und Bis eingetragen sind –
+die Stunden. Ein erneuter Abschluss erzeugt keine Dopplungen; wird das Turnier
+wieder geöffnet, verschwinden die automatischen Einträge. Von Hand ergänzte
+Einträge bleiben immer erhalten.</p>
+"""),
+    ("Mitglieder", """
+<h2>Mitglieder</h2>
+<p>Das Modul <b>Mitglieder</b> ist die Mitgliederkartei des Vereins. Jedes
+Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und drei Tabs:</p>
+<ul>
+  <li><b>Basisdaten</b> – Name, Adresse, Kontakt, Eintritt, Notizen sowie
+      <i>Turnierhelfer</i> und Status <i>Aktiv</i> / <i>Gekündigt</i></li>
+  <li><b>Bankverbindung</b> – Kontoinhaber, IBAN, BIC, Bank und
+      SEPA-Lastschrift</li>
+  <li><b>Helferhistorie</b> – bisherige Helfereinsätze</li>
+</ul>
+<p>Nur aktive Mitglieder mit gesetztem Turnierhelfer-Kennzeichen lassen sich
+im Turnier über <b>Aus Mitgliederkartei</b> als Helfer zuweisen.</p>
+<p><b>Datenschutz:</b> Bankdaten erscheinen in keinem Export und in keiner
+Liste. Sie sind nur Bestandteil des passwortgeschützten Backups.</p>
 """),
     ("Dashboard & Logbuch", """
 <h2>Dashboard &amp; Logbuch</h2>
@@ -643,12 +669,14 @@ Downloads-Ordner).</p>
   <li><b>Verbindung testen</b> prüft den gewählten Speicherort, <b>Backup jetzt erstellen</b>
       sichert sofort</li>
 </ul>
-<p>Backups sind JSON-Dateien (<code>BowTally-Backup-…json</code>). Das automatische Backup beim
+<p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
+jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
+Im Backup sind auch die Bankdaten der Mitglieder enthalten. Das automatische Backup beim
 Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
 <h3>Wiederherstellung</h3>
-<p><b>Backup wiederherstellen</b> → JSON-Datei wählen. <b>Achtung:</b> Die aktuelle Datenbank wird
+<p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
 nach Rückfrage ersetzt – das lässt sich nicht rückgängig machen. Danach die App neu starten.
-Alte ZIP-Backups können nicht mehr importiert werden.</p>
+</p>
 <h3>Updates</h3>
 <p>Unter Einstellungen → System → Allgemein sucht BowTally auf Wunsch <b>beim Start nach
 Updates</b> (<i>Beim Start nach Updates suchen</i>). <b>Jetzt prüfen</b> startet die Suche sofort;
@@ -779,7 +807,7 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
 <p>Aktiviere <i>Automatisches Backup beim Beenden der App</i> unter Einstellungen →
 System → Backup. Für manuelle Sicherungen: <b>Backup jetzt erstellen</b> (Lokal,
 Netzwerk oder Nextcloud je nach gewähltem Speicherort).</p>
-<p>Zur Wiederherstellung: <b>Backup wiederherstellen</b> → JSON-Datei wählen.
+<p>Zur Wiederherstellung: <b>Backup wiederherstellen</b> → ZIP-Datei wählen, Passwort eingeben.
 <b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich ersetzt.
 App danach neu starten.</p>
 """),

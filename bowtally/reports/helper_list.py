@@ -13,7 +13,7 @@ from bowtally import config
 from bowtally.reports import templates as tpl
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
-from bowtally.services.helper_service import list_tournament_helpers
+from bowtally.services.helper_service import display_contact, list_tournament_helpers
 
 HEADERS = ["Name", "Aufgabe", "Von", "Bis", "Bestätigt", "Telefon", "E-Mail"]
 
@@ -36,15 +36,11 @@ def build_helper_list(tournament_id: int, path: str | Path | None = None) -> Pat
     sub_style = ParagraphStyle("s", fontName=font, fontSize=9, leading=12)
     pagesize = tpl.page_size("A4", "landscape")
     helpers = list_tournament_helpers(tournament_id)
-    rows = [HEADERS] + [[
-        f"{th.helper.last_name}, {th.helper.first_name}",
-        th.task or "",
-        th.time_from or "",
-        th.time_to or "",
-        "Ja" if th.confirmed else "Nein",
-        th.helper.phone or "",
-        th.helper.email or "",
-    ] for th in helpers]
+    rows = [HEADERS]
+    for th in helpers:
+        name, phone, email = display_contact(th)
+        rows.append([name, th.task or "", th.time_from or "", th.time_to or "",
+                     "Ja" if th.confirmed else "Nein", phone, email])
     usable_width = pagesize[0] - tpl.MARGIN_LEFT - tpl.MARGIN_RIGHT
     col_widths = [55 * mm, 75 * mm, 16 * mm, 16 * mm, 20 * mm, 38 * mm]
     col_widths.append(usable_width - sum(col_widths))
