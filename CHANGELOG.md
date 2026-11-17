@@ -6,6 +6,21 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **📎 Dokumente und Notizen als eigene Tabs** — Im Schützen-Dialog haben Notizen und Dokumente je
+  einen eigenen Tab, im Mitglieder-Dialog die Dokumente. Dokumente zu Schützen sind neu und
+  werden wie die Mitglieder-Dateien im Datenordner abgelegt und in Backup und Restore gesichert.
+  Das Notizfeld nimmt die halbe Höhe des Tabs ein.
+- **🔗 Helferhistorie mit Turnier-Verknüpfung** — Ein manueller Einsatz lässt sich mit einem
+  bestehenden Turnier verknüpfen (Name und Datum werden vorbelegt). Pro Mitglied und Turnier gibt
+  es nur einen Eintrag; verknüpfte manuelle Einträge bleiben bearbeitbar und löschbar.
+- **🧾 Inventar: Aktiv-Flag und Reparatur-Rechnung** — Artikel lassen sich aktiv/inaktiv setzen,
+  die Liste blendet über „Aktives Inventar anzeigen“ (Standard: angehakt) inaktive aus. Inaktive
+  Artikel zählen nicht im Inventar-Gesamtwert und stehen nicht im Parcours-Material. Zu einer
+  Reparatur lässt sich eine Rechnung hinterlegen; sie liegt in den Dokumenten des Artikels und ist
+  in der Reparatur verlinkt.
+
 ### Geändert
 
 - **📦 Inventar neu aufgebaut** — Ein Artikel-Dialog mit den Tabs Stammdaten, Notizen, Dokumente und
@@ -18,17 +33,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Einmalposten. Das Haupt-Dashboard zeigt den Inventar-Gesamtwert, das Turnierdashboard
   „Kosten Einmalartikel“ und „Warenwert Bestandsinventar“ getrennt. Backup, Restore, Import und
   Export enthalten die neuen Daten.
-
-### Hinzugefügt
-
-- **📎 Dokumente und Notizen als eigene Tabs** — Im Schützen-Dialog haben Notizen und Dokumente je
-  einen eigenen Tab, im Mitglieder-Dialog die Dokumente. Dokumente zu Schützen sind neu und
-  werden wie die Mitglieder-Dateien im Datenordner abgelegt und in Backup und Restore gesichert.
-
-### Geändert
-
 - **🎨 Dialoge und Menüs** — Speichern ist blau und Abbrechen schwarz. Bei Änderungen wird
-  Speichern rot. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
+  Speichern rot. Die Schließen-Buttons sehen aus wie die Bearbeiten-Buttons, Preisfelder haben
+  wie die anderen Eingabefelder runde Ecken. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
   Icon, kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
   Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein Drittel breiter und der
   Passwortdialog beim Restore zeigt „Abbrechen“.
