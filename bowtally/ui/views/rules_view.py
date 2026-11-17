@@ -14,6 +14,7 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import ROW_HEIGHT, Cell, ReorderTable
 from bowtally.ui.components.empty_state import EmptyState
+from bowtally.ui.components.help_link import help_link
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
@@ -225,12 +226,8 @@ class ScoringRuleDialog(RecordDialog):
         f.add("top_first", "", top_first)
         f.add("shoot_off", "Stechen", QCheckBox(
             "Bei Gleichstand auf Platz 1–3 ist ein Stechen erforderlich (zeigt einen Hinweis)"))
-        f.add_widget(QLabel(
-            "Kills zählen nur bei 3D-Parcours, X-Treffer nur bei Scheibe. Gezählt werden Zonen mit dem "
-            "passenden Typ (Spalte „Typ“ der Zonenliste). Bei "
-            "„Nur Gesamtpunkte“ und „Rundenwertung“ trägst du die Anzahl neben den Punkten ein. Reihenfolge "
-            "bei Punktgleichstand: Kills, X-Treffer, Treffer in der höchsten Wertung (oder diese "
-            "zuerst); bleibt es gleich, teilen sich die Teilnehmer den Rang.", objectName="pageSubtitle", wordWrap=True))
+        f.add_note(help_link("Ergebnisse & Wertung", "gleichstand",
+                             "Mehr dazu in der Hilfe: Gleichstand und Zusatzwertungen"))
 
     def _apply_discipline(self):
         """Kill is only available for 3D, X only for Scheibe; the other one is switched off."""

@@ -244,6 +244,10 @@ class Form(QWidget):
     def add_widget(self, widget: QWidget) -> None:
         self._lay.addRow(widget)
 
+    def add_note(self, widget: QWidget) -> None:
+        """A line below the fields, aligned with the field column (not with the labels)."""
+        self._lay.addRow("", widget)
+
     def set_labels_on_top(self) -> None:
         """Label above the field, field in full width."""
         self._lay.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)

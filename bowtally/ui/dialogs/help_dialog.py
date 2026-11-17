@@ -359,7 +359,7 @@ die Eingabe gesperrt.</p>
 aktiv ist (Einstellungen → Turnierverwaltung → Allgemein). Andernfalls klickst du auf
 <b>Neu berechnen</b> (F5). Bei Punktgleichstand gelten die Gleichstandsregeln des Regelwerks; bleiben
 Teilnehmer gleichauf, steht „ex aequo“ beim Rang.</p>
-<h3>Gleichstand</h3>
+<a name="gleichstand"></a><h3>Gleichstand</h3>
 <p>Die Regeln für einen Punktgleichstand stellst du im jeweiligen Regelwerk ein
 (<b>Regelwerke</b> → Regelwerk bearbeiten). Reihenfolge:</p>
 <ol>
@@ -727,7 +727,7 @@ Downloads-Ordner).</p>
   <li><b>Verbindung testen</b> prüft den gewählten Speicherort, <b>Backup jetzt erstellen</b>
       sichert sofort</li>
 </ul>
-<p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
+<a name="backup-passwort"></a><p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
 jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
 Im Backup sind auch die Bankdaten und die Dateien der Mitglieder enthalten. Das automatische Backup beim
 Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
@@ -1045,8 +1045,12 @@ class HelpDialog(QDialog):
             self._browser.setHtml(_prepare_html(_SECTIONS[row][1]))
             self._browser.verticalScrollBar().setValue(0)
 
-    def show_section(self, title: str):
+    def show_section(self, title: str, anchor: str = ""):
+        """Open a chapter; with `anchor` the view scrolls to that <a name> inside the chapter."""
         for i, (t, _) in enumerate(_SECTIONS):
             if t == title:
                 self._nav.setCurrentRow(i)
+                self._show_section(i)        # also when the chapter was already selected
+                if anchor:
+                    QTimer.singleShot(0, lambda: self._browser.scrollToAnchor(anchor))
                 break

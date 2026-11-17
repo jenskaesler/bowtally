@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                                QVBoxLayout, QWidget)
 
 from bowtally import config
+from bowtally.ui.components.help_link import help_link
 from bowtally.services import ValidationError, settings_service as ss
 from bowtally.ui import burger_button, button, restore_geom, save_geom, show_error, theme
 
@@ -169,9 +170,10 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.apply_theme = apply_theme
         self.setWindowTitle("Einstellungen")
-        self.resize(900, 640)
-        restore_geom(self, "settings")
-        self.finished.connect(lambda: save_geom(self, "settings"))
+        available = QApplication.primaryScreen().availableGeometry()
+        self.resize(min(1040, int(available.width() * 0.9)), min(780, int(available.height() * 0.9)))
+        restore_geom(self, "settings_v2")           # v2: sizes saved for the old, smaller default are ignored
+        self.finished.connect(lambda: save_geom(self, "settings_v2"))
         self.settings = ss.all_settings()
         self.club_edits: dict = {}
         self.value_widgets: dict = {}
@@ -769,9 +771,8 @@ class SettingsDialog(QDialog):
         settings_form.addRow("", self._backup_on_close)
         settings_form.addRow(self._flbl("Aufbewahrungsdauer"), self._backup_retention_days)
         settings_form.addRow(self._flbl("Backup-Passwort *"), password_widget)
-        settings_form.addRow("", QLabel("Backups sind mit diesem Passwort verschlüsselt. Es wird bei jeder "
-                                        "Wiederherstellung benötigt und kann nicht wiederhergestellt werden "
-                                        "– bitte notieren.", objectName="pageSubtitle", wordWrap=True))
+        settings_form.addRow("", help_link("Backup & Updates", "backup-passwort",
+                                           "Mehr dazu in der Hilfe: Backup-Passwort"))
         lay.addWidget(settings_box)
 
         # ---- Box 2: Backup-Speicherort
