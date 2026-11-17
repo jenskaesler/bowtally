@@ -13,7 +13,9 @@ Sicherheitskorrekturen werden ausschließlich für die jeweils aktuelle Version 
 
 Sicherheitslücken bitte **nicht** als öffentliches GitHub-Issue melden.
 
-Stattdessen: E-Mail an [mail@jens-kaesler.de](mailto:mail@jens-kaesler.de) mit:
+Stattdessen entweder über den Button **Report a vulnerability** (Sicherheitslücke melden) im
+Reiter **Security** des GitHub-Repositorys, die Meldung bleibt dabei nicht öffentlich, oder per
+E-Mail an [mail@jens-kaesler.de](mailto:mail@jens-kaesler.de). Bitte jeweils angeben:
 
 - Beschreibung der Lücke
 - Schritte zur Reproduktion
