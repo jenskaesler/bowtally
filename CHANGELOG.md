@@ -16,7 +16,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Das Notizfeld nimmt die halbe Höhe des Tabs ein.
 - **🔗 Helferhistorie mit Turnier-Verknüpfung** — Ein manueller Einsatz lässt sich mit einem
   bestehenden Turnier verknüpfen (Name und Datum werden vorbelegt). Pro Mitglied und Turnier gibt
-  es nur einen Eintrag; verknüpfte manuelle Einträge bleiben bearbeitbar und löschbar.
+  es nur einen Eintrag; verknüpfte manuelle Einträge bleiben bearbeitbar und löschbar. Das
+  Formular „Einsatz hinzufügen“ öffnet größer.
 - **🧾 Inventar: Aktiv-Flag und Reparatur-Rechnung** — Artikel lassen sich aktiv/inaktiv setzen,
   die Liste blendet über „Aktives Inventar anzeigen“ (Standard: angehakt) inaktive aus. Inaktive
   Artikel zählen nicht im Inventar-Gesamtwert und stehen nicht im Parcours-Material. Zu einer
