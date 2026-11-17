@@ -79,7 +79,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Dropdownboxen. Der Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein
   Drittel breiter und der Passwortdialog beim Restore zeigt „Abbrechen“. Teilnehmer, Check-in,
   Eingabe und Ergebnisse haben zwischen Steuerleiste und Liste den gleichen Abstand wie die
-  anderen Listen.
+  anderen Listen. In der Einschreibung haben „Einchecken“ und „Als Walk-in erfassen“ wieder die
+  normale Größe, und in Eingabe und Auswertung grenzen die Filter-Tabs direkt an die Tabelle.
 
 ### Behoben
 
