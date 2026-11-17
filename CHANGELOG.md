@@ -84,6 +84,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   normale Größe, und in Eingabe und Auswertung grenzen die Filter-Tabs direkt an die Tabelle. Im
   Tab Helfer stehen „Exportieren“ und „Helferliste drucken“ oben rechts im Seitenkopf: Suche,
   Exportieren, Helferliste drucken, Aus Mitgliederkartei, Neuer Helfer.
+- **☁️ Nextcloud ist ein Backup-Ziel** — README, Datenschutzerklärung und Hilfe sprechen jetzt von
+  „Nextcloud-Backup“ statt „Nextcloud-Sync“ und stellen klar: Nextcloud dient nur als Speicherziel
+  für Backups (Upload), es gibt keinen Abgleich zwischen Geräten und kein Herunterladen durch
+  BowTally.
 
 ### Behoben
 
@@ -93,6 +97,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **📜 Aktuelle Lizenz im Info-Dialog** — Der Info-Dialog zeigte eine veraltete Lizenz-Kopie aus
   dem Programmpaket. Er liest jetzt die vom Installer abgelegte Lizenz im Installationsordner
   (`LICENSE.txt` oder `docs\LICENSE.txt`), das Programmpaket enthält die aktuelle `LICENSE`.
+- **⬆️ Update aus der App startet den Installer** — „Jetzt aktualisieren“ brach mit „Installer
+  konnte nicht gestartet werden: [WinError 740] Der angeforderte Vorgang erfordert erhöhte Rechte“
+  ab, weil der Installer Administratorrechte braucht. BowTally startet ihn jetzt mit der
+  Windows-Abfrage; lehnst du sie ab, bleibt die App geöffnet und das Update wird nicht installiert.
+  Von 2026.11.4 oder älter muss der Installer einmalig von Hand gestartet werden.
 
 ## [2026.11.4] – 2026-11-17
 
