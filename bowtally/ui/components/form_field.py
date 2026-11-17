@@ -244,6 +244,10 @@ class Form(QWidget):
     def add_widget(self, widget: QWidget) -> None:
         self._lay.addRow(widget)
 
+    def set_row_visible(self, key: str, visible: bool) -> None:
+        """Show or hide a field together with its label."""
+        self._lay.setRowVisible(self.fields[key], visible)
+
     def values(self) -> dict:
         return {k: f.value() for k, f in self.fields.items()}
 

@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 """Member master data, helper history and import."""
 import re
+import shutil
+import uuid
 from datetime import date
+from pathlib import Path
 
 from sqlalchemy import select
 
+from bowtally import config
 from bowtally.database.engine import session_scope
-from bowtally.database.models import Member, MemberHelperHistory, TournamentHelper
+from bowtally.database.models import Member, MemberFile, MemberHelperHistory, TournamentHelper
 from bowtally.services import ValidationError
+
+FILES_DIR = "member_files"      # below the app data folder: member_files/<member id>/<file>
 
 TEXT_FIELDS = ("member_number", "first_name", "last_name", "street", "postal_code", "city",
                "phone", "email", "notes", "account_holder", "iban", "bic", "bank_name",
@@ -123,6 +129,46 @@ def delete_member(member_id: int) -> None:
             raise ValidationError("Das Mitglied war bereits bei Turnieren eingesetzt und kann "
                                   "nicht gelöscht werden. Bitte stattdessen als inaktiv markieren.")
         s.delete(s.get(Member, member_id))
+    shutil.rmtree(config.APP_DATA_DIR / FILES_DIR / str(member_id), ignore_errors=True)
+
+
+# ---------------------------------------------------------------- files
+def list_member_files(member_id: int) -> list[MemberFile]:
+    with session_scope() as s:
+        return s.scalars(select(MemberFile).where(MemberFile.member_id == member_id)
+                         .order_by(MemberFile.id)).all()
+
+
+def member_file_path(stored: MemberFile) -> Path:
+    return config.APP_DATA_DIR / stored.stored_path
+
+
+def add_member_file(member_id: int, source) -> MemberFile:
+    """Copy a file into the app data folder and attach it to the member."""
+    source = Path(source)
+    if not source.is_file():
+        raise ValidationError(f"Datei '{source.name}' wurde nicht gefunden.")
+    safe_name = re.sub(r"[^\w.\- ]+", "_", source.name).strip() or "datei"
+    stored_path = f"{FILES_DIR}/{member_id}/{uuid.uuid4().hex[:8]}_{safe_name}"
+    with session_scope() as s:
+        if s.get(Member, member_id) is None:
+            raise ValidationError("Mitglied nicht gefunden.")
+        target = config.APP_DATA_DIR / stored_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        stored = MemberFile(member_id=member_id, filename=source.name, stored_path=stored_path,
+                            size_bytes=target.stat().st_size)
+        s.add(stored)
+        s.flush()
+        return stored
+
+
+def remove_member_file(file_id: int) -> None:
+    with session_scope() as s:
+        stored = s.get(MemberFile, file_id)
+        path = member_file_path(stored)
+        s.delete(stored)
+    path.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------- helper history
@@ -187,6 +233,7 @@ def data_summary(member_id: int) -> str:
     with session_scope() as s:
         m = s.get(Member, member_id)
         history = list(m.history)
+        file_names = [f.filename for f in m.files]
     fmt = lambda d: f"{d:%d.%m.%Y}" if d else ""  # noqa: E731
     address = ", ".join(filter(None, [m.street, " ".join(filter(None, [m.postal_code, m.city]))]))
     consent = _yes_no(m.consent_given) + (f" (seit {fmt(m.consent_date)})" if m.consent_date else "")
@@ -214,6 +261,8 @@ def data_summary(member_id: int) -> str:
                  + (f", {h.hours:.1f}".replace(".", ",") + " Std." if h.hours is not None else "")
                  for h in history]
         blocks.append("Helferhistorie\n" + "\n".join(lines))
+    if file_names:
+        blocks.append("Dateien\n" + "\n".join(f"- {name}" for name in file_names))
     return "\n\n".join(blocks)
 
 

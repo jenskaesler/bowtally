@@ -363,10 +363,24 @@ class Member(Base):
     history: Mapped[list["MemberHelperHistory"]] = relationship(
         back_populates="member", cascade="all, delete-orphan",
         order_by="MemberHelperHistory.date.desc()")
+    files: Mapped[list["MemberFile"]] = relationship(cascade="all, delete-orphan",
+                                                     order_by="MemberFile.id")
 
     @property
     def full_name(self) -> str:
         return f"{self.last_name}, {self.first_name}"
+
+
+class MemberFile(Base):
+    """File attached to a member; stored in the app data folder, `stored_path` is relative to it."""
+    __tablename__ = "member_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    member_id: Mapped[int] = mapped_column(ForeignKey("members.id", ondelete="CASCADE"))
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    added_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
 
 
 class MemberHelperHistory(Base):

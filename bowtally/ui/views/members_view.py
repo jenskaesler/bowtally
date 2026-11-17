@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """Member management (global): master data, bank data and helper history."""
+from datetime import date
+from pathlib import Path
+
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDoubleSpinBox, QHBoxLayout, QLabel,
-                               QLineEdit, QPlainTextEdit, QTabWidget, QTableWidget,
-                               QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDoubleSpinBox, QFileDialog,
+                               QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QTabWidget,
+                               QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import MEMBER_IMPORT_FIELDS
 from bowtally.services import member_service as ms
@@ -17,7 +20,7 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import DateField, Form, email_validator
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.constants import SETTINGS_COMBO_W, SETTINGS_LABEL_W
-from bowtally.ui.dialogs.export_helper import export_button
+from bowtally.ui.dialogs.export_helper import export_button, open_path
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.utils.mailto import open_mailto
@@ -70,12 +73,19 @@ class _HistoryEntryDialog(RecordDialog):
         return True
 
 
+def _size_text(size: int | None) -> str:
+    if size is None:
+        return "–"
+    return f"{size / 1024:.0f} KB" if size < 1024 * 1024 else f"{size / 1024 / 1024:.1f} MB"
+
+
 class MemberDialog(RecordDialog):
-    """Create / edit a member: base data, bank data, helper history."""
+    """Create / edit a member: base data, bank data, helper history, notes and files."""
     _default_size = (698, 640)
 
     def __init__(self, record=None, parent=None):
         self._record = record
+        self._loading = True       # while values are set, the consent date is not prefilled
         super().__init__("Neues Mitglied" if record is None else record.full_name, parent=parent)
         if record is None:
             values = {"member_number": ms.next_member_number(), "active": True}
@@ -84,13 +94,15 @@ class MemberDialog(RecordDialog):
                                                       *ms.BOOL_FIELDS)}
         self.form.set_values(values)
         self.bank_form.set_values(values)
+        self.notes_form.set_values(values)
+        self._loading = False
+        self.form.set_row_visible("consent_date", self.form.fields["consent_given"].widget.isChecked())
+        self._show_history_tab(self.form.fields["is_tournament_helper"].widget.isChecked())
         self._baseline = self._snapshot()
         self.saved_id: int | None = None
         self.saved_name: str = ""
 
     def _setup_form(self):
-        notes = QPlainTextEdit()
-        notes.setMinimumHeight(70)
         f = self.form
         f.add("member_number", "Mitgliedsnummer", QLineEdit(), required=True)
         f.add("first_name", "Vorname", QLineEdit(), required=True)
@@ -103,12 +115,15 @@ class MemberDialog(RecordDialog):
         f.add("birthday", "Geburtstag", DateField())
         f.add("member_since", "Mitglied seit", DateField())
         f.add("cancelled_on", "Gekündigt zum", DateField())
-        f.add("notes", "Notizen", notes)
-        f.add("info_by_mail", "Info per E-Mail", QCheckBox("Vereinsinfos per E-Mail erhalten"))
-        f.add("is_tournament_helper", "Turnierhelfer", QCheckBox("Ist Turnierhelfer"))
-        f.add("active", "Status", QCheckBox("Aktiv"))
-        f.add("consent_given", "Einwilligung", QCheckBox("Einwilligung Datenverarbeitung"))
+        consent = QCheckBox("Einwilligung Datenverarbeitung")
+        helper = QCheckBox("Ist Helfer")
+        f.add("consent_given", "Einwilligung", consent)
         f.add("consent_date", "Datum der Einwilligung", DateField())
+        f.add("info_by_mail", "Info per E-Mail", QCheckBox("Vereinsinfos per E-Mail erhalten"))
+        f.add("is_tournament_helper", "Helfer", helper)
+        f.add("active", "Status", QCheckBox("Aktiv"))
+        consent.toggled.connect(self._on_consent_toggled)
+        helper.toggled.connect(self._show_history_tab)
 
         self.bank_form = Form(label_width=SETTINGS_LABEL_W, combo_width=SETTINGS_COMBO_W)
         b = self.bank_form
@@ -126,7 +141,20 @@ class MemberDialog(RecordDialog):
         self._tabs.addTab(self.form, "Basisdaten")
         self._tabs.addTab(self.bank_form, "Bankverbindung")
         self._tabs.addTab(self._build_history(), "Helferhistorie")
+        self._tabs.addTab(self._build_notes(), "Notizen")
         self._body_layout.addWidget(self._tabs)
+
+    def _on_consent_toggled(self, on: bool):
+        self.form.set_row_visible("consent_date", on)
+        if not self._loading:      # a click: prefill today / forget the date
+            self.form.fields["consent_date"].set_value(date.today() if on else None)
+
+    def _show_history_tab(self, show: bool):
+        index = self._tabs.indexOf(self._history_page)
+        self._tabs.setTabVisible(index, show)
+        bar = self._tabs.tabBar()          # re-setting the text refreshes Qt's cached tab sizes
+        for i in range(bar.count()):
+            bar.setTabText(i, bar.tabText(i))
 
     def _copy_account_holder(self):
         values = self.form.values()
@@ -135,7 +163,7 @@ class MemberDialog(RecordDialog):
 
     # ---------------------------------------------------------------- helper history
     def _build_history(self) -> QWidget:
-        page = QWidget()
+        page = self._history_page = QWidget()
         lay = QVBoxLayout(page)
         lay.setContentsMargins(0, 8, 0, 0)
         if self._record is None:
@@ -212,9 +240,99 @@ class MemberDialog(RecordDialog):
             return
         self._reload_history()
 
+    # ---------------------------------------------------------------- notes and files
+    def _build_notes(self) -> QWidget:
+        page = QWidget()
+        lay = QVBoxLayout(page)
+        lay.setContentsMargins(0, 8, 0, 0)
+        self.notes_form = Form(label_width=SETTINGS_LABEL_W, combo_width=SETTINGS_COMBO_W)
+        notes = QPlainTextEdit()
+        notes.setMinimumHeight(110)
+        self.notes_form.add("notes", "Notizen", notes)
+        lay.addWidget(self.notes_form)
+        lay.addWidget(QLabel("Dateien", objectName="sectionTitle"))
+        if self._record is None:
+            lay.addWidget(QLabel("Dateien können nach dem ersten Speichern hinzugefügt werden.",
+                                 objectName="pageSubtitle"))
+            lay.addStretch()
+            return page
+        self._files_table = t = QTableWidget(0, 3)
+        t.setHorizontalHeaderLabels(["Datei", "Größe", "Hinzugefügt"])
+        t.verticalHeader().hide()
+        t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+        t.setMinimumHeight(140)
+        t.setShowGrid(False)
+        t.setAlternatingRowColors(True)
+        t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        t.horizontalHeader().setStretchLastSection(True)
+        t.setColumnWidth(0, 300)
+        t.itemSelectionChanged.connect(self._update_file_buttons)
+        t.itemDoubleClicked.connect(lambda _item: self._open_file())
+        self._btn_open = button("Öffnen", self._open_file)
+        self._btn_remove = button("Entfernen", self._remove_file)
+        buttons = QHBoxLayout()
+        buttons.addWidget(button("Datei hinzufügen …", self._add_files,
+                                 tooltip="Dateien in den Datenordner von BowTally kopieren"))
+        buttons.addWidget(self._btn_open)
+        buttons.addWidget(self._btn_remove)
+        buttons.addStretch()
+        lay.addWidget(t, 1)
+        lay.addLayout(buttons)
+        self._reload_files()
+        return page
+
+    def _reload_files(self):
+        self._files = {f.id: f for f in ms.list_member_files(self._record.id)}
+        t = self._files_table
+        t.setRowCount(len(self._files))
+        for row, stored in enumerate(self._files.values()):
+            added = f"{stored.added_at:%d.%m.%Y}" if stored.added_at else "–"
+            for col, text in enumerate([stored.filename, _size_text(stored.size_bytes), added]):
+                item = QTableWidgetItem(text)
+                item.setData(Qt.ItemDataRole.UserRole, stored.id)
+                t.setItem(row, col, item)
+        self._update_file_buttons()
+
+    def _selected_file(self):
+        row = self._files_table.currentRow()
+        item = self._files_table.item(row, 0) if row >= 0 else None
+        return self._files[item.data(Qt.ItemDataRole.UserRole)] if item else None
+
+    def _update_file_buttons(self):
+        for btn in (self._btn_open, self._btn_remove):
+            btn.setEnabled(self._selected_file() is not None)
+
+    def _add_files(self):
+        paths, _ = QFileDialog.getOpenFileNames(self, "Dateien zum Mitglied hinzufügen")
+        try:
+            with busy():
+                for path in paths:
+                    ms.add_member_file(self._record.id, Path(path))
+        except Exception as exc:
+            show_error(self, exc, "Datei konnte nicht hinzugefügt werden")
+        self._reload_files()
+
+    def _open_file(self):
+        stored = self._selected_file()
+        if stored is not None:
+            open_path(self, ms.member_file_path(stored))
+
+    def _remove_file(self):
+        stored = self._selected_file()
+        if stored is None or not ConfirmDialog.ask(
+                self, "Datei entfernen?", f"„{stored.filename}“ wird endgültig gelöscht."):
+            return
+        try:
+            ms.remove_member_file(stored.id)
+        except Exception as exc:
+            show_error(self, exc, "Datei konnte nicht entfernt werden")
+        self._reload_files()
+
     # ---------------------------------------------------------------- save
     def _snapshot(self) -> tuple:
-        return self.form.snapshot() + self.bank_form.snapshot()
+        return self.form.snapshot() + self.bank_form.snapshot() + self.notes_form.snapshot()
 
     def _is_dirty(self) -> bool:
         return self._snapshot() != self._baseline
@@ -228,7 +346,9 @@ class MemberDialog(RecordDialog):
             self.accept()
 
     def _do_save(self) -> bool:
-        values = {**self.form.values(), **self.bank_form.values()}
+        values = {**self.form.values(), **self.bank_form.values(), **self.notes_form.values()}
+        if not values["consent_given"]:
+            values["consent_date"] = None
         if (values["iban"] or values["birthday"]) and not values["consent_given"] \
                 and not ConfirmDialog.ask(
                     self, "Einwilligung fehlt",

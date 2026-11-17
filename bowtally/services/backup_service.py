@@ -16,6 +16,7 @@ EXPORT_TABLE_ORDER = [
     "app_settings", "club_profile", "scoring_rules", "bow_classes", "archers",
     "tournament_phases", "tournaments", "entry_fees", "tournament_participants",
     "tournament_rounds", "scores", "members", "tournament_helpers", "member_helper_history",
+    "member_files",
     "score_sheet_templates", "prizes", "course_targets", "schedule_groups",
     "phase_transition_log", "inventory_items", "activity_log", "backup_log",
     "tournament_bow_classes",
@@ -95,7 +96,7 @@ def create_backup(session, app_version: str) -> dict:
         "type": "bowtally_backup",
         "bowtally_version": app_version,
         "backup_created_at": datetime.now().isoformat(),
-        "format_version": "3",
+        "format_version": "4",
         "logo_path": None,
     }
     try:
@@ -145,6 +146,10 @@ def save_backup_to_zip(backup_dict: dict, path, logo_path: str | None, password:
         zf.writestr("bowtally.info", info)
         if logo_bytes is not None:
             zf.writestr(meta["logo_path"], logo_bytes)
+        for row in backup_dict.get("data", {}).get("member_files", []):   # relative path = zip name
+            source = config.APP_DATA_DIR / row["stored_path"]
+            if source.is_file():
+                zf.write(source, row["stored_path"])
 
 
 # ------------------------------------------------------------------ backup
@@ -394,7 +399,7 @@ def _restore_impl(backup: dict) -> None:
     from bowtally.database import seed
 
     meta = backup.get("meta", {})
-    if meta.get("format_version") not in ("1", "2", "3"):
+    if meta.get("format_version") not in ("1", "2", "3", "4"):
         raise ValueError(f"Unbekanntes Backup-Format (format_version={meta.get('format_version')})")
     data = backup.get("data", {})
     if "helpers" in data:  # format 1: helpers -> members
@@ -456,6 +461,31 @@ def _open_zip(zip_path: str, password: str | None) -> zipfile.ZipFile:
     return zf
 
 
+MEMBER_FILES_DIR = "member_files"
+
+
+def _extract_member_files(zf, names: list[str]) -> Path:
+    """Unpack the member files into a staging folder next to the final one and return it."""
+    staging = config.APP_DATA_DIR / f"{MEMBER_FILES_DIR}.restoring"
+    shutil.rmtree(staging, ignore_errors=True)
+    staging.mkdir(parents=True)
+    try:
+        for name in names:
+            if not name.startswith(f"{MEMBER_FILES_DIR}/") or name.endswith("/"):
+                continue
+            relative = Path(name).relative_to(MEMBER_FILES_DIR)
+            target = staging / relative
+            if ".." in relative.parts or not target.resolve().is_relative_to(staging.resolve()):
+                raise ValueError("Kein gültiges BowTally-Backup (ungültiger Dateipfad).")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with zf.open(name) as src, open(target, "wb") as out:
+                shutil.copyfileobj(src, out)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return staging
+
+
 def restore(zip_path: str, password: str | None = None) -> None:
     """Restore from a ZIP backup: checks bowtally.info, imports backup.json, restores logo."""
     if not zipfile.is_zipfile(zip_path):
@@ -470,6 +500,7 @@ def restore(zip_path: str, password: str | None = None) -> None:
             backup_text = zf.read("backup.json").decode("utf-8")
             logo_entry = next((n for n in names if n.startswith("logo/")), None)
             logo_bytes = zf.read(logo_entry) if logo_entry else None
+            staging = _extract_member_files(zf, names)
         except (RuntimeError, zipfile.BadZipFile) as exc:  # pyzipper: bad password / HMAC mismatch
             if not password:
                 raise
@@ -487,4 +518,10 @@ def restore(zip_path: str, password: str | None = None) -> None:
         dest = config.APP_DATA_DIR / Path(logo_entry).name
         dest.write_bytes(logo_bytes)
         backup.setdefault("meta", {})["logo_path"] = str(dest)
-    _restore_impl(backup)
+    try:
+        _restore_impl(backup)
+    except Exception:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    shutil.rmtree(config.APP_DATA_DIR / MEMBER_FILES_DIR, ignore_errors=True)   # the backup is the full state
+    staging.rename(config.APP_DATA_DIR / MEMBER_FILES_DIR)

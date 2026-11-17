@@ -143,7 +143,7 @@ def test_format2_round_trip_keeps_member_with_iban(tmp_path, monkeypatch):
     with Session(engine) as session:
         exported = backup_service.create_backup(session, "test")
     engine.dispose()
-    assert exported["meta"]["format_version"] == "3"
+    assert exported["meta"]["format_version"] == "4"
     assert "helpers" not in exported["data"]
     (member,) = exported["data"]["members"]
     assert member["iban"] == "DE89370400440532013000" and member["member_number"] == "42"
