@@ -138,9 +138,9 @@ class AboutDialog(QDialog):
             f"<p><b>Entwickler</b><br>"
             f"Jens Kaesler &lt;<a href='mailto:mail@jens-kaesler.de'>mail@jens-kaesler.de</a>&gt;</p>"
             f"<p><b>Quellcode &amp; Releases</b><br>"
-            f"Github Repository: &lt;<a href='{GITHUB_URL}'>{GITHUB_URL}</a><br>"
-            f"Changelog:         &lt;<a href='{GITHUB_URL}/blob/main/CHANGELOG.md'>Changelog auf GitHub</a><br>"
-            f"Releases:          &lt;<a href='{GITHUB_URL}/releases'>Releases</a></p>"
+            f"Github Repository: &lt;<a href='{GITHUB_URL}'>{GITHUB_URL}</a>&gt;<br>"
+            f"Changelog:         &lt;<a href='{GITHUB_URL}/blob/main/CHANGELOG.md'>Changelog auf GitHub</a>&gt;<br>"
+            f"Releases:          &lt;<a href='{GITHUB_URL}/releases'>Releases</a>&gt;</p>"
         )
         lay.addWidget(b, 1)
         return w
