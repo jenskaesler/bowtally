@@ -169,6 +169,54 @@ def delete_history(history_id: int) -> None:
         s.delete(_manual_entry(s, history_id))
 
 
+# ---------------------------------------------------------------- data request (Art. 15 DSGVO)
+def mask_iban(iban: str) -> str:
+    """All characters except the last four become '*', grouped in fours from the right."""
+    compact = "".join((iban or "").split()).upper()
+    masked = "*" * max(len(compact) - 4, 0) + compact[-4:]
+    groups = [masked[max(end - 4, 0):end] for end in range(len(masked), 0, -4)]
+    return " ".join(reversed(groups))
+
+
+def _yes_no(value: bool) -> str:
+    return "Ja" if value else "Nein"
+
+
+def data_summary(member_id: int) -> str:
+    """Plain-text overview of everything stored about a member; the IBAN is masked."""
+    with session_scope() as s:
+        m = s.get(Member, member_id)
+        history = list(m.history)
+    fmt = lambda d: f"{d:%d.%m.%Y}" if d else ""  # noqa: E731
+    address = ", ".join(filter(None, [m.street, " ".join(filter(None, [m.postal_code, m.city]))]))
+    consent = _yes_no(m.consent_given) + (f" (seit {fmt(m.consent_date)})" if m.consent_date else "")
+    sections = [
+        ("Stammdaten", [
+            ("Mitgliedsnummer", m.member_number), ("Name", f"{m.first_name} {m.last_name}"),
+            ("Anschrift", address), ("Telefon", m.phone), ("E-Mail", m.email),
+            ("Geburtstag", fmt(m.birthday)), ("Mitglied seit", fmt(m.member_since)),
+            ("Gekündigt zum", fmt(m.cancelled_on)), ("Status", member_status(m)),
+            ("Notizen", m.notes), ("Infos per E-Mail", _yes_no(m.info_by_mail)),
+            ("Turnierhelfer", _yes_no(m.is_tournament_helper)),
+            ("Einwilligung Datenverarbeitung", consent)]),
+        ("Bankverbindung", [
+            ("Kontoinhaber", m.account_holder), ("IBAN", mask_iban(m.iban)), ("BIC", m.bic),
+            ("Name der Bank", m.bank_name),
+            ("Einzugsermächtigung", _yes_no(m.sepa_direct_debit) if m.iban else ""),
+            ("SEPA-Mandatsreferenz", m.sepa_mandate_ref),
+            ("Datum der Mandatserteilung", fmt(m.sepa_mandate_date))]),
+    ]
+    blocks = [f"{title}\n" + "\n".join(f"{label}: {value}" for label, value in rows if value)
+              for title, rows in sections]
+    if history:
+        lines = [f"- {fmt(h.date) or 'ohne Datum'}: {h.tournament_name}"
+                 + (f", {h.role}" if h.role else "")
+                 + (f", {h.hours:.1f}".replace(".", ",") + " Std." if h.hours is not None else "")
+                 for h in history]
+        blocks.append("Helferhistorie\n" + "\n".join(lines))
+    return "\n\n".join(blocks)
+
+
 # ---------------------------------------------------------------- import
 def import_members(records: list[dict], strategy: str) -> dict:
     created = updated = skipped = 0

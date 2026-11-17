@@ -1080,7 +1080,8 @@ class SettingsDialog(QDialog):
         inner = QWidget()
         lay = QVBoxLayout(inner)
         lay.setSpacing(10)
-        hint = QLabel("Platzhalter: {name}, {verein}, {klasse}, {turniername}, {datum}",
+        hint = QLabel("Platzhalter: {name}, {verein}, {klasse}, {turniername}, {datum}; "
+                      "nur Datenauskunft: {daten}",
                       objectName="pageSubtitle")
         lay.addWidget(hint)
         for title, subj_key, body_key in (
@@ -1090,6 +1091,7 @@ class SettingsDialog(QDialog):
             ("Ergebnisversand", "email_results_subject", "email_results_body"),
             ("Wartelisten-Nachrücker", "email_waitlist_subject", "email_waitlist_body"),
             ("Helfer-Bestätigung", "email_helper_subject", "email_helper_body"),
+            ("Datenauskunft (Mitglieder)", "email_data_request_subject", "email_data_request_body"),
             ("Turnier-Ankündigung", "email_tpl_tournament_announce_subject",
              "email_tpl_tournament_announce_body"),
         ):

@@ -491,6 +491,12 @@ Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und drei Tabs:</p>
 im Turnier über <b>Aus Mitgliederkartei</b> als Helfer zuweisen.</p>
 <p><b>Datenschutz:</b> Bankdaten erscheinen in keinem Export und in keiner
 Liste. Sie sind nur Bestandteil des passwortgeschützten Backups.</p>
+<p><b>Datenauskunft:</b> Möchte ein Mitglied wissen, welche Daten über es gespeichert sind,
+wählt man das Mitglied aus und klickt auf <b>Datenauskunft senden</b> (nur mit hinterlegter
+E-Mail-Adresse). Es öffnet sich ein Mailentwurf mit allen gespeicherten Daten; die IBAN ist bis
+auf die letzten vier Stellen durch Sternchen ersetzt. Der Text lässt sich unter
+<b>Einstellungen &rarr; E-Mail-Vorlagen &rarr; Datenauskunft</b> anpassen (Platzhalter
+<code>{daten}</code>).</p>
 """),
     ("Dashboard & Logbuch", """
 <h2>Dashboard &amp; Logbuch</h2>

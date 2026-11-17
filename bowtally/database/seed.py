@@ -149,6 +149,19 @@ DEFAULT_SETTINGS = [
      "Wir freuen uns auf deine Unterstützung!\n\n"
      "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Helfer-Bestätigung"),
+    ("email_data_request_subject",
+     "Auskunft über deine gespeicherten Daten – {vereinsname}", "email", "string",
+     "E-Mail-Vorlage: Betreff Datenauskunft"),
+    ("email_data_request_body",
+     "Hallo {first_name},\n\n"
+     "auf deine Anfrage teilen wir dir mit, welche personenbezogenen Daten {vereinsname} "
+     "über dich gespeichert hat (Auskunft nach Art. 15 DSGVO):\n\n"
+     "{daten}\n\n"
+     "Zu deiner Sicherheit ist die IBAN bis auf die letzten vier Stellen unkenntlich gemacht.\n\n"
+     "Du kannst jederzeit die Berichtigung oder Löschung deiner Daten verlangen. "
+     "Melde dich dazu einfach bei uns.\n\n"
+     "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
+     "email", "string", "E-Mail-Vorlage: Text Datenauskunft"),
     ("email_tpl_tournament_announce_subject",
      "Turnierankündigung: {turniername} am {datum}", "email", "string",
      "E-Mail-Vorlage: Betreff Turnierankündigung"),

@@ -82,7 +82,8 @@ def _html_body(body: str, font: str) -> str:
 
 
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
-                parent=None, attachment: Path | None = None, bcc: str | None = None) -> None:
+                parent=None, attachment: Path | None = None, bcc: str | None = None,
+                as_draft: bool = False) -> None:
     """Open a mailto: URL built from app_settings template `template_key`.
 
     Loads `{template_key}_subject` and `{template_key}_body` from settings,
@@ -90,6 +91,7 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
     Shows warning toasts for missing email or unconfigured template.
     With `attachment`, mailto: cannot carry files, so an unsent .eml draft is opened instead.
     `bcc` is a comma-separated address list.
+    `as_draft` opens the .eml draft even without attachment (mailto: URLs are limited to ~2000 chars).
     """
     if not recipient_email and not bcc:
         name = context.get("name") or context.get("first_name") or "Teilnehmer"
@@ -121,7 +123,7 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
     })
     subj = (subj_raw or "").format_map(ctx)
     body = (body_raw or "").format_map(ctx)
-    if attachment:
+    if attachment or as_draft:
         msg = EmailMessage()
         msg["X-Unsent"] = "1"  # mail clients open the .eml as an editable draft
         if recipient_email:
@@ -130,14 +132,15 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
             msg["Bcc"] = bcc
         msg["Subject"] = subj
         msg.set_content(_html_body(body, _font_family()), subtype="html", charset="utf-8")
-        msg.add_attachment(Path(attachment).read_bytes(), maintype="application",
-                           subtype="pdf", filename=Path(attachment).name)
+        if attachment:
+            msg.add_attachment(Path(attachment).read_bytes(), maintype="application",
+                               subtype="pdf", filename=Path(attachment).name)
         # shortcut: temp .eml files are not cleaned up, fine for a few KB-MB per mail
         name = context.get("turniername") or "Turnier"
         safe_name = "".join(ch for ch in name if ch.isalnum() or ch in (" ", "-", "_")).strip().replace(" ", "_") or "Turnier"
         ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        with tempfile.NamedTemporaryFile(prefix=f"BowTally_Ankündigung_{safe_name}_{ts_str}_",
-                                         suffix=".eml", delete=False) as f:
+        prefix = f"BowTally_Ankündigung_{safe_name}_{ts_str}_" if attachment else f"BowTally_Mail_{ts_str}_"
+        with tempfile.NamedTemporaryFile(prefix=prefix, suffix=".eml", delete=False) as f:
             f.write(msg.as_bytes())
         exporter.open_file(f.name)
         return

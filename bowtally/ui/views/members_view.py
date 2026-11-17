@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDoubleSpinBox, QHB
 
 from bowtally.io.importer import MEMBER_IMPORT_FIELDS
 from bowtally.services import member_service as ms
-from bowtally.services.settings_service import KEY_EMAIL_TPL_HELPER
+from bowtally.services.settings_service import KEY_EMAIL_TPL_DATA_REQUEST
 from bowtally.services import ValidationError
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
@@ -300,7 +300,7 @@ class MembersView(ListView):
         m = self._rows[row_id]
         entries = [("Bearbeiten", self.edit_item)]
         if m.email:
-            entries.append(("E-Mail senden", lambda: self._mailto(row_id)))
+            entries.append(("Datenauskunft senden", lambda: self._send_data_request(row_id)))
         entries.append(("Als inaktiv markieren" if m.active else "Wieder aktivieren",
                         lambda: self._set_active(row_id, not m.active)))
         return entries + [None, ("Löschen", self.delete_selected)]
@@ -365,13 +365,12 @@ class MembersView(ListView):
         ms.set_active(member_id, active)
         self.refresh()
 
-    def _mailto(self, member_id: int):
+    def _send_data_request(self, member_id: int):
         m = self._rows[member_id]
-        # tournament placeholders stay empty: this mail is not tied to a tournament
-        open_mailto(KEY_EMAIL_TPL_HELPER, m.email, {
-            "name": f"{m.first_name} {m.last_name}",
-            "turniername": "", "datum": "", "aufgabe": "", "von": "", "bis": "",
-        }, self)
+        open_mailto(KEY_EMAIL_TPL_DATA_REQUEST, m.email, {
+            "name": f"{m.first_name} {m.last_name}", "first_name": m.first_name,
+            "last_name": m.last_name, "daten": ms.data_summary(member_id),
+        }, self, as_draft=True)
 
     # ---------------------------------------------------------------- import / export
     def _import(self):
