@@ -248,7 +248,7 @@ class MainWindow(QMainWindow):
             "calendar":    ("Kalender", "calendar", self.calendar),
             "archers":     ("Schützen", "users", self.archers),
             "helpers":     ("Mitglieder", "users", self.members),
-            "rules":       ("Regelwerke", "file", self.rules),
+            "rules":       ("Regeln", "file", self.rules),
             "bow_classes": ("Bogenklassen", "layers", self.bow_classes),
             "inventory":   ("Inventar", "inbox", self.inventory),
             "guide":       ("Leitfaden", "rules", self.guide),
