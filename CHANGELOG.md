@@ -20,12 +20,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Artikel zählen nicht im Inventar-Gesamtwert und stehen nicht im Parcours-Material. Zu einer
   Reparatur lässt sich eine Rechnung hinterlegen; sie liegt in den Dokumenten des Artikels und ist
   in der Reparatur verlinkt. Reparaturkosten von 0 € sind nicht zulässig.
-
-### Geändert (Einstellungen)
-
-- **⚙️ Einstellungen neu gegliedert** — „Druck“ und „Inventarkategorien“ stehen jetzt unter
-  Turnierverwaltung → Allgemein, „Druck & Listen“ heißt „Textvorlagen“. Design, Oberfläche und
-  Navigation stehen unter „System“.
+- **🛠️ Logging-Modus** — Unter Einstellungen → System → Erweitert stellst du das Detailniveau der
+  Logdatei ein: Info (Standard), Warnung oder Debug. Debug muss nach einer Warnmeldung bestätigt
+  werden. Der Modus ist im Backup enthalten und wird beim Start angewendet.
+- **🔄 Neustart nach Wiederherstellung** — Nach einem erfolgreichen Restore startet der Button
+  „Jetzt neu starten“ die App mit einem Klick neu.
 
 ### Behoben
 
@@ -35,6 +34,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **📜 Logbuch als Tabelle** — Das Logbuch zeigt die Einträge als kompakte Tabelle (Zeit, Typ,
+  Meldung, Kontext) mit einer Zeile je Eintrag, damit mehr auf eine Seite passt (100 je Seite).
+- **⚙️ Einstellungen neu gegliedert** — „Druck“ und „Inventarkategorien“ stehen jetzt unter
+  Turnierverwaltung → Allgemein, „Druck & Listen“ heißt „Textvorlagen“. Design, Oberfläche und
+  Navigation stehen unter „System“.
 - **📦 Inventar neu aufgebaut** — Ein Artikel-Dialog mit den Tabs Stammdaten, Notizen, Dokumente und
   Reparaturkosten ersetzt die bisherigen Listen für Scheiben und 3D-Ziele. Artikel haben
   Kategorie, Größe, Shop-Link, Einzelpreis, Bestand und einen berechneten Gesamtpreis. Die
