@@ -80,11 +80,11 @@ flowchart LR
 
 ### Stammdaten
 
-- 🏹 **Schützen** – Suche, aktiv/inaktiv; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
+- 🏹 **Schützen** – Suche, aktiv/inaktiv; Notizen und Dokumente in eigenen Tabs; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
 - 📏 **Regelwerke** – 9 eingebaute Regelwerke mit Gleichstandsregeln nach WA, IBO, IFAA und DBSV (3D Hunter, IBO 3D Standard/12-Ring, WA 3D, DBSV Waldrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m) plus eigene durch Klonen; Kills/X, Disziplin, Gleichstand und Stechen je Regelwerk einstellbar, Regelwerke lesbar exportier-/importierbar.
-- 👥 **Mitglieder** – Mitgliederkartei mit Mitgliedsnummer, Adresse, Einwilligung (Datum erscheint beim Ankreuzen), Notizen und Dateien, Bankverbindung (IBAN-Prüfziffer, SEPA-Mandat) und Helferhistorie; Datenauskunft per E-Mail mit maskierter IBAN; Excel-Export/-Import ohne Bankdaten.
+- 👥 **Mitglieder** – Mitgliederkartei mit Mitgliedsnummer, Adresse, Einwilligung (Datum erscheint beim Ankreuzen), Notizen und Dokumente in eigenen Tabs, Bankverbindung (IBAN-Prüfziffer, SEPA-Mandat) und Helferhistorie (manuelle Einsätze lassen sich mit einem bestehenden Turnier verknüpfen); Datenauskunft per E-Mail mit maskierter IBAN; Excel-Export/-Import ohne Bankdaten.
 - 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
-- 📦 **Inventar und Logbuch** – Ausrüstung (Ziele, Tische, Pavillons …) mit Kategorien, Preisen, Dokumenten und Reparaturkosten verwalten, Parcoursplan mit Bestandsprüfung; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
+- 📦 **Inventar und Logbuch** – Ausrüstung (Ziele, Tische, Pavillons …) mit Kategorien, Preisen, Dokumenten und Reparaturkosten (mit verlinkter Rechnung) verwalten, Artikel aktiv/inaktiv, Parcoursplan mit Bestandsprüfung; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
 ### Einstellungen
@@ -92,7 +92,7 @@ flowchart LR
 - 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
 - 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
 - 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar.
-- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Mitglieder-Bankdaten und -Dateien), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
+- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
 - 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
 - ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
 

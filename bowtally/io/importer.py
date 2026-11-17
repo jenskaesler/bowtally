@@ -87,6 +87,7 @@ INVENTORY_IMPORT_FIELDS = [
     ImportField("quantity", "Anzahl", type="int", aliases=["quantity", "menge", "bestand"]),
     ImportField("use_in_course", "Parcoursplanung", type="bool",
                 aliases=["für parcoursplanung", "parcours"]),
+    ImportField("active", "Aktiv", type="bool", aliases=["active"]),
     ImportField("notes", "Notizen", aliases=["bemerkung", "notes"]),
 ]
 

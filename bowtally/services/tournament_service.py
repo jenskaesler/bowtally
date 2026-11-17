@@ -531,6 +531,8 @@ def _write_helper_history(s, t: Tournament) -> None:
     for th in s.scalars(select(TournamentHelper).where(
             TournamentHelper.tournament_id == t.id, TournamentHelper.member_id.is_not(None))):
         entry = existing.get(th.member_id)
+        if entry is not None and entry.is_manual:      # a manually linked entry wins
+            continue
         if entry is None:
             entry = MemberHelperHistory(member_id=th.member_id, tournament_id=t.id)
             s.add(entry)
@@ -556,7 +558,8 @@ def transition_phase_backward(tournament_id: int) -> None:
         t.status = PHASE_STATUS.get(target, "draft")
         if was_closed:
             s.execute(delete(MemberHelperHistory)
-                      .where(MemberHelperHistory.tournament_id == tournament_id))
+                      .where(MemberHelperHistory.tournament_id == tournament_id,
+                             MemberHelperHistory.is_manual.is_(False)))
 
 
 def list_phase_log(tournament_id: int) -> list[PhaseTransitionLog]:

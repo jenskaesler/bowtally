@@ -79,7 +79,7 @@ class PhaseLogDialog(QDialog):
             row.addWidget(button("← Zur vorherigen Phase", _go_back, "danger",
                                  "Dialog schließen und Phase zurückwechseln"))
         row.addStretch()
-        row.addWidget(button("Schließen", self.accept, "primary", "Protokoll schließen"))
+        row.addWidget(button("Schließen", self.accept, tooltip="Protokoll schließen"))
         lay = QVBoxLayout(self)
         if not entries:
             lay.addWidget(QLabel("Noch keine Phasenwechsel.", objectName="pageSubtitle"))

@@ -9,6 +9,7 @@ from bowtally.database.engine import session_scope
 from bowtally.database.models import Member, MemberHelperHistory, Tournament
 from bowtally.services import ValidationError
 from bowtally.services import helper_service as hs
+from bowtally.services import member_service as ms
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
 from bowtally.services import tournament_service as ts
@@ -106,6 +107,50 @@ def test_close_writes_history_and_going_back_removes_only_auto_entries():
     ts.transition_phase_backward(tid)
     assert [h.tournament_name for h in _history(with_times)] == ["Altes Turnier"]
     assert _history(no_times) == []
+
+
+def _manual(mid, tid, **extra):
+    return ms.add_history(mid, {"tournament_name": "Helfer-Cup", "tournament_id": tid, **extra})
+
+
+def test_manual_entry_linked_to_a_tournament_can_be_edited_and_deleted():
+    tid, other = _tournament(), _tournament()
+    mid = _member("E1")
+    entry = _manual(mid, tid, role="Kasse")
+    assert entry.tournament_id == tid and ms.is_manual_entry(entry)
+    ms.update_history(entry.id, {"tournament_name": "Neu", "tournament_id": other})
+    assert _history(mid)[0].tournament_id == other
+    with pytest.raises(ValidationError):
+        ms.update_history(entry.id, {"tournament_name": "x", "tournament_id": 99999})
+    ms.delete_history(entry.id)
+    assert _history(mid) == []
+
+
+def test_linking_the_same_tournament_twice_is_rejected():
+    tid = _tournament()
+    mid = _member("E2")
+    _manual(mid, tid)
+    with pytest.raises(ValidationError, match="bereits einen Eintrag"):
+        _manual(mid, tid)
+    assert _manual(mid, None) and _manual(mid, None)           # unlinked entries may repeat
+
+
+def test_closing_keeps_a_manual_link_and_going_back_does_not_delete_it():
+    tid = _tournament()
+    mid, auto_mid = _member("E3"), _member("E4")
+    manual = _manual(mid, tid, role="Handschriftlich")
+    for m in (mid, auto_mid):
+        hs.assign_member(tid, m)
+    assert ts.transition_phase(tid, "closed", force=True).ok
+    assert [h.role for h in _history(mid)] == ["Handschriftlich"]     # manual entry wins
+    auto = _history(auto_mid)[0]
+    assert not ms.is_manual_entry(auto)
+    with pytest.raises(ValidationError):                              # auto entries stay locked
+        ms.update_history(auto.id, {"tournament_name": "x"})
+    with pytest.raises(ValidationError, match="bereits einen Eintrag"):
+        _manual(auto_mid, tid)
+    ts.transition_phase_backward(tid)
+    assert [h.id for h in _history(mid)] == [manual.id] and _history(auto_mid) == []
 
 
 def test_closing_twice_in_a_row_upserts():

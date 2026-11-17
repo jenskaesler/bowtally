@@ -15,6 +15,7 @@ from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.files_panel import FilesPanel
 from bowtally.ui.components.form_field import DateField, Form, email_validator
+from bowtally.ui.components.half_height import keep_half_height
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
@@ -97,13 +98,13 @@ class ArcherDialog(RecordDialog):
         self.notes_form = Form()
         self.notes_form.set_labels_on_top()
         notes = QPlainTextEdit()
-        notes.setMinimumHeight(110)
         self.notes_form.add("notes", "Notizen", notes)
         page = QWidget()
         lay = QVBoxLayout(page)
         lay.setContentsMargins(0, 8, 0, 0)
         lay.addWidget(self.notes_form)
         lay.addStretch()
+        keep_half_height(page, notes)
         return page
 
     def _snapshot(self) -> tuple:

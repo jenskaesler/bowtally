@@ -21,9 +21,10 @@ def _size_text(size: int | None) -> str:
 class FilesPanel(QWidget):
     """Without an owner_id (record not saved yet) only a hint is shown and `table` is None."""
 
-    def __init__(self, owner_id, subject: str, list_fn, add_fn, remove_fn, path_fn, parent=None):
+    def __init__(self, owner_id, subject: str, list_fn, add_fn, remove_fn, path_fn,
+                 hints_fn=None, parent=None):
         super().__init__(parent)
-        self._owner_id, self._subject = owner_id, subject
+        self._owner_id, self._subject, self._hints = owner_id, subject, hints_fn
         self._list, self._add, self._remove, self._path = list_fn, add_fn, remove_fn, path_fn
         self.table = None
         lay = QVBoxLayout(self)
@@ -59,10 +60,11 @@ class FilesPanel(QWidget):
         buttons.addStretch()
         lay.addWidget(t, 1)
         lay.addLayout(buttons)
-        self._reload()
+        self.reload()
 
-    def _reload(self):
+    def reload(self):
         self._files = {f.id: f for f in self._list(self._owner_id)}
+        hints = self._hints(self._owner_id) if self._hints else {}
         t = self.table
         t.setRowCount(len(self._files))
         for row, stored in enumerate(self._files.values()):
@@ -70,6 +72,7 @@ class FilesPanel(QWidget):
             for col, text in enumerate([stored.filename, _size_text(stored.size_bytes), added]):
                 item = QTableWidgetItem(text)
                 item.setData(Qt.ItemDataRole.UserRole, stored.id)
+                item.setToolTip(hints.get(stored.id, ""))
                 t.setItem(row, col, item)
         self._update_buttons()
 
@@ -90,7 +93,7 @@ class FilesPanel(QWidget):
                     self._add(self._owner_id, Path(path))
         except Exception as exc:
             show_error(self, exc, "Datei konnte nicht hinzugefügt werden")
-        self._reload()
+        self.reload()
 
     def open_file(self):
         stored = self._selected()
@@ -106,4 +109,4 @@ class FilesPanel(QWidget):
             self._remove(stored.id)
         except Exception as exc:
             show_error(self, exc, "Datei konnte nicht entfernt werden")
-        self._reload()
+        self.reload()

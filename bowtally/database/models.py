@@ -413,6 +413,7 @@ class MemberHelperHistory(Base):
     date: Mapped[date] = mapped_column(Date, nullable=True)
     role: Mapped[str | None] = mapped_column(Text)
     hours: Mapped[float | None] = mapped_column(Float)
+    is_manual: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
     member: Mapped["Member"] = relationship(back_populates="history")
 
@@ -546,6 +547,7 @@ class InventoryItem(Base):
     use_in_course: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
                                                 server_default="0")
     notes: Mapped[str | None] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
 
     category: Mapped["InventoryCategory | None"] = relationship()
     files: Mapped[list["InventoryFile"]] = relationship(cascade="all, delete-orphan",
@@ -575,6 +577,10 @@ class InventoryRepair(Base):
     description: Mapped[str | None] = mapped_column(Text)
     cost: Mapped[float] = mapped_column(Float, nullable=False)
     performed_by: Mapped[str | None] = mapped_column(Text)
+    invoice_file_id: Mapped[int | None] = mapped_column(
+        ForeignKey("inventory_files.id", ondelete="SET NULL"))
+
+    invoice_file: Mapped["InventoryFile | None"] = relationship()
 
 
 class CourseItem(Base):

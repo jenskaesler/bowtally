@@ -31,6 +31,9 @@ oben führt zurück zum Dashboard. Unten findest du <b>Einstellungen</b>, <b>Hil
 Einstellungen → Navigation ein.</p>
 <p>Ein orangefarbener Punkt an <b>Turniere</b> weist darauf hin, dass beim aktiven Turnier die
 maximale Teilnehmerzahl erreicht ist oder dass ein Turnier in der Phase „Schießen“ läuft.</p>
+<h3>Dialoge</h3>
+<p>In Bearbeiten-Dialogen ist <b>Speichern</b> blau und wird rot, sobald du etwas geändert hast;
+<b>Abbrechen</b> ist schwarz.</p>
 <h3>Aktives Turnier</h3>
 <p>Wenn du ein Turnier öffnest, erscheint im oberen Teil der Seitenleiste ein Turnier-Block mit
 Name, Phase und diesen Schnellzugriffen:</p>
@@ -227,7 +230,10 @@ Auswahllisten ausgeblendet. Die Checkbox <i>Inaktive Schützen anzeigen</i>
 blendet sie wieder ein. Schützen mit Turnierteilnahme lassen sich nicht löschen;
 BowTally bietet stattdessen an, sie zu deaktivieren.</p>
 <p>Der Bearbeiten-Dialog zeigt im Tab <b>Turnierhistorie</b> alle bisherigen
-Teilnahmen mit Rang und Punkten. Zwei Checkboxen gibt es nur mit hinterlegter
+Teilnahmen mit Rang und Punkten. Die Tabs <b>Notizen</b> (das Feld nimmt die halbe Höhe ein) und
+<b>Dokumente</b> (z.&nbsp;B. Ausweis oder Startberechtigung) sind eigene Tabs; Dokumente werden in
+den Datenordner kopiert, sind im Backup enthalten und lassen sich erst nach dem ersten Speichern
+hinzufügen. Zwei Checkboxen gibt es nur mit hinterlegter
 E-Mail-Adresse (ohne Adresse sind sie ausgegraut und abgewählt):</p>
 <ul>
   <li><b>Bei neuen Turnieren per E-Mail benachrichtigen</b> – der Schütze erhält
@@ -450,8 +456,14 @@ für Turniere. Die Liste lässt sich oben links nach <b>Kategorie</b> filtern. J
 einen Dialog mit den Tabs <b>Stammdaten</b> (Bezeichnung, Kategorie, Größe, Shop-Link,
 Einzelpreis, Anzahl, Gesamtpreis = Einzelpreis × Anzahl, <i>Für Parcoursplanung verwenden</i>),
 <b>Notizen</b>, <b>Dokumente</b> (z. B. Rechnung oder Foto) und <b>Reparaturkosten</b>
-(Datum, Beschreibung, Kosten, durchgeführt von). Reparaturkosten zählen nicht zum Inventarwert.
-Import und Export sind möglich.</p>
+(Datum, Beschreibung, Kosten, durchgeführt von, optional <b>Rechnung</b>). Die Rechnung liegt in
+den Dokumenten des Artikels und ist in der Reparatur verlinkt (Spalte <i>Rechnung</i>, Doppelklick
+oder <b>Rechnung öffnen</b>); löschst du das Dokument, wird der Link leer. Reparaturkosten zählen
+nicht zum Inventarwert. Import und Export sind möglich.</p>
+<p>Ein Artikel kann <b>aktiv</b> oder <b>inaktiv</b> sein. Die Checkbox
+<i>Aktives Inventar anzeigen</i> unten links ist standardmäßig angehakt und zeigt dann nur
+aktive Artikel; ohne Haken siehst du alle. Inaktive Artikel zählen nicht zum Inventarwert und
+stehen nicht im Parcoursplan zur Auswahl.</p>
 <p>Die <b>Kategorien</b> pflegst du unter Einstellungen → Inventarkategorien. Eine Kategorie
 lässt sich nur löschen, wenn keine Artikel mehr darin sind; sonst bietet das Programm an, die
 Artikel in eine andere Kategorie zu verschieben.</p>
@@ -524,12 +536,15 @@ Mitglied unter den Helfern automatisch ein Eintrag in dessen Helferhistorie
 geschrieben: Turnier, Datum, Aufgabe und – wenn Von und Bis eingetragen sind –
 die Stunden. Ein erneuter Abschluss erzeugt keine Dopplungen; wird das Turnier
 wieder geöffnet, verschwinden die automatischen Einträge. Von Hand ergänzte
-Einträge bleiben immer erhalten.</p>
+Einträge bleiben immer erhalten. Ein von Hand ergänzter Einsatz lässt sich über
+<i>Turnier (optional)</i> mit einem bestehenden Turnier verknüpfen (Name und Datum werden
+vorbelegt); pro Mitglied und Turnier gibt es nur einen Eintrag. Ein verknüpfter manueller Einsatz
+bleibt bearbeitbar, die automatischen Einträge bleiben unverändert.</p>
 """),
     ("Mitglieder", """
 <h2>Mitglieder</h2>
 <p>Das Modul <b>Mitglieder</b> ist die Mitgliederkartei des Vereins. Jedes
-Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und bis zu vier Tabs:</p>
+Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und bis zu fünf Tabs:</p>
 <ul>
   <li><b>Basisdaten</b> – Name, Adresse, Kontakt, Eintritt, <i>Einwilligung Datenverarbeitung</i>
       (mit Datum: erscheint beim Ankreuzen, vorbelegt mit heute), <i>Info per E-Mail</i>,
@@ -537,7 +552,8 @@ Mitglied hat eine eindeutige <b>Mitgliedsnummer</b> und bis zu vier Tabs:</p>
   <li><b>Bankverbindung</b> – Kontoinhaber, IBAN, BIC, Bank und
       SEPA-Lastschrift</li>
   <li><b>Helferhistorie</b> – bisherige Helfereinsätze; der Tab erscheint nur bei <i>Ist Helfer</i></li>
-  <li><b>Notizen</b> – Freitext und Dateien (z.&nbsp;B. Mitgliedsantrag). Dateien werden in den
+  <li><b>Notizen</b> – Freitext (das Feld nimmt die halbe Höhe ein)</li>
+  <li><b>Dokumente</b> – Dateien (z.&nbsp;B. Mitgliedsantrag). Dateien werden in den
       Datenordner von BowTally kopiert, lassen sich öffnen und entfernen und sind im Backup
       enthalten. Hinzufügen geht erst nach dem ersten Speichern.</li>
 </ul>
@@ -741,7 +757,10 @@ Downloads-Ordner).</p>
 </ul>
 <a name="backup-passwort"></a><p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
 jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
-Im Backup sind auch die Bankdaten und die Dateien der Mitglieder enthalten. Das automatische Backup beim
+Im Backup sind alle Daten enthalten, auch Inventar (Kategorien, Artikel, Reparaturen,
+Parcours-Material), die Bankdaten sowie die Dokumente von Mitgliedern, Schützen und Inventar
+(Ordner <code>member_files</code>, <code>archer_files</code>, <code>inventory_files</code>); sie werden bei
+der Wiederherstellung zurückgespielt. Das automatische Backup beim
 Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
 <h3>Wiederherstellung</h3>
 <p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
@@ -960,7 +979,7 @@ class HelpDialog(QDialog):
 
         close_row = QHBoxLayout()
         close_row.addStretch()
-        close_row.addWidget(button("Schließen", self.accept, "primary"))
+        close_row.addWidget(button("Schließen", self.accept))
 
         lay = QVBoxLayout(self)
         lay.addLayout(body, 1)

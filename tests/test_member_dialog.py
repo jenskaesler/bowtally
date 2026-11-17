@@ -85,6 +85,35 @@ def test_notes_live_in_their_own_tab_and_are_saved(app):
     assert ms.get_member(dialog.saved_id).notes == "Wichtig"
 
 
+def test_notes_field_takes_half_of_the_tab_height(app):
+    dialog = _dialog()
+    dialog.show()
+    tabs = dialog._tabs
+    tabs.setCurrentIndex(next(i for i in range(tabs.count()) if tabs.tabText(i) == "Notizen"))
+    app.processEvents()
+    notes = dialog.notes_form.fields["notes"].widget
+    ratio = notes.height() / tabs.currentWidget().height()
+    assert 0.45 < ratio < 0.55
+    dialog.close()
+
+
+def test_history_entry_dialog_links_a_tournament_and_prefills(app):
+    from bowtally.ui.views.members_view import _HistoryEntryDialog
+    from bowtally.services import master_data_service as md, scoring_service as sc
+    from bowtally.services import tournament_service as ts
+    rule = next(r for r in sc.list_rules() if r.name.startswith("IBO"))
+    tid = ts.save_tournament({"name": "Frühjahrscup", "date": date(2026, 5, 1), "num_targets": 1,
+                              "scoring_rule_id": rule.id}, [md.list_bow_classes()[0].id]).id
+    member = _member()
+    dialog = _HistoryEntryDialog(member.id)
+    dialog.form.fields["tournament_id"].widget.setCurrentIndex(1)   # fires the prefill
+    values = dialog.form.values()
+    assert values["tournament_id"] == tid
+    assert values["tournament_name"] == "Frühjahrscup" and values["date"] == date(2026, 5, 1)
+    assert dialog._do_save()
+    assert ms.list_history(member.id)[0].tournament_id == tid
+
+
 def test_files_can_be_added_and_removed_for_a_saved_member(app, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QFileDialog
     from bowtally.ui.components.confirm_dialog import ConfirmDialog

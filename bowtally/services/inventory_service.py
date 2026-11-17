@@ -17,7 +17,7 @@ from bowtally.services import ValidationError
 
 FILES_DIR = "inventory_files"      # below the app data folder: inventory_files/<item id>/<file>
 EXPORT_HEADERS = ["Bezeichnung", "Kategorie", "Größe", "Link zum Shop", "Einzelpreis", "Anzahl",
-                  "Gesamtpreis", "Parcoursplanung", "Notizen"]
+                  "Gesamtpreis", "Parcoursplanung", "Aktiv", "Notizen"]
 
 
 def _number(value, label: str, integer: bool = False):
@@ -82,13 +82,17 @@ def delete_category(category_id: int, move_to: int | None = None) -> None:
 
 
 # ---------------------------------------------------------------- items
-def list_items(category_id: int | None = None, course_only: bool = False) -> list[InventoryItem]:
+def list_items(category_id: int | None = None, course_only: bool = False,
+               active_only: bool = False) -> list[InventoryItem]:
+    """`course_only` (items offered in the course plan) always implies active items."""
     with session_scope() as s:
         q = select(InventoryItem).options(selectinload(InventoryItem.category))
         if category_id is not None:
             q = q.where(InventoryItem.category_id == category_id)
         if course_only:
             q = q.where(InventoryItem.use_in_course.is_(True))
+        if active_only or course_only:
+            q = q.where(InventoryItem.active.is_(True))
         return list(s.scalars(q.order_by(InventoryItem.name)))
 
 
@@ -97,9 +101,11 @@ def item_total(item: InventoryItem) -> float:
 
 
 def inventory_total_value() -> float:
+    """Inactive items do not count."""
     with session_scope() as s:
         return round(s.scalar(select(func.coalesce(
-            func.sum(InventoryItem.unit_price * InventoryItem.quantity), 0))), 2)
+            func.sum(InventoryItem.unit_price * InventoryItem.quantity), 0))
+            .where(InventoryItem.active.is_(True))), 2)
 
 
 def save_item(data: dict, item_id: int | None = None) -> InventoryItem:
@@ -114,6 +120,7 @@ def save_item(data: dict, item_id: int | None = None) -> InventoryItem:
         "unit_price": _number(data.get("unit_price"), "Einzelpreis"),
         "quantity": _number(data.get("quantity", 1), "Anzahl", integer=True),
         "use_in_course": bool(data.get("use_in_course")),
+        "active": bool(data.get("active", True)),
         "notes": (data.get("notes") or "").strip() or None,
     }
     with session_scope() as s:
@@ -141,7 +148,7 @@ def delete_item(item_id: int) -> None:
 def export_rows(items: list[InventoryItem]) -> list[list]:
     return [[i.name, i.category.name if i.category else "", i.size or "", i.shop_url or "",
              i.unit_price, i.quantity, item_total(i), "Ja" if i.use_in_course else "Nein",
-             i.notes or ""] for i in items]
+             "Ja" if i.active else "Nein", i.notes or ""] for i in items]
 
 
 def import_items(records: list[dict], strategy: str) -> dict:
@@ -166,7 +173,8 @@ def import_items(records: list[dict], strategy: str) -> dict:
             values = {"category": categories.get(category_name.lower()),
                       "size": rec.get("size"), "shop_url": rec.get("shop_url"),
                       "unit_price": rec.get("unit_price"), "quantity": rec.get("quantity"),
-                      "use_in_course": rec.get("use_in_course"), "notes": rec.get("notes")}
+                      "use_in_course": rec.get("use_in_course"), "active": rec.get("active"),
+                      "notes": rec.get("notes")}
             for key, value in values.items():     # update keeps what the file leaves empty
                 if value is not None or existing is None:
                     setattr(item, key, value)
@@ -174,6 +182,7 @@ def import_items(records: list[dict], strategy: str) -> dict:
                 item.unit_price = item.unit_price or 0
                 item.quantity = 1 if item.quantity is None else item.quantity
                 item.use_in_course = bool(item.use_in_course)
+                item.active = True if item.active is None else bool(item.active)
                 s.add(item)
                 result["created"] += 1
             else:
@@ -224,7 +233,14 @@ def remove_inventory_file(file_id: int) -> None:
 def list_repairs(item_id: int) -> list[InventoryRepair]:
     with session_scope() as s:
         return s.scalars(select(InventoryRepair).where(InventoryRepair.item_id == item_id)
+                         .options(selectinload(InventoryRepair.invoice_file))
                          .order_by(InventoryRepair.date, InventoryRepair.id)).all()
+
+
+def invoice_hints(item_id: int) -> dict[int, str]:
+    """File id -> tooltip text for documents that are the invoice of a repair."""
+    return {r.invoice_file_id: f"Rechnung zur Reparatur vom {r.date:%d.%m.%Y}"
+            for r in list_repairs(item_id) if r.invoice_file_id}
 
 
 def save_repair(data: dict, repair_id: int | None = None,
@@ -237,6 +253,7 @@ def save_repair(data: dict, repair_id: int | None = None,
         "description": (data.get("description") or "").strip() or None,
         "cost": _number(data.get("cost"), "Kosten"),
         "performed_by": (data.get("performed_by") or "").strip() or None,
+        "invoice_file_id": data.get("invoice_file_id") or None,
     }
     with session_scope() as s:
         if repair_id:
@@ -245,6 +262,11 @@ def save_repair(data: dict, repair_id: int | None = None,
                 raise ValidationError("Reparatur nicht gefunden.")
         else:
             repair = InventoryRepair(item_id=item_id)
+        if values["invoice_file_id"]:
+            invoice = s.get(InventoryFile, values["invoice_file_id"])
+            if invoice is None or invoice.item_id != repair.item_id:
+                raise ValidationError("Die Rechnung gehört nicht zu diesem Artikel.")
+        if not repair_id:
             s.add(repair)
         for key, value in values.items():
             setattr(repair, key, value)

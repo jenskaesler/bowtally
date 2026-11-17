@@ -47,6 +47,18 @@ def test_notes_have_their_own_tab_and_are_saved(app):
     assert [x.notes for x in md.list_archers() if x.id == dialog.saved_id] == ["Wichtig"]
 
 
+def test_notes_field_takes_half_of_the_tab_height(app):
+    from PySide6.QtWidgets import QTabWidget
+    dialog = _dialog()
+    dialog.show()
+    tabs = dialog.findChild(QTabWidget)
+    tabs.setCurrentIndex(_tab_names(dialog).index("Notizen"))
+    app.processEvents()
+    ratio = dialog.notes_form.fields["notes"].widget.height() / tabs.currentWidget().height()
+    assert 0.45 < ratio < 0.55
+    dialog.close()
+
+
 def test_save_button_turns_red_on_change_in_any_tab(app):
     archer = md.save_archer({"first_name": "Anna", "last_name": "Alt"})
     dialog = _dialog(archer)

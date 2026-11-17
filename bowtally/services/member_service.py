@@ -10,7 +10,8 @@ from sqlalchemy import select
 
 from bowtally import config
 from bowtally.database.engine import session_scope
-from bowtally.database.models import Member, MemberFile, MemberHelperHistory, TournamentHelper
+from bowtally.database.models import (Member, MemberFile, MemberHelperHistory, Tournament,
+                                      TournamentHelper)
 from bowtally.services import ValidationError
 
 FILES_DIR = "member_files"      # below the app data folder: member_files/<member id>/<file>
@@ -179,10 +180,26 @@ def list_history(member_id: int) -> list[MemberHelperHistory]:
                          .order_by(MemberHelperHistory.date.desc())).all()
 
 
-def _apply_history(h: MemberHelperHistory, data: dict) -> None:
+def is_manual_entry(h: MemberHelperHistory) -> bool:
+    """Entries of deleted tournaments lose their link (tournament_id NULL) and stay editable."""
+    return h.is_manual or h.tournament_id is None
+
+
+def _apply_history(s, h: MemberHelperHistory, data: dict) -> None:
     name = (data.get("tournament_name") or "").strip()
     if not name:
         raise ValidationError("Turnier ist ein Pflichtfeld")
+    tournament_id = data.get("tournament_id")
+    if tournament_id is not None:
+        if s.get(Tournament, tournament_id) is None:
+            raise ValidationError("Das Turnier existiert nicht mehr")
+        if s.scalar(select(MemberHelperHistory.id).where(
+                MemberHelperHistory.member_id == h.member_id,
+                MemberHelperHistory.tournament_id == tournament_id,
+                MemberHelperHistory.id != h.id)):
+            raise ValidationError("Für dieses Turnier gibt es bereits einen Eintrag")
+    h.tournament_id = tournament_id
+    h.is_manual = True
     h.tournament_name = name
     h.date = data.get("date")
     h.role = (data.get("role") or "").strip() or None
@@ -192,7 +209,7 @@ def _apply_history(h: MemberHelperHistory, data: dict) -> None:
 def add_history(member_id: int, data: dict) -> MemberHelperHistory:
     with session_scope() as s:
         h = MemberHelperHistory(member_id=member_id)
-        _apply_history(h, data)
+        _apply_history(s, h, data)
         s.add(h)
         s.flush()
         return h
@@ -200,14 +217,14 @@ def add_history(member_id: int, data: dict) -> MemberHelperHistory:
 
 def _manual_entry(s, history_id: int) -> MemberHelperHistory:
     h = s.get(MemberHelperHistory, history_id)
-    if h.tournament_id is not None:
+    if not is_manual_entry(h):
         raise ValidationError("Automatisch erfasste Einsätze können nicht geändert werden")
     return h
 
 
 def update_history(history_id: int, data: dict) -> None:
     with session_scope() as s:
-        _apply_history(_manual_entry(s, history_id), data)
+        _apply_history(s, _manual_entry(s, history_id), data)
 
 
 def delete_history(history_id: int) -> None:

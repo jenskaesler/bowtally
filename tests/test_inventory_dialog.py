@@ -89,3 +89,47 @@ def test_repairs_can_be_added_and_need_date_and_cost(app):
     dialog._reload_repairs()
     assert dialog._repairs.rowCount() == 1 and dialog._repairs.item(0, 2).text() == "12,50 €"
     assert [(r.description, r.cost) for r in inv.list_repairs(item.id)] == [("Riss geklebt", 12.5)]
+
+
+def test_new_item_is_active_and_the_list_hides_inactive_ones_by_default(app):
+    from bowtally.ui.views.inventory_view import InventoryView
+    dialog = _dialog()
+    assert dialog.form.fields["active"].value() is True
+    inv.save_item({"name": "Neu", "unit_price": 1})
+    inv.save_item({"name": "Alt", "unit_price": 1, "active": False})
+    view = InventoryView()
+    view._show_active.setChecked(True)
+    view.refresh()
+    assert [i.name for i in view._items.values()] == ["Neu"]
+    view._show_active.setChecked(False)
+    assert sorted(i.name for i in view._items.values()) == ["Alt", "Neu"]
+
+
+def test_repair_dialog_links_an_existing_document_as_invoice(app, tmp_path):
+    from datetime import date
+    from bowtally.ui.views.inventory_view import _RepairDialog
+    item = inv.save_item({"name": "3D-Bär", "unit_price": 80})
+    source = tmp_path / "rechnung.pdf"
+    source.write_bytes(b"pdf")
+    invoice = inv.add_inventory_file(item.id, source)
+    repair = _RepairDialog(item.id)
+    repair.form.fields["date"].set_value(date(2026, 11, 1))
+    repair.form.fields["cost"].set_value(5)
+    repair._invoice.setCurrentIndex(repair._invoice.findData(invoice.id))
+    assert repair._do_save()
+    dialog = _dialog(item)
+    assert dialog._repairs.item(0, 4).text() == "rechnung.pdf" and dialog._btn_invoice.isEnabled() is False
+    dialog._repairs.selectRow(0)
+    assert dialog._btn_invoice.isEnabled()
+    dialog._files_panel.reload()
+    assert "Rechnung zur Reparatur vom 01.11.2026" in dialog._files_panel.table.item(0, 0).toolTip()
+
+
+def test_notes_field_takes_half_of_the_tab_height(app):
+    dialog = _dialog()
+    dialog.show()
+    tabs = dialog._tabs
+    tabs.setCurrentIndex(1)
+    app.processEvents()
+    ratio = dialog.notes_form.fields["notes"].widget.height() / tabs.currentWidget().height()
+    assert 0.35 < ratio < 0.5

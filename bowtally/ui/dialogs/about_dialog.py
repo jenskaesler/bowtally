@@ -73,7 +73,7 @@ class AboutDialog(QDialog):
 
         close_row = QHBoxLayout()
         close_row.addStretch()
-        close_row.addWidget(button("Schließen", self.accept, "primary"))
+        close_row.addWidget(button("Schließen", self.accept))
 
         lay = QVBoxLayout(self)
         lay.addLayout(body, 1)

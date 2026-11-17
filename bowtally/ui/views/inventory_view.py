@@ -2,11 +2,11 @@
 """Vereinsinventar: Liste mit Kategorie-Filter und ein Dialog je Artikel (Tabs)."""
 from datetime import date
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import QSettings, Qt, QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QHBoxLayout, QLabel,
-                               QLineEdit, QPlainTextEdit, QSpinBox, QTabWidget, QTableWidget,
-                               QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
+                               QLabel, QLineEdit, QPlainTextEdit, QSizePolicy, QSpinBox,
+                               QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import INVENTORY_IMPORT_FIELDS
 from bowtally.services import inventory_service as inv
@@ -18,14 +18,15 @@ from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.files_panel import FilesPanel
 from bowtally.ui.components.form_field import DateField, Form
 from bowtally.ui.components.toast import Toast
-from bowtally.ui.dialogs.export_helper import export_button
+from bowtally.ui.dialogs.export_helper import export_button, open_path
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 from bowtally.ui.views.fees_view import AmountField
 from bowtally.ui.views.participants_view import money
 
-HEADERS = ["Bezeichnung", "Kategorie", "Größe", "Einzelpreis", "Anzahl", "Gesamtpreis", "Parcours"]
+HEADERS = ["Bezeichnung", "Kategorie", "Größe", "Einzelpreis", "Anzahl", "Gesamtpreis", "Parcours",
+           "Status"]
 _HEADER_ALIGN = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
 
@@ -41,19 +42,40 @@ class _RepairDialog(RecordDialog):
         super().__init__("Reparatur bearbeiten" if repair else "Reparatur hinzufügen", parent=parent)
         self.form.set_values(
             {"date": repair.date, "description": repair.description, "cost": repair.cost,
-             "performed_by": repair.performed_by} if repair else {"date": date.today()})
+             "performed_by": repair.performed_by, "invoice_file_id": repair.invoice_file_id}
+            if repair else {"date": date.today()})
         self._baseline = self.form.snapshot()
 
     def _setup_form(self):
+        self._invoice = QComboBox()
+        self._invoice.addItem("(keine)", None)
+        for stored in inv.list_inventory_files(self._item_id):
+            self._invoice.addItem(stored.filename, stored.id)
         self.form.add("date", "Datum", DateField(), required=True)
         self.form.add("description", "Beschreibung", QLineEdit())
         self.form.add("cost", "Kosten", AmountField(), required=True)
         self.form.add("performed_by", "Durchgeführt von", QLineEdit())
+        self.form.add("invoice_file_id", "Rechnung", self._invoice, trailing=button(
+            "Datei hinzufügen …", self._add_invoice,
+            tooltip="Rechnung in die Dokumente des Artikels legen und hier verknüpfen"))
+
+    def _add_invoice(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Rechnung auswählen")
+        if not path:
+            return
+        try:
+            with busy():
+                stored = inv.add_inventory_file(self._item_id, path)
+        except Exception as exc:
+            show_error(self, exc, "Rechnung konnte nicht hinzugefügt werden")
+            return
+        self._invoice.addItem(stored.filename, stored.id)
+        self._invoice.setCurrentIndex(self._invoice.count() - 1)
 
     def _do_save(self) -> bool:
+        values = {**self.form.values(), "invoice_file_id": self._invoice.currentData()}
         try:
-            inv.save_repair(self.form.values(), self._repair.id if self._repair else None,
-                            self._item_id)
+            inv.save_repair(values, self._repair.id if self._repair else None, self._item_id)
         except Exception as exc:
             show_error(self, exc, "Reparatur konnte nicht gespeichert werden")
             return False
@@ -68,7 +90,7 @@ class InventoryItemDialog(RecordDialog):
         self._record = record
         super().__init__("Neuer Artikel" if record is None else record.name, parent=parent)
         keys = (*self.form.fields, *self.notes_form.fields)
-        self.form.set_values({"quantity": 1, "unit_price": 0} if record is None else
+        self.form.set_values({"quantity": 1, "unit_price": 0, "active": True} if record is None else
                              {k: getattr(record, k, None) for k in keys})
         self.notes_form.set_values({} if record is None else {"notes": record.notes})
         self._update_total()
@@ -94,6 +116,7 @@ class InventoryItemDialog(RecordDialog):
         f.add("quantity", "Anzahl", quantity)
         f.add("total", "Gesamtpreis", QLineEdit(), short=True)
         f.add("use_in_course", "Parcoursplanung", QCheckBox("Für Parcoursplanung verwenden"))
+        f.add("active", "Status", QCheckBox("Aktiv"))
         f.fields["total"].set_read_only(True)
         f.fields["shop_url"].widget.textChanged.connect(self._update_open_button)
         f.fields["unit_price"].widget.valueChanged.connect(self._update_total)
@@ -103,12 +126,20 @@ class InventoryItemDialog(RecordDialog):
         self._body_layout.removeWidget(f)
         self._tabs.addTab(f, "Stammdaten")
         self._tabs.addTab(self._build_notes(), "Notizen")
-        self._tabs.addTab(FilesPanel(
+        self._files_panel = FilesPanel(
             None if self._record is None else self._record.id, "Artikel",
             inv.list_inventory_files, inv.add_inventory_file, inv.remove_inventory_file,
-            inv.inventory_file_path), "Dokumente")
+            inv.inventory_file_path, inv.invoice_hints)
+        self._tabs.addTab(self._files_panel, "Dokumente")
         self._tabs.addTab(self._build_repairs(), "Reparaturkosten")
         self._body_layout.addWidget(self._tabs)
+        self._tabs.currentChanged.connect(self._sync_files_and_repairs)
+
+    def _sync_files_and_repairs(self, *_):
+        """Invoices are added / removed on one tab and shown on the other."""
+        if self._record is not None:
+            self._files_panel.reload()
+            self._reload_repairs()
 
     def _update_total(self, *_):
         values = self.form.values()
@@ -136,9 +167,10 @@ class InventoryItemDialog(RecordDialog):
         self.notes_form.set_labels_on_top()
         notes = QPlainTextEdit()
         notes.setMinimumHeight(110)
-        self.notes_form.add("notes", "Notizen", notes)
-        lay.addWidget(self.notes_form)
-        lay.addStretch()
+        field = self.notes_form.add("notes", "Notizen", notes)
+        field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        lay.addWidget(self.notes_form, 1)      # equal stretch for form and spacer: notes get half
+        lay.addStretch(1)
         return page
 
     # ---------------------------------------------------------------- repairs
@@ -151,8 +183,9 @@ class InventoryItemDialog(RecordDialog):
                                  objectName="pageSubtitle"))
             lay.addStretch()
             return page
-        self._repairs = t = QTableWidget(0, 4)
-        t.setHorizontalHeaderLabels(["Datum", "Beschreibung", "Kosten", "Durchgeführt von"])
+        self._repairs = t = QTableWidget(0, 5)
+        t.setHorizontalHeaderLabels(["Datum", "Beschreibung", "Kosten", "Durchgeführt von",
+                                     "Rechnung"])
         t.verticalHeader().hide()
         t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
         t.setMinimumHeight(220)
@@ -164,11 +197,14 @@ class InventoryItemDialog(RecordDialog):
         t.horizontalHeader().setStretchLastSection(True)
         t.horizontalHeader().setDefaultAlignment(_HEADER_ALIGN)
         t.itemSelectionChanged.connect(self._update_repair_buttons)
+        t.itemDoubleClicked.connect(lambda _item: self._open_invoice())
         self._btn_edit = button("Bearbeiten", self._edit_repair)
+        self._btn_invoice = button("Rechnung öffnen", self._open_invoice)
         self._btn_delete = button("Löschen", self._delete_repair)
         buttons = QHBoxLayout()
         buttons.addWidget(button("Reparatur hinzufügen", self._add_repair))
         buttons.addWidget(self._btn_edit)
+        buttons.addWidget(self._btn_invoice)
         buttons.addWidget(self._btn_delete)
         buttons.addStretch()
         lay.addWidget(t, 1)
@@ -181,7 +217,8 @@ class InventoryItemDialog(RecordDialog):
         t = self._repairs
         t.setRowCount(len(self._repair_rows))
         for row, r in enumerate(self._repair_rows.values()):
-            texts = [f"{r.date:%d.%m.%Y}", r.description or "–", money(r.cost), r.performed_by or "–"]
+            texts = [f"{r.date:%d.%m.%Y}", r.description or "–", money(r.cost),
+                     r.performed_by or "–", r.invoice_file.filename if r.invoice_file else "–"]
             for col, text in enumerate(texts):
                 item = QTableWidgetItem(text)
                 item.setData(Qt.ItemDataRole.UserRole, r.id)
@@ -193,8 +230,15 @@ class InventoryItemDialog(RecordDialog):
         return self._repair_rows[item.data(Qt.ItemDataRole.UserRole)] if item else None
 
     def _update_repair_buttons(self):
+        repair = self._selected_repair()
         for btn in (self._btn_edit, self._btn_delete):
-            btn.setEnabled(self._selected_repair() is not None)
+            btn.setEnabled(repair is not None)
+        self._btn_invoice.setEnabled(repair is not None and repair.invoice_file is not None)
+
+    def _open_invoice(self):
+        repair = self._selected_repair()
+        if repair is not None and repair.invoice_file is not None:
+            open_path(self, inv.inventory_file_path(repair.invoice_file))
 
     def _add_repair(self):
         if _RepairDialog(self._record.id, parent=self).exec():
@@ -250,9 +294,17 @@ class InventoryView(ListView):
         self.table.activated.connect(self.edit_item)
         self._items: dict = {}
 
+        self._show_active = QCheckBox("Aktives Inventar anzeigen")
+        self._show_active.setChecked(
+            QSettings("BowTally", "BowTally").value("inventory/show_active", True, type=bool))
+        self._show_active.toggled.connect(self.refresh)
+        self._show_active.toggled.connect(
+            lambda v: QSettings("BowTally", "BowTally").setValue("inventory/show_active", v))
+
         footer = QWidget()
         fl = QHBoxLayout(footer)
         fl.setContentsMargins(0, 4, 0, 0)
+        fl.addWidget(self._show_active)
         fl.addStretch()
         fl.addWidget(export_button(self, "inventar", self._export_sheets,
                                    lambda: len(self.table.visible_ids())
@@ -282,12 +334,14 @@ class InventoryView(ListView):
 
     def refresh(self):
         self._load_categories()
-        items = inv.list_items(category_id=self._category_filter.currentData())
+        items = inv.list_items(category_id=self._category_filter.currentData(),
+                               active_only=self._show_active.isChecked())
         self._items = {i.id: i for i in items}
         self.table.set_rows([[
             i.name, i.category.name if i.category else "", i.size or "",
             _money_cell(i.unit_price), i.quantity, _money_cell(inv.item_total(i)),
             "Ja" if i.use_in_course else "–",
+            Cell(i.active, chip=("Aktiv", "success") if i.active else ("Inaktiv", "danger")),
         ] for i in items], [i.id for i in items])
         self.header.set_subtitle(f"{len(items)} Artikel")
         self.on_selection(self.table.selected_ids())

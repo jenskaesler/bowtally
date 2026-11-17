@@ -260,7 +260,7 @@ class SettingsDialog(QDialog):
         self._save_btn = button("Speichern", self._save_settings, "danger",
                                 "Ungespeicherte Änderungen speichern")
         self._save_btn.setEnabled(False)
-        close_btn = button("Schließen", self._close_dialog, "primary")
+        close_btn = button("Schließen", self._close_dialog)
         btn_row = QHBoxLayout()
         btn_row.addStretch()
         btn_row.addWidget(self._save_btn)

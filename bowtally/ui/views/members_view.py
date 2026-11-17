@@ -3,12 +3,13 @@
 from datetime import date
 
 from PySide6.QtCore import QSettings, Qt
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDoubleSpinBox,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox,
                                QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QTabWidget,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from bowtally.io.importer import MEMBER_IMPORT_FIELDS
 from bowtally.services import member_service as ms
+from bowtally.services import tournament_service as ts
 from bowtally.services.settings_service import KEY_EMAIL_TPL_DATA_REQUEST
 from bowtally.services import ValidationError
 from bowtally.ui import busy, button, show_error
@@ -20,6 +21,7 @@ from bowtally.ui.components.form_field import DateField, Form, email_validator
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.constants import SETTINGS_COMBO_W, SETTINGS_LABEL_W
 from bowtally.ui.components.files_panel import FilesPanel
+from bowtally.ui.components.half_height import keep_half_height
 from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
@@ -43,21 +45,36 @@ def _iban_validator(value) -> str | None:
 
 
 class _HistoryEntryDialog(RecordDialog):
-    """Add / edit a manual helper history entry (old tournaments)."""
+    """Add / edit a manual helper history entry, optionally linked to an existing tournament."""
 
     def __init__(self, member_id: int, entry=None, parent=None):
         self._member_id, self._entry = member_id, entry
         super().__init__("Einsatz bearbeiten" if entry else "Einsatz hinzufügen", parent=parent)
         if entry:
-            self.form.set_values({"tournament_name": entry.tournament_name, "date": entry.date,
+            self.form.set_values({"tournament_id": entry.tournament_id,
+                                  "tournament_name": entry.tournament_name, "date": entry.date,
                                   "role": entry.role, "hours": entry.hours})
         self._baseline = self.form.snapshot()
+        self.form.fields["tournament_id"].widget.currentIndexChanged.connect(self._prefill)
+
+    def _prefill(self):
+        t = self._tournaments.get(self.form.values()["tournament_id"])
+        if t:
+            self.form.fields["tournament_name"].set_value(t.name)
+            self.form.fields["date"].set_value(t.date)
 
     def _setup_form(self):
         hours = QDoubleSpinBox()
         hours.setDecimals(1)
         hours.setRange(0, 999)
-        self.form.add("tournament_name", "Turnier", QLineEdit(), required=True)
+        combo = QComboBox()
+        combo.addItem("(kein Turnier)", None)
+        self._tournaments = {t.id: t for t in ts.list_tournaments()}
+        for t in self._tournaments.values():
+            combo.addItem(f"{t.name} ({t.date:%d.%m.%Y})" if t.date else t.name, t.id)
+        self.form.add("tournament_id", "Turnier (optional)", combo,
+                      hint="Übernimmt Name und Datum des Turniers")
+        self.form.add("tournament_name", "Turniername", QLineEdit(), required=True)
         self.form.add("date", "Datum", DateField())
         self.form.add("role", "Rolle/Aufgabe", QLineEdit())
         self.form.add("hours", "Stunden", hours)
@@ -205,7 +222,7 @@ class MemberDialog(RecordDialog):
             for col, text in enumerate(texts):
                 item = QTableWidgetItem(text)
                 item.setData(Qt.ItemDataRole.UserRole, e.id)
-                if e.tournament_id is not None:
+                if not ms.is_manual_entry(e):
                     item.setToolTip(AUTO_ENTRY_TIP)
                 t.setItem(row, col, item)
         self._update_history_buttons()
@@ -217,7 +234,7 @@ class MemberDialog(RecordDialog):
 
     def _update_history_buttons(self):
         entry = self._selected_entry()
-        editable = entry is not None and entry.tournament_id is None
+        editable = entry is not None and ms.is_manual_entry(entry)
         for btn in (self._btn_edit, self._btn_delete):
             btn.setEnabled(editable)
             btn.setToolTip("" if editable else AUTO_ENTRY_TIP)
@@ -248,10 +265,10 @@ class MemberDialog(RecordDialog):
         self.notes_form = Form()
         self.notes_form.set_labels_on_top()
         notes = QPlainTextEdit()
-        notes.setMinimumHeight(110)
         self.notes_form.add("notes", "Notizen", notes)
         lay.addWidget(self.notes_form)
         lay.addStretch()
+        keep_half_height(page, notes)
         return page
 
     # ---------------------------------------------------------------- save

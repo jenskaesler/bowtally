@@ -181,3 +181,81 @@ def test_migration_replaces_the_old_inventory_with_an_empty_new_one(tmp_path):
 
     assert inv.list_items() == [] and inv.list_categories() == []
     assert _item().unit_price == 2.5
+
+
+def test_inactive_items_are_hidden_on_request_and_do_not_count_or_reach_the_course_plan():
+    _item("Aktiv", price=10, quantity=2, use_in_course=True)
+    _item("Alt", price=100, quantity=1, use_in_course=True, active=False)
+    assert [i.name for i in inv.list_items()] == ["Aktiv", "Alt"]
+    assert [i.name for i in inv.list_items(active_only=True)] == ["Aktiv"]
+    assert [i.name for i in inv.list_items(course_only=True)] == ["Aktiv"]
+    assert inv.inventory_total_value() == 20
+    assert inv.export_rows(inv.list_items())[1][-2] == "Nein"
+
+
+def test_import_marks_items_active_unless_the_file_says_otherwise():
+    inv.import_items([{"name": "A", "unit_price": 1}, {"name": "B", "unit_price": 1,
+                                                       "active": False}], "skip")
+    assert {i.name: i.active for i in inv.list_items()} == {"A": True, "B": False}
+
+
+def test_repair_invoice_is_one_of_the_item_documents_and_goes_away_with_it(tmp_path):
+    item, other = _item(), _item("Zweiter")
+    source = tmp_path / "rechnung.pdf"
+    source.write_bytes(b"pdf")
+    invoice = inv.add_inventory_file(item.id, source)
+    repair = inv.save_repair({"date": date(2026, 3, 4), "cost": 9, "invoice_file_id": invoice.id},
+                             item_id=item.id)
+    assert inv.list_repairs(item.id)[0].invoice_file.filename == "rechnung.pdf"
+    assert inv.invoice_hints(item.id) == {invoice.id: "Rechnung zur Reparatur vom 04.03.2026"}
+    with pytest.raises(ValidationError):                     # file of another item
+        inv.save_repair({"date": date(2026, 3, 4), "cost": 9, "invoice_file_id": invoice.id},
+                        item_id=other.id)
+    inv.remove_inventory_file(invoice.id)
+    assert inv.list_repairs(item.id)[0].invoice_file_id is None
+    assert len(inv.list_repairs(item.id)) == 1               # repair stays
+    inv.delete_repair(repair.id)
+
+
+def test_deleting_a_repair_keeps_its_invoice_document(tmp_path):
+    item = _item()
+    source = tmp_path / "r.pdf"
+    source.write_bytes(b"pdf")
+    invoice = inv.add_inventory_file(item.id, source)
+    repair = inv.save_repair({"date": date(2026, 3, 4), "cost": 9, "invoice_file_id": invoice.id},
+                             item_id=item.id)
+    inv.delete_repair(repair.id)
+    assert [f.id for f in inv.list_inventory_files(item.id)] == [invoice.id]
+
+
+def test_backup_roundtrip_keeps_active_flag_and_repair_invoice(tmp_path, monkeypatch):
+    item = _item(active=False)
+    source = tmp_path / "r.pdf"
+    source.write_bytes(b"pdf")
+    invoice = inv.add_inventory_file(item.id, source)
+    inv.save_repair({"date": date(2026, 3, 4), "cost": 9, "invoice_file_id": invoice.id},
+                    item_id=item.id)
+    with session_scope() as session:
+        backup = bs.create_backup(session, "test")
+    with _restore(backup, tmp_path, monkeypatch) as con:
+        assert con.execute("SELECT active FROM inventory_items").fetchall() == [(0,)]
+        assert con.execute("SELECT invoice_file_id FROM inventory_repairs").fetchall() \
+            == [(invoice.id,)]
+
+
+def test_backup_roundtrip_keeps_manual_helper_entry_linked_to_a_tournament(tmp_path, monkeypatch):
+    from bowtally.database.models import Member
+    from bowtally.services import member_service as ms
+    t = _tournament()
+    with session_scope() as session:
+        member = Member(member_number="M1", first_name="Anna", last_name="Muster")
+        session.add(member)
+        session.flush()
+        member_id = member.id
+    ms.add_history(member_id, {"tournament_name": "T", "tournament_id": t.id,
+                               "date": date(2030, 1, 1), "role": "Kasse", "hours": 2})
+    with session_scope() as session:
+        backup = bs.create_backup(session, "test")
+    with _restore(backup, tmp_path, monkeypatch) as con:
+        assert con.execute("SELECT tournament_id, is_manual FROM member_helper_history"
+                           ).fetchall() == [(t.id, 1)]
