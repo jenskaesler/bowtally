@@ -238,7 +238,7 @@ Voraussetzungen: Dev-venv (siehe oben) und [NSIS 3](https://nsis.sourceforge.io/
 build\build.bat
 ```
 
-Das Skript baut mit PyInstaller und danach den Installer mit NSIS. Die Version kommt aus `bowtally/__version__.py`.
+Das Skript baut mit PyInstaller und danach den Installer mit NSIS und schreibt `build\dist\checksums.txt` mit der SHA-256 des Installers. Die Version kommt aus `bowtally/__version__.py`.
 
 | Ergebnis | Ort |
 |---|---|
@@ -257,6 +257,7 @@ makensis /DVERSION=2026.11.5 build\setup.nsi
 2. `CHANGELOG.md` ergänzen.
 3. `build\build.bat` ausführen.
 4. Committen und taggen: `git tag v<version>`, dann `git push origin main --tags`.
+5. GitHub-Release zum Tag anlegen (kein Draft, keine Pre-release) und `BowTally-<version>-Setup.exe` sowie `checksums.txt` aus `build\dist` als Assets hochladen. Ohne `checksums.txt` kann die App den Download nicht prüfen.
 
 ---
 
