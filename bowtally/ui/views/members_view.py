@@ -46,6 +46,8 @@ def _iban_validator(value) -> str | None:
 
 class _HistoryEntryDialog(RecordDialog):
     """Add / edit a manual helper history entry, optionally linked to an existing tournament."""
+    _default_size = (760, 520)
+    _size_name = "HistoryEntryDialog_v2"
 
     def __init__(self, member_id: int, entry=None, parent=None):
         self._member_id, self._entry = member_id, entry
@@ -72,8 +74,7 @@ class _HistoryEntryDialog(RecordDialog):
         self._tournaments = {t.id: t for t in ts.list_tournaments()}
         for t in self._tournaments.values():
             combo.addItem(f"{t.name} ({t.date:%d.%m.%Y})" if t.date else t.name, t.id)
-        self.form.add("tournament_id", "Turnier (optional)", combo,
-                      hint="Übernimmt Name und Datum des Turniers")
+        self.form.add("tournament_id", "Turnier (optional)", combo)
         self.form.add("tournament_name", "Turniername", QLineEdit(), required=True)
         self.form.add("date", "Datum", DateField())
         self.form.add("role", "Rolle/Aufgabe", QLineEdit())
