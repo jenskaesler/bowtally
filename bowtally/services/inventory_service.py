@@ -108,6 +108,11 @@ def inventory_total_value() -> float:
             .where(InventoryItem.active.is_(True))), 2)
 
 
+def set_item_active(item_id: int, active: bool) -> None:
+    with session_scope() as s:
+        s.get(InventoryItem, item_id).active = active
+
+
 def save_item(data: dict, item_id: int | None = None) -> InventoryItem:
     name = (data.get("name") or "").strip()
     if not name:
@@ -248,6 +253,8 @@ def save_repair(data: dict, repair_id: int | None = None,
     """`item_id` is required for new repairs."""
     if not isinstance(data.get("date"), date):
         raise ValidationError("Das Datum der Reparatur ist Pflicht.")
+    if _number(data.get("cost"), "Kosten") <= 0:
+        raise ValidationError("Kosten müssen größer als 0 sein.")
     values = {
         "date": data["date"],
         "description": (data.get("description") or "").strip() or None,

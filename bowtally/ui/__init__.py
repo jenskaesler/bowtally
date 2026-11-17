@@ -34,8 +34,6 @@ def button(text: str, slot=None, kind: str | None = None, tooltip: str = "") -> 
     b = QPushButton(text)
     if kind:
         b.setProperty(kind, True)
-    if text == "Abbrechen":
-        b.setProperty("cancel", True)
     b.setToolTip(tooltip or text)
     if slot is not None:
         b.clicked.connect(slot)

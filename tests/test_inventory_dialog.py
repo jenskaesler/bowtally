@@ -15,8 +15,14 @@ def db(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def app():
+def app(tmp_path, monkeypatch):
+    """QSettings(org, app) ignores setDefaultFormat, so redirect the view's settings to an ini file."""
+    from PySide6.QtCore import QSettings
     from PySide6.QtWidgets import QApplication
+    from bowtally.ui.views import inventory_view
+    ini = str(tmp_path / "settings.ini")
+    monkeypatch.setattr(inventory_view, "QSettings",
+                        lambda *_: QSettings(ini, QSettings.Format.IniFormat))
     return QApplication.instance() or QApplication([])
 
 
@@ -103,6 +109,58 @@ def test_new_item_is_active_and_the_list_hides_inactive_ones_by_default(app):
     assert [i.name for i in view._items.values()] == ["Neu"]
     view._show_active.setChecked(False)
     assert sorted(i.name for i in view._items.values()) == ["Alt", "Neu"]
+
+
+def test_active_checkbox_is_checked_by_default_even_with_an_old_false_value(app):
+    from bowtally.ui.views import inventory_view
+    inventory_view.QSettings().setValue("inventory/show_active", False)   # left by old test runs
+    assert inventory_view.InventoryView()._show_active.isChecked()
+
+
+def test_active_items_are_visible_in_both_checkbox_states_and_category_filter(app):
+    from bowtally.ui.views.inventory_view import InventoryView
+    tables = inv.save_category("Tische")
+    inv.save_item({"name": "Aktiv", "category_id": tables.id, "unit_price": 1})
+    inv.save_item({"name": "Inaktiv", "category_id": tables.id, "unit_price": 1, "active": False})
+    view = InventoryView()
+    view.refresh()
+    view._category_filter.setCurrentIndex(view._category_filter.findData(tables.id))
+    for checked, expected in ((True, ["Aktiv"]), (False, ["Aktiv", "Inaktiv"])):
+        view._show_active.setChecked(checked)
+        assert sorted(i.name for i in view._items.values()) == expected
+
+
+def test_context_menu_toggles_active(app):
+    from bowtally.ui.views.inventory_view import InventoryView
+    item = inv.save_item({"name": "Tisch", "unit_price": 1})
+    view = InventoryView()
+    view._show_active.setChecked(False)
+    view.refresh()
+    view.table.select_ids([item.id])
+    assert [e[0] for e in view.context_entries(item.id) if e][1] == "Deaktivieren"
+    view.toggle_active()
+    assert not inv.list_items()[0].active
+    view.table.select_ids([item.id])
+    assert [e[0] for e in view.context_entries(item.id) if e][1] == "Aktivieren"
+    view.toggle_active()
+    assert inv.list_items()[0].active
+
+
+def test_repair_cost_of_zero_is_not_allowed_and_dialog_is_large(app):
+    from datetime import date
+    import pytest as _pytest
+    from bowtally.services import ValidationError
+    from bowtally.ui.views.inventory_view import _RepairDialog
+    item = inv.save_item({"name": "3D-Bär", "unit_price": 80})
+    repair = _RepairDialog(item.id)
+    repair.form.fields["date"].set_value(date(2026, 11, 1))
+    repair.form.fields["cost"].set_value(0)
+    assert not repair.form.validate()
+    repair.form.fields["cost"].set_value(0.01)
+    assert repair.form.validate()
+    with _pytest.raises(ValidationError):
+        inv.save_repair({"date": date(2026, 11, 1), "cost": 0}, None, item.id)
+    assert _RepairDialog._default_size[0] >= 600
 
 
 def test_repair_dialog_links_an_existing_document_as_invoice(app, tmp_path):

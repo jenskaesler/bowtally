@@ -20,7 +20,6 @@ class EmptyState(QWidget):
         self.text = QLabel(objectName="emptyText", alignment=Qt.AlignmentFlag.AlignCenter)
         self.text.setWordWrap(True)
         self.cta = button(cta_text or "", self.actionTriggered.emit, "primary")
-        self.cta.setVisible(bool(cta_text))
         row = QHBoxLayout()
         row.addStretch()
         row.addWidget(self.cta)

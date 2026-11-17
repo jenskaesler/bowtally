@@ -223,9 +223,6 @@ QPushButton[primary="true"]:disabled {{
 QPushButton[primary="true"][dirty="true"] {{
     background: {t['danger']}; border-color: {t['danger']}; color: {_on(t['danger'])};
 }}
-QPushButton[cancel="true"] {{ background: #111111; border-color: #111111; color: #FFFFFF; }}
-QPushButton[cancel="true"]:hover {{ background: #333333; border-color: #333333; }}
-QPushButton[cancel="true"]:disabled {{ background: #555555; border-color: #555555; color: #AAAAAA; }}
 QPushButton[danger="true"] {{ color: {t['accent']}; }}
 QPushButton[danger="true"]:hover {{
     background: {t['accent_soft']}; border-color: {t['accent']};

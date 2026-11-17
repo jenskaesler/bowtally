@@ -373,10 +373,8 @@ class MembersView(ListView):
         if not ids:
             self.action_bar.set_actions("", [])
             return
-        actions = [Action("Bearbeiten", self.edit_item, tooltip="Mitglied bearbeiten")]
-        if len(ids) == 1 and ids[0] in self._rows:
-            actions += [Action(e[0], e[1]) for e in self._entries(ids[0])[1:] if e and e[0] != "Löschen"]
-        actions.append(Action("Löschen", self.delete_selected, "danger"))
+        actions = [Action("Bearbeiten", self.edit_item, tooltip="Mitglied bearbeiten"),
+                   Action("Löschen", self.delete_selected, "danger")]
         self.action_bar.set_actions(self.selection_info(len(ids), "Mitglied", "Mitglieder"), actions)
 
     # ---------------------------------------------------------------- new / edit

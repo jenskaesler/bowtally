@@ -36,6 +36,7 @@ def _money_cell(amount: float) -> Cell:
 
 class _RepairDialog(RecordDialog):
     """Add / edit one repair entry of an item."""
+    _default_size = (640, 400)
 
     def __init__(self, item_id: int, repair=None, parent=None):
         self._item_id, self._repair = item_id, repair
@@ -53,7 +54,8 @@ class _RepairDialog(RecordDialog):
             self._invoice.addItem(stored.filename, stored.id)
         self.form.add("date", "Datum", DateField(), required=True)
         self.form.add("description", "Beschreibung", QLineEdit())
-        self.form.add("cost", "Kosten", AmountField(), required=True)
+        self.form.add("cost", "Kosten", AmountField(), required=True,
+                      validator=lambda v: None if v and v > 0 else "Kosten müssen größer als 0 sein")
         self.form.add("performed_by", "Durchgeführt von", QLineEdit())
         self.form.add("invoice_file_id", "Rechnung", self._invoice, trailing=button(
             "Datei hinzufügen …", self._add_invoice,
@@ -295,11 +297,12 @@ class InventoryView(ListView):
         self._items: dict = {}
 
         self._show_active = QCheckBox("Aktives Inventar anzeigen")
+        # new key: the old "inventory/show_active" was left at false by earlier test runs
         self._show_active.setChecked(
-            QSettings("BowTally", "BowTally").value("inventory/show_active", True, type=bool))
+            QSettings("BowTally", "BowTally").value("inventory/only_active", True, type=bool))
         self._show_active.toggled.connect(self.refresh)
         self._show_active.toggled.connect(
-            lambda v: QSettings("BowTally", "BowTally").setValue("inventory/show_active", v))
+            lambda v: QSettings("BowTally", "BowTally").setValue("inventory/only_active", v))
 
         footer = QWidget()
         fl = QHBoxLayout(footer)
@@ -361,9 +364,18 @@ class InventoryView(ListView):
         ])
 
     def context_entries(self, row_id):
-        if row_id not in self._items:
+        item = self._items.get(row_id)
+        if item is None:
             return []
-        return [("Bearbeiten", self.edit_item, True), None, ("Löschen", self.delete_item, True)]
+        return [("Bearbeiten", self.edit_item, True),
+                ("Deaktivieren" if item.active else "Aktivieren", self.toggle_active, True),
+                None, ("Löschen", self.delete_item, True)]
+
+    def toggle_active(self):
+        item = self._items.get(self.table.selected_id())
+        if item is not None:
+            inv.set_item_active(item.id, not item.active)
+            self.refresh()
 
     def new_item(self):
         self._open_dialog(InventoryItemDialog(parent=self))

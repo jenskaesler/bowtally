@@ -24,6 +24,8 @@ _CONTEXT_ICONS = {
     "Öffnen": "arrow-right",
     "Turnier öffnen": "arrow-right",
     "Wieder aktivieren": "check-circle",
+    "Aktivieren": "check-circle",
+    "Deaktivieren": "eye-off",
     "Als inaktiv markieren": "eye-off",
     "Turnierregeln exportieren": "file",
     "Bestätigung senden": "mail",
