@@ -60,6 +60,22 @@ def test_rule_dialog_points_to_the_help_in_the_checkbox_column(app, db):
     assert dialog.form._lay.getWidgetPosition(link)[1] == QFormLayout.ItemRole.FieldRole
 
 
+def test_every_help_link_of_the_settings_points_to_an_existing_anchor(app, db, monkeypatch):
+    from bowtally.ui.dialogs import help_dialog, settings_dialog
+    calls = []
+    original = settings_dialog.help_link
+    monkeypatch.setattr(settings_dialog, "help_link",
+                        lambda *a, **k: calls.append(a[:2]) or original(*a, **k))
+    dialog = settings_dialog.SettingsDialog(lambda *_: None)
+    sections = dict(help_dialog._SECTIONS)
+    assert {a for _s, a in calls} >= {"bankdaten", "textvorlagen", "platzhalter-email",
+                                      "inventarkategorien", "erweitert", "backup-passwort"}
+    for title, anchor in calls:
+        assert f'<a name="{anchor}">' in sections[title], (title, anchor)
+    texts = [lbl.text() for lbl in dialog.findChildren(QLabel)]
+    assert not any("Platzhalter:" in t or "Platzhalter Verwendungszweck" in t for t in texts)
+
+
 def test_settings_dialog_is_larger_and_points_to_the_help_for_the_backup_password(app, db):
     from bowtally.ui.dialogs.settings_dialog import SettingsDialog
     dialog = SettingsDialog(lambda *_: None)

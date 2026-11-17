@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import sys
 from PySide6.QtCore import QProcess, Qt, QSize, QTimer
-from PySide6.QtGui import QColor, QFont, QIcon, QPixmap
+from PySide6.QtGui import QColor, QFont, QIcon, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QFileDialog, QFormLayout, QFrame, QGridLayout,
                                QGroupBox, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
@@ -15,6 +15,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
 from bowtally import config
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.help_link import help_link
+from bowtally.ui.components.search_bar import PLACEHOLDER as SEARCH_PLACEHOLDER
+from bowtally.ui.dialogs.export_helper import open_path
 from bowtally.services import ValidationError, inventory_service as inv, settings_service as ss
 from bowtally.ui import (burger_button, button, mark_dirty, restore_geom, save_geom, show_error,
                          theme)
@@ -166,7 +168,6 @@ class SettingsDialog(QDialog):
         ("SYSTEM",             [("general", "Allgemein"),
                                  ("backup", "Backup"),
                                  ("design", "Design"),
-                                 ("ui", "Oberfläche"),
                                  ("nav", "Navigation"),
                                  ("advanced", "Erweitert")]),
     ]
@@ -190,12 +191,11 @@ class SettingsDialog(QDialog):
             ("contacts", self._contacts_tab()),
             ("bank",     self._bank_tab()),
             ("design",   self._design_tab()),
-            ("ui",       self._category_tab("ui")),
             ("behavior", self._category_tab("behavior", "print",
                                             extra=self._inventory_categories_box())),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
-            ("general", self._general_tab()),
+            ("general", self._category_tab("ui", extra=self._general_tab())),
             ("backup",   self._backup_tab()),
             ("nav",      self._nav_tab()),
             ("advanced", self._advanced_tab()),
@@ -216,8 +216,9 @@ class SettingsDialog(QDialog):
         sidebar_lay.setSpacing(6)
 
         self._settings_search = QLineEdit()
-        self._settings_search.setPlaceholderText("Suchen …")
+        self._settings_search.setPlaceholderText(SEARCH_PLACEHOLDER)
         self._settings_search.setClearButtonEnabled(True)
+        QShortcut(QKeySequence.StandardKey.Find, self, self._settings_search.setFocus)
         sidebar_lay.addWidget(self._settings_search)
 
         self._settings_nav = QListWidget()
@@ -686,9 +687,7 @@ class SettingsDialog(QDialog):
                 edit.setPlaceholderText("z. B. 3D Turnier 2027, {name}, {bow_class}")
             self.club_edits[key] = edit
             form.addRow(self._flbl(label), edit)
-        hint = QLabel("Platzhalter Verwendungszweck: {name}, {bow_class}",
-                      objectName="pageSubtitle")
-        form.addRow("", hint)
+        form.addRow("", help_link("Einstellungen & Stammdaten", "bankdaten"))
         lay.addWidget(box)
         lay.addStretch()
         return w
@@ -1087,6 +1086,7 @@ class SettingsDialog(QDialog):
             label.setToolTip(st.key)
             groups[st.category].addRow(label, display)
 
+        lay.addWidget(help_link("Einstellungen & Stammdaten", "textvorlagen"))
         lay.addStretch()
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -1098,8 +1098,7 @@ class SettingsDialog(QDialog):
         """Categories are stored right away; they do not use the Speichern button."""
         box = QGroupBox("Inventarkategorien")
         box_lay = QVBoxLayout(box)
-        box_lay.addWidget(QLabel("Kategorien für das Dropdown und den Filter im Inventar.",
-                                 objectName="pageSubtitle"))
+        box_lay.addWidget(help_link("Inventar & Kalender", "inventarkategorien"))
         self._category_list = QListWidget()
         self._category_list.setMinimumHeight(220)
         box_lay.addWidget(self._category_list, 1)
@@ -1187,10 +1186,7 @@ class SettingsDialog(QDialog):
         inner = QWidget()
         lay = QVBoxLayout(inner)
         lay.setSpacing(10)
-        hint = QLabel("Platzhalter: {name}, {verein}, {klasse}, {turniername}, {datum}; "
-                      "nur Datenauskunft: {daten}",
-                      objectName="pageSubtitle")
-        lay.addWidget(hint)
+        lay.addWidget(help_link("Referenz", "platzhalter-email", "Platzhalter in der Hilfe"))
         for title, subj_key, body_key in (
             ("Anmeldebestätigung", "email_reg_subject", "email_reg_body"),
             ("Zahlungserinnerung", "email_payment_subject", "email_payment_body"),
@@ -1251,7 +1247,11 @@ class SettingsDialog(QDialog):
         hint = QLabel(f"Die Logdatei liegt unter {config.LOG_PATH}", objectName="pageSubtitle")
         hint.setWordWrap(True)
         hint.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        page.widget().findChild(QGroupBox).layout().addRow(hint)
+        layout = page.widget().findChild(QGroupBox).layout()
+        layout.addRow("", button("Logfile öffnen", lambda: open_path(self, config.LOG_PATH),
+                                 tooltip="app.log mit dem Standardprogramm öffnen"))
+        layout.addRow(hint)
+        layout.addRow(help_link("Einstellungen & Stammdaten", "erweitert"))
         return page
 
     def _confirm_debug_mode(self, saved_values: dict) -> bool:

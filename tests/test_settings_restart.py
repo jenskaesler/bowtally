@@ -36,3 +36,21 @@ def test_restart_button_restarts_the_app_after_restore(dialog, monkeypatch):
 
 def test_declining_the_restart_keeps_the_app_running(dialog, monkeypatch):
     assert _restore(dialog, monkeypatch, [True, False]) == []
+
+
+def test_logfile_button_opens_the_log(dialog, monkeypatch):
+    from PySide6.QtWidgets import QPushButton
+    from bowtally.ui.dialogs import settings_dialog
+    opened = []
+    monkeypatch.setattr(settings_dialog, "open_path", lambda _parent, path: opened.append(path))
+    button = next(b for b in dialog.findChildren(QPushButton) if b.text() == "Logfile öffnen")
+    button.click()
+    assert opened == [config.LOG_PATH]
+
+
+def test_interface_settings_live_on_the_general_system_page(dialog):
+    pages = [key for _title, items in dialog._NAV_GROUPS for key, _label in items]
+    assert "ui" not in pages
+    from PySide6.QtWidgets import QGroupBox
+    general = dialog._stack.widget(dialog._page_index["general"])
+    assert "Oberfläche" in [box.title() for box in general.findChildren(QGroupBox)]

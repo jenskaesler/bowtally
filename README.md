@@ -94,7 +94,7 @@ flowchart LR
 - 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar.
 - 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Einstellungen mit Logging-Modus, Logbuch, Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
 - 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
-- 🪵 **Erweitert** – Logging-Modus der Logdatei `app.log` (Info, Warnung, Debug; Standard Info, Debug nur nach Warnhinweis).
+- 🪵 **Erweitert** – Logging-Modus der Logdatei `app.log` (Info, Warnung, Debug; Standard Info, Debug nur nach Warnhinweis), Button „Logfile öffnen“.
 - ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
 
 ---

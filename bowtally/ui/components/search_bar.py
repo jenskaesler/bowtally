@@ -7,17 +7,22 @@ from PySide6.QtWidgets import QLineEdit
 from bowtally.ui import theme
 
 DEBOUNCE_MS = 250
+PLACEHOLDER = "Suche (Strg+F) …"       # the same inline text in every search field
+WIDTH = 300
 
 
 class SearchBar(QLineEdit):
     searchChanged = Signal(str)     # emitted DEBOUNCE_MS after the last keystroke
 
-    def __init__(self, placeholder: str = "Suchen …", parent=None):
+    def __init__(self, hint: str = "", parent=None):
+        """`hint` says what is searched; it is shown as tooltip, the inline text is always the same."""
         super().__init__(parent)
-        self.setPlaceholderText(placeholder)
-        self.setToolTip(f"{placeholder} (Strg+F, Esc leert die Suche)")
+        self.setPlaceholderText(PLACEHOLDER)
+        hint = hint.removesuffix(" …").strip()
+        self.setToolTip(f"{hint}: Strg+F, Esc leert die Suche" if hint
+                        else "Strg+F, Esc leert die Suche")
         self.setClearButtonEnabled(True)
-        self.setMinimumWidth(260)
+        self.setFixedWidth(WIDTH)
         self._icon = self.addAction(QIcon(), QLineEdit.ActionPosition.LeadingPosition)
         self._timer = QTimer(self, singleShot=True, interval=DEBOUNCE_MS)
         self._timer.timeout.connect(lambda: self.searchChanged.emit(self.term()))

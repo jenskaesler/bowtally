@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """Logbuch: chronological table of all app activity with filtering and pagination."""
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QFont
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QLineEdit,
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView,
                                QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from bowtally.services import logbuch_service as ls
 from bowtally.ui import theme
 from bowtally.ui.components.data_table import ROW_HEIGHT
 from bowtally.ui.components.page_header import PageHeader
+from bowtally.ui.components.search_bar import SearchBar
 
 # log_type -> (label, bg_color)
 TYPE_META: dict[str, tuple[str, str]] = {
@@ -59,9 +60,7 @@ class LogbuchView(QWidget):
         self._period_combo = QComboBox()
         for _days, label in PERIODS:
             self._period_combo.addItem(label)
-        self._search = QLineEdit()
-        self._search.setPlaceholderText("Suche …")
-        self._search.setMaximumWidth(200)
+        self._search = SearchBar("Meldung oder Kontext")
 
         filter_bar = QHBoxLayout()
         filter_bar.setSpacing(8)
@@ -136,11 +135,7 @@ class LogbuchView(QWidget):
         self._total = 0
         self._tournaments: list[tuple[int | None, str]] = []
 
-        self._search_timer = QTimer(self)
-        self._search_timer.setSingleShot(True)
-        self._search_timer.setInterval(250)
-        self._search_timer.timeout.connect(self._reload)
-        self._search.textChanged.connect(lambda: self._search_timer.start())
+        self._search.searchChanged.connect(lambda _t: self._reload())
         self._t_combo.currentIndexChanged.connect(self._reload)
         self._period_combo.currentIndexChanged.connect(self._reload)
 

@@ -87,7 +87,7 @@ def menu(parent, entries) -> QMenu:
 
 class ListView(QWidget):
     def __init__(self, title: str, headers: list[str], empty: EmptyState,
-                 form: Form | None = None, search_placeholder: str = "Suchen …",
+                 form: Form | None = None, search_placeholder: str = "",
                  multi_select: bool = False, sortable: bool = True, reorderable: bool = False,
                  parent=None):
         super().__init__(parent)

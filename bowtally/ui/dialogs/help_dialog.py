@@ -3,12 +3,13 @@
 import re
 
 from PySide6.QtCore import Qt, QSize, QTimer
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLineEdit, QListWidget,
                                 QListWidgetItem, QStackedWidget, QTextBrowser,
                                 QVBoxLayout, QWidget)
 
 from bowtally.ui import button, restore_geom, save_geom, theme
+from bowtally.ui.components.search_bar import PLACEHOLDER as SEARCH_PLACEHOLDER
 
 _SECTIONS = [
     ("Übersicht", """
@@ -464,7 +465,7 @@ nicht zum Inventarwert. Import und Export sind möglich.</p>
 <i>Aktives Inventar anzeigen</i> unten links ist standardmäßig angehakt und zeigt dann nur
 aktive Artikel; ohne Haken siehst du alle. Inaktive Artikel zählen nicht zum Inventarwert und
 stehen nicht im Parcoursplan zur Auswahl.</p>
-<p>Die <b>Kategorien</b> pflegst du unter Einstellungen → Turnierverwaltung → Allgemein. Eine Kategorie
+<a name="inventarkategorien"></a><p>Die <b>Kategorien</b> (Dropdown im Artikel und Filter der Liste) pflegst du unter Einstellungen → Turnierverwaltung → Allgemein (Anlegen, Umbenennen, Löschen). Eine Kategorie
 lässt sich nur löschen, wenn keine Artikel mehr darin sind; sonst bietet das Programm an, die
 Artikel in eine andere Kategorie zu verschieben.</p>
 <p>Artikel mit <i>Für Parcoursplanung verwenden</i> stehen im Parcoursplan eines Turniers zur
@@ -632,29 +633,36 @@ fest, welche Vorstand-Rolle beim Erstellen neuer Turniere vorbelegt wird.</p>
 <h3>Vereinsvorstand</h3>
 <p>Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle. Im Turnier-Assistenten
 können diese Daten per Klick auf <b>Übernehmen</b> als Turnierkontakt übernommen werden.</p>
-<h3>Bankdaten</h3>
+<a name="bankdaten"></a><h3>Bankdaten</h3>
 <p>IBAN, BIC und Verwendungszweck-Vorlage für Startgebühren-Überweisungen.
-Im Verwendungszweck können Platzhalter genutzt werden (z. B.
-<code>{name}</code>).</p>
-<h3>Turnierverwaltung → Allgemein</h3>
+Im Verwendungszweck können Platzhalter genutzt werden: <code>{name}</code> (Vor- und
+Nachname des Schützen) und <code>{bow_class}</code> (Bogenklasse), siehe „Referenz“.</p>
+<a name="allgemein"></a><h3>Turnierverwaltung → Allgemein</h3>
 <p><i>Automatisch neu berechnen</i> (Rang) und <i>Warteliste bei Vollbelegung</i>. Die
 Gleichstandsregeln stellst du je Regelwerk ein. Im Block <b>Druck</b> stellst du
 Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
 und Einzelwertung je Scheibe auf Ausdrucken ein. Im Block <b>Inventarkategorien</b>
 pflegst du die Kategorien des Inventars.</p>
-<h3>Turnierverwaltung → Textvorlagen</h3>
+<a name="textvorlagen"></a><h3>Turnierverwaltung → Textvorlagen</h3>
 <p>Textvorlagen für Ausschreibungen: Parcours-Beschreibung, Überweisungshinweis,
-Gruppenhinweis und Wichtige Hinweise.</p>
-<h3>Turnierverwaltung → E-Mail-Vorlagen</h3>
-<p>Betreff und Text für die sieben E-Mail-Vorlagen, siehe „E-Mail-Funktionen“.</p>
+Gruppenhinweis und Wichtige Hinweise. Sie werden im Turnier-Assistenten als Vorgabe
+übernommen und dort je Turnier angepasst.</p>
+<a name="email-vorlagen"></a><h3>Turnierverwaltung → E-Mail-Vorlagen</h3>
+<p>Betreff und Text für die acht E-Mail-Vorlagen (Anmeldebestätigung, Zahlungserinnerung,
+Startunterlagen, Ergebnisversand, Wartelisten-Nachrücker, Helfer-Bestätigung,
+Datenauskunft und Turnier-Ankündigung). Platzhalter wie <code>{name}</code> oder
+<code>{turniername}</code> schreibst du in geschweiften Klammern; welche in welcher Vorlage
+verfügbar sind, steht in der „Referenz“ unter <i>E-Mail-Vorlagen</i>. Mehr zum Versand siehe
+„E-Mail-Funktionen“.</p>
 <h3>System → Allgemein</h3>
 <p><b>Update-Prüfung</b> (Beim Start nach Updates suchen, <b>Jetzt prüfen</b>) und
 der <b>Standard-Exportpfad</b> für erzeugte Dateien (leer = Downloads-Ordner),
-siehe „Backup &amp; Updates“.</p>
+siehe „Backup &amp; Updates“. Im Block <b>Oberfläche</b> stellst du Sprache und
+Schriftart ein.</p>
 <h3>System → Design</h3>
 <p><b>Darstellung</b> System, Hell oder Dunkel (Dark Mode), Markenfarben und
 individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> und
-<b>Zurücksetzen auf Standard</b>. <b>Oberfläche</b>: Sprache und Schriftart.</p>
+<b>Zurücksetzen auf Standard</b>.</p>
 <h3>Regelwerke</h3>
 <p>Regelwerke definieren, wie viele Schüsse je Scheibe erlaubt sind und
 wie viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
@@ -675,13 +683,14 @@ einer JSON-Datei.</p>
 <p>Unter Einstellungen → System → <b>Navigation</b> lässt sich die Reihenfolge der
 Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
 werden nach einem <b>Neustart</b> der App wirksam.</p>
-<h3>System → Erweitert</h3>
+<a name="erweitert"></a><h3>System → Erweitert</h3>
 <p>Der <b>Logging-Modus</b> bestimmt, wie ausführlich BowTally in die Logdatei
 <code>app.log</code> schreibt: <b>Info</b> (Standard), <b>Warnung</b> (nur Warnungen und
 Fehler) oder <b>Debug</b>. Debug schreibt sehr viele Details, kann personenbezogene Daten
 und Dateipfade enthalten und lässt die Datei schnell wachsen; BowTally fragt vor dem
 Aktivieren nach. Nutze Debug nur auf Anweisung des Supports. Die Änderung gilt sofort
-nach dem Speichern.</p>
+nach dem Speichern. Mit <b>Logfile öffnen</b> öffnest du <code>app.log</code> im
+Standardprogramm.</p>
 """),
     ("E-Mail-Funktionen", """
 <h2>E-Mail-Funktionen</h2>
@@ -841,7 +850,7 @@ ausgeblendet. Bei abgeschlossenen Turnieren sind alle Aktionen gesperrt.</p>
 """),
     ("Referenz", """
 <h2>Referenz</h2>
-<h3>Platzhalter</h3>
+<a name="platzhalter"></a><h3>Platzhalter</h3>
 <p>Platzhalter werden in bestimmten Textfeldern durch echte Werte ersetzt.
 Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
 <p><b>Verwendungszweck (Bankverbindung):</b></p>
@@ -850,7 +859,7 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
   <tr><td><code>{bow_class}</code></td><td>Bogenklasse des Schützen</td></tr>
 </table>
 <p><i>Beispiel:</i> <code>3D Turnier 2027, {name}, {bow_class}</code></p>
-<p><b>E-Mail-Vorlagen</b> – verfügbare Platzhalter:</p>
+<a name="platzhalter-email"></a><p><b>E-Mail-Vorlagen</b> – verfügbare Platzhalter:</p>
 <p><i>Immer verfügbar:</i></p>
 <table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
   <tr><td><code>{name}</code></td><td>Vor- und Nachname des Teilnehmers / Helfers</td></tr>
@@ -894,6 +903,10 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
   <tr><td><code>{ort}</code></td><td>Veranstaltungsort des Turniers</td></tr>
   <tr><td><code>{klassen}</code></td><td>Bogenklassen des Turniers</td></tr>
   <tr><td><code>{startgeld}</code></td><td>Startgebühren mit Beträgen</td></tr>
+</table>
+<p><i>Nur in der Datenauskunft (Mitglieder):</i></p>
+<table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
+  <tr><td><code>{daten}</code></td><td>Alle gespeicherten Daten des Mitglieds (IBAN bis auf die letzten vier Stellen maskiert)</td></tr>
 </table>
 <h3>Tastenkürzel</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
@@ -945,8 +958,9 @@ class HelpDialog(QDialog):
         sidebar_lay.setSpacing(6)
 
         self._help_search = QLineEdit()
-        self._help_search.setPlaceholderText("Suchen …")
+        self._help_search.setPlaceholderText(SEARCH_PLACEHOLDER)
         self._help_search.setClearButtonEnabled(True)
+        QShortcut(QKeySequence.StandardKey.Find, self, self._help_search.setFocus)
         sidebar_lay.addWidget(self._help_search)
 
         self._nav = QListWidget()
