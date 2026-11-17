@@ -38,10 +38,10 @@ def test_zones_are_written_and_read_as_plain_text():
 
 
 def test_builtin_rule_exports_readable_columns_without_json():
-    hunter = next(r for r in sc.list_rules() if r.name == "3D Hunter (IBO)")
+    hunter = next(r for r in sc.list_rules() if r.name == "DBSV 3D-Waldrunde")
     row = dict(zip(sc.RULE_EXPORT_HEADERS, sc.rule_export_row(hunter)))
     assert row["Disziplin"] == "3D-Parcours"
-    assert (row["Kills zählen"], row["Bei Gleichstand zählen Kills"]) == ("Ja", "Ja")
+    assert (row["Kills zählen"], row["Bei Gleichstand zählen Kills"]) == ("Ja", "Nein")
     assert (row["X-Treffer zählen"], row["Treffer in der höchsten Wertung"]) == ("Nein", "Ja")
     assert not any("{" in str(v) or "[{" in str(v) for v in row.values())
     assert " = " in row["Zonen"]

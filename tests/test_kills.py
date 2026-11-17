@@ -17,8 +17,19 @@ def db(tmp_path):
     engine.init_database(f"sqlite:///{(tmp_path / 'k.db').as_posix()}")
 
 
+def _kill_rule():
+    """3D rule that counts kills and uses them as tie-break (the built-in IBO rules do not)."""
+    return sc.save_rule({"name": "Kill-Regelwerk", "max_shots_per_target": 1,
+                         "ring_values": [{"zone": "Kill", "points": 10, "type": "kill"},
+                                         {"zone": "Körper", "points": 5},
+                                         {"zone": "Miss", "points": 0, "type": "miss"}],
+                         "tracked_specials": [{"key": "kill", "label": "Kill", "track": True,
+                                               "tiebreak": True}],
+                         "rules_json": {"discipline": "3d", "tiebreak": "most_top_scores"}})
+
+
 def _tournament(mode: str, num_rounds: int = 1, people: int = 2):
-    rule = next(r for r in sc.list_rules() if r.name == "3D Hunter (IBO)")   # kill = tie-break
+    rule = _kill_rule()
     t = ts.save_tournament({"name": "T", "date": date(2026, 5, 1), "num_targets": 1,
                             "shots_per_target": 1, "scoring_rule_id": rule.id,
                             "scoring_mode": mode, "num_rounds": num_rounds},

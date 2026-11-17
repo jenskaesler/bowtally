@@ -15,8 +15,19 @@ def db(tmp_path):
     engine.init_database(f"sqlite:///{(tmp_path / 's.db').as_posix()}")
 
 
+def _kill_rule():
+    """3D rule that counts kills and uses them as tie-break (the built-in IBO rules do not)."""
+    return sc.save_rule({"name": "Kill-Regelwerk", "max_shots_per_target": 1,
+                         "ring_values": [{"zone": "Kill", "points": 10, "type": "kill"},
+                                         {"zone": "Körper", "points": 5},
+                                         {"zone": "Miss", "points": 0, "type": "miss"}],
+                         "tracked_specials": [{"key": "kill", "label": "Kill", "track": True,
+                                               "tiebreak": True}],
+                         "rules_json": {"discipline": "3d", "tiebreak": "most_top_scores"}})
+
+
 def _tournament_with_starter(mode: str, num_rounds: int = 1, num_targets: int = 3, shots: int = 1):
-    rule = sc.list_rules()[0]
+    rule = _kill_rule()
     t = ts.save_tournament({"name": "T", "date": date(2026, 5, 1), "num_targets": num_targets,
                             "shots_per_target": shots, "scoring_rule_id": rule.id,
                             "scoring_mode": mode, "num_rounds": num_rounds},
@@ -54,7 +65,7 @@ def test_per_round_needs_one_value_per_round():
 
 def test_multi_round_per_target_needs_every_shot_of_every_round():
     t, pid = _tournament_with_starter("per_target", num_rounds=2, num_targets=1, shots=1)
-    zone = sc.list_rules()[0].ring_values[0]
+    zone = {"zone": "Kill", "points": 10}
     sc.set_score(pid, 1, 1, (zone["points"], zone["zone"]), round_number=1)
     assert _incomplete(t) == [pid]
     sc.set_score(pid, 1, 1, (zone["points"], zone["zone"]), round_number=2)

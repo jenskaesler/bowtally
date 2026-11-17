@@ -20,7 +20,7 @@ def db(tmp_path_factory):
 def test_seed():
     assert settings_service.get(settings_service.KEY_COLOR_PRIMARY) == "#00357D"
     assert len(md.list_bow_classes()) == 10
-    assert {"IBO 3D Standard", "ASA 3D", "WA 3D"} <= {r.name for r in scoring_service.list_rules()}
+    assert {"IBO 3D Standard", "WA 3D"} <= {r.name for r in scoring_service.list_rules()}
 
 
 def test_archer_notify_results_saved():

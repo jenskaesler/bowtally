@@ -81,7 +81,7 @@ flowchart LR
 ### Stammdaten
 
 - 🏹 **Schützen** – Suche, aktiv/inaktiv; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
-- 📏 **Regelwerke** – 14 eingebaute Regelwerke (IBO 3D, ASA 3D, WA 3D, DBSV Wald-/Jagdrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m, 3D Hunter, NFAA 3D u. a.) plus eigene durch Klonen mit Zonen-Editor.
+- 📏 **Regelwerke** – 9 eingebaute Regelwerke mit Gleichstandsregeln nach WA, IBO, IFAA und DBSV (3D Hunter, IBO 3D Standard/12-Ring, WA 3D, DBSV Waldrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m) plus eigene durch Klonen; Kills/X, Disziplin, Gleichstand und Stechen je Regelwerk einstellbar, Regelwerke lesbar exportier-/importierbar.
 - 🙋 **Helfer** – Stammdaten mit aktiv/inaktiv; je Turnier Einteilung mit Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung.
 - 📦 **Inventar und Logbuch** – Scheiben und 3D-Ziele verwalten; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.

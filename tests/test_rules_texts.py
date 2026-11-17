@@ -33,9 +33,9 @@ def _rule():
                          "max_shots_per_target": 1})
 
 
-def test_default_rule_is_3d_standard_and_unique():
+def test_default_rule_is_the_ibo_hunter_rule():
     rule = sc.get_rule(int(ss.get("default_scoring_rule_id")))
-    assert rule.name == "3D Standard 3-Pfeil"
+    assert rule.name == "3D Hunter (IBO)"
 
 
 def test_rules_pdf_created_with_special_characters(tmp_path):

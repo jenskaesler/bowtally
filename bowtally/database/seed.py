@@ -233,25 +233,6 @@ DEFAULT_SCORING_RULES = [
         ],
     },
     {
-        "name": "ASA 3D",
-        "description": "ASA 3D-Wertung mit Doppelring.",
-        "ring_values": [
-            {"zone": "Doppelring rot", "points": 12},
-            {"zone": "Vital innen", "points": 10},
-            {"zone": "Vital außen", "points": 8},
-            {"zone": "Körper", "points": 5},
-            {"zone": "Miss", "points": 0},
-        ],
-        "max_shots_per_target": 1,
-        "allow_retry_shot": False,
-        "rules_json": {"tiebreak": "most_top_scores"},
-        "tracked_specials": [
-            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
-            {"key": "x", "label": "12", "track": True, "tiebreak": False},
-            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
-        ],
-    },
-    {
         "name": "WA 3D",
         "description": "World Archery 3D, zwei Pfeile je Scheibe.",
         "ring_values": [
@@ -288,28 +269,6 @@ DEFAULT_SCORING_RULES = [
         "allow_retry_shot": False,
         "rules_json": {"tiebreak": "most_top_scores",
                        "note": "Typische Hunterrunde: 1 Pfeil, max. 11 Punkte je Tier"},
-        "tracked_specials": [
-            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
-            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
-        ],
-    },
-    {
-        "name": "3D Standard 3-Pfeil",
-        "description": "Klassische 3D-Runde mit 3 Pfeilen je Tier.",
-        "ring_values": [
-            {"zone": "Vital innen 1. Pfeil", "points": 20},
-            {"zone": "Vital innen 2. Pfeil", "points": 16},
-            {"zone": "Vital innen 3. Pfeil", "points": 14},
-            {"zone": "Vital außen 1. Pfeil", "points": 10},
-            {"zone": "Vital außen 2. Pfeil", "points": 8},
-            {"zone": "Vital außen 3. Pfeil", "points": 4},
-            {"zone": "Körper", "points": 5},
-            {"zone": "Miss", "points": 0},
-        ],
-        "max_shots_per_target": 3,
-        "allow_retry_shot": True,
-        "rules_json": {"tiebreak": "most_top_scores", "shot_penalty": True,
-                       "note": "Volle Punkte nur für 1. Pfeil in Vitalzone."},
         "tracked_specials": [
             {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
             {"key": "miss", "label": "M", "track": True, "tiebreak": False},
@@ -374,22 +333,6 @@ DEFAULT_SCORING_RULES = [
         ],
     },
     {
-        "name": "Blasrohr Standard",
-        "description": "Standard-Wertung für Blasrohrturnier.",
-        "ring_values": [
-            {"zone": "Innenring", "points": 10},
-            {"zone": "Außenring", "points": 5},
-            {"zone": "Miss", "points": 0},
-        ],
-        "max_shots_per_target": 1,
-        "allow_retry_shot": False,
-        "rules_json": {"tiebreak": "most_top_scores"},
-        "tracked_specials": [
-            {"key": "x", "label": "X", "track": True, "tiebreak": True},
-            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
-        ],
-    },
-    {
         "name": "DBSV 3D-Waldrunde",
         "description": "Deutsche Waldrunde nach DBSV-Regelwerk. Bis zu 3 Pfeile je Tier.",
         "ring_values": [
@@ -417,28 +360,6 @@ DEFAULT_SCORING_RULES = [
         ],
     },
     {
-        "name": "DBSV 3D-Jagdrunde",
-        "description": "Deutsche Jagdrunde nach DBSV-Regelwerk. 1 Pfeil je Tier.",
-        "ring_values": [
-            {"zone": "Innere Killzone", "points": 15},
-            {"zone": "Äußere Killzone", "points": 10},
-            {"zone": "Körpertreffer", "points": 5},
-            {"zone": "Miss", "points": 0},
-        ],
-        "max_shots_per_target": 1,
-        "allow_retry_shot": False,
-        "rules_json": {
-            "tiebreak": "most_top_scores",
-            "tiebreak_secondary": "most_15_scores",
-            "scoring_note": "1 Pfeil je Tier. Schießzeit 1:30 min je Paar.",
-            "source": "DBSV WKO Teil 9, 2024-1, Abschnitt 9.6.3 und 9.7.4",
-        },
-        "tracked_specials": [
-            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
-            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
-        ],
-    },
-    {
         "name": "IBO 3D mit 12-Ring",
         "description": "IBO-Variante mit zusätzlichem 12-Punkte-Kleinstkreis. 1 Pfeil je Tier.",
         "ring_values": [
@@ -457,26 +378,6 @@ DEFAULT_SCORING_RULES = [
         "tracked_specials": [
             {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
             {"key": "x", "label": "12", "track": True, "tiebreak": False},
-            {"key": "miss", "label": "M", "track": True, "tiebreak": False},
-        ],
-    },
-    {
-        "name": "NFAA 3D",
-        "description": "US-amerikanisches NFAA-Regelwerk. 1 Pfeil je Tier.",
-        "ring_values": [
-            {"zone": "Innenring (10)", "points": 10},
-            {"zone": "Außenring (8)", "points": 8},
-            {"zone": "Körper (5)", "points": 5},
-            {"zone": "Miss", "points": 0},
-        ],
-        "max_shots_per_target": 1,
-        "allow_retry_shot": False,
-        "rules_json": {
-            "tiebreak": "most_top_scores",
-            "source": "NFAA Official Rules",
-        },
-        "tracked_specials": [
-            {"key": "kill", "label": "Kill", "track": True, "tiebreak": True},
             {"key": "miss", "label": "M", "track": True, "tiebreak": False},
         ],
     },
@@ -521,6 +422,54 @@ DEFAULT_BOW_CLASSES = [
 ]
 
 
+# Tie-break options of built-in rules as the rule books define them (research 2026-11-17):
+#  WA/DBSV indoor: most 10s, then 9s; WA 3D: most 11s, then 10s; IBO: most 11s and a shoot-off for
+#  the top places (no "Kill"); DBSV Waldrunde: most 15s; IFAA field: shoot-off for every award.
+# Rules without a verifiable source (ASA 3D, NFAA 3D, 3D Standard 3-Pfeil, DBSV 3D-Jagdrunde,
+# Blasrohr Standard) were removed (migration 0033).
+_WA_INDOOR = ("target", {"top_hits": True})
+_IBO = ("3d", {"top_hits": True, "shoot_off": True})
+_IFAA_FIELD = ("target", {"count_x": True, "shoot_off": True})
+BUILTIN_RULE_OPTIONS = {
+    "WA Halle 18m": _WA_INDOOR, "WA Halle 25m": _WA_INDOOR,
+    "WA 3D": ("3d", {"top_hits": True}),
+    "3D Hunter (IBO)": _IBO, "IBO 3D Standard": _IBO, "IBO 3D mit 12-Ring": _IBO,
+    "DBSV 3D-Waldrunde": ("3d", {"count_kill": True, "top_hits": True}),
+    "Feldbogen IFAA (bekannte Entfernung)": _IFAA_FIELD,
+    "Feldbogen IFAA (unbekannte Entfernung)": _IFAA_FIELD,
+}
+
+
+def _zone_type(name: str) -> str:
+    lower = name.lower()
+    if "killzone" in lower:
+        return "kill"
+    if lower == "miss":
+        return "miss"
+    return "x" if lower.startswith("x") else ""
+
+
+def _sync_builtin_rule(rule: ScoringRule) -> None:
+    """Built-in rules are read-only for users, so code is the source of truth at every start."""
+    from bowtally.services.scoring_service import rule_options_to_data
+    zones = []
+    for z in rule.ring_values:
+        zone = dict(z)
+        if not zone.get("type") and _zone_type(z["zone"]):
+            zone["type"] = _zone_type(z["zone"])
+        zones.append(zone)
+    if zones != rule.ring_values:
+        rule.ring_values = zones
+    options = BUILTIN_RULE_OPTIONS.get(rule.name)
+    if options:
+        data = rule_options_to_data(options[0], options[1], zones, rule.tracked_specials or [],
+                                    rule.rules_json)
+        if data["tracked_specials"] != rule.tracked_specials:
+            rule.tracked_specials = data["tracked_specials"]
+        if data["rules_json"] != rule.rules_json:
+            rule.rules_json = data["rules_json"]
+
+
 def run(session: Session) -> None:
     """Insert the initial data set. Idempotent: skips what already exists. Caller commits."""
     existing_settings = set(session.scalars(select(AppSetting.key)))
@@ -536,10 +485,13 @@ def run(session: Session) -> None:
         if rule["name"] not in existing_rules:
             session.add(ScoringRule(is_builtin=True, **rule))
     session.flush()
+    for rule in session.scalars(select(ScoringRule).where(ScoringRule.is_builtin.is_(True))):
+        _sync_builtin_rule(rule)
+    session.flush()
     default = session.get(AppSetting, "default_scoring_rule_id")
     if not default.value or session.get(ScoringRule, int(default.value)) is None:
         default.value = str(session.scalar(
-            select(ScoringRule.id).where(ScoringRule.name == "3D Standard 3-Pfeil")))
+            select(ScoringRule.id).where(ScoringRule.name == "3D Hunter (IBO)")))
     existing_classes = {bc.name for bc in session.scalars(
         select(BowClass).where(BowClass.is_builtin.is_(True)))}
     for i, (name, abbr, age) in enumerate(DEFAULT_BOW_CLASSES, start=1):

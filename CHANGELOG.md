@@ -33,6 +33,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Disziplin, Schüsse je Ziel, Nachschuss, die Zonen als Text (`Kill-Zone = 11 [Kill]; Körper = 8`)
   und Ja/Nein-Spalten für Kills, X-Treffer und Treffer in der höchsten Wertung. Ältere Dateien mit
   JSON-Zonen lassen sich weiter importieren.
+- **🥇 Stechen eintragen** — Bei Regelwerken mit „Stechen erforderlich“ erscheint in der Auswertung
+  der Button „Stechen eintragen“: Punkte des Stechens je Teilnehmer, der höhere Wert gewinnt den
+  Gleichstand. Gespeichert im Backup, bis zur Ergebnisliste änderbar; die Rückfrage beim Erstellen
+  der Ergebnisliste warnt vor offenen Gleichständen.
 - **🤝 Turnier-Helfer** — Neben „Neuer Helfer" (nur für das Turnier) gibt es „Aus
   Mitgliederkartei" (nur aktive Mitglieder mit Flag „Turnierhelfer"). Beim Abschluss eines
   Turniers wird die Helferhistorie der verknüpften Mitglieder automatisch ergänzt.
@@ -63,6 +67,13 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   des Mailprogramms (die Größe bleibt 10 pt).
 
 ### Geändert
+
+- **📏 Standard-Regelwerke nach den Verbandsregeln** — Gleichstandsregeln der eingebauten Regelwerke
+  entsprechen jetzt WA, IBO, IFAA und DBSV (z. B. WA Halle: 10er, dann 9er, ohne X; IBO: 11er und
+  Stechen; IFAA Feld: Stechen). Bei jedem Start werden die eingebauten Regelwerke daran angeglichen.
+- **🗑️ Regelwerke ohne belegbare Quelle entfernt** — ASA 3D, NFAA 3D, 3D Standard 3-Pfeil, DBSV
+  3D-Jagdrunde und Blasrohr Standard (Migration 0033). Nutzt ein Turnier eines davon, bleibt es als
+  eigenes Regelwerk erhalten. Das Standard-Regelwerk für neue Turniere ist jetzt „3D Hunter (IBO)“.
 
 - **🎯 „Pro Ziel“** — Der Wertungsmodus „Scheibenwertung“ heißt jetzt „Pro Ziel“; Meldungen und
   Hilfetexte sprechen von Zielergebnissen.

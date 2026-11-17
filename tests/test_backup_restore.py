@@ -226,7 +226,7 @@ def test_builtin_rules_count_kill_miss_and_x_per_target(tmp_path, monkeypatch):
     from bowtally.services import scoring_service as sc
     init_database()
     types = {r.name: {z["zone"]: z.get("type", "") for z in r.ring_values} for r in sc.list_rules()}
-    assert types["DBSV 3D-Jagdrunde"]["Innere Killzone"] == "kill"
-    assert types["DBSV 3D-Jagdrunde"]["Miss"] == "miss"
+    assert types["DBSV 3D-Waldrunde"]["Innere Killzone (1. Pfeil)"] == "kill"
+    assert types["DBSV 3D-Waldrunde"]["Miss"] == "miss"
     assert types["WA Halle 18m"]["X (10 innen)"] == "x" and types["WA Halle 18m"]["10"] == ""
     assert types["3D Hunter (IBO)"]["Vital innen"] == ""        # not unambiguous: left to the user

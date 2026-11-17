@@ -372,8 +372,10 @@ Teilnehmer gleichauf, steht „ex aequo“ beim Rang.</p>
 <p>Bleibt es danach gleich, teilen sich die Teilnehmer den Rang (zwei erste Plätze). Verlangt das
 Regelwerk bei Gleichstand ein <b>Stechen</b> (z.&nbsp;B. IBO, IFAA), schaltest du
 <i>Stechen erforderlich</i> ein: Ergebnisansicht, Ergebnisliste (PDF) und der Wechsel nach
-„Abgeschlossen“ weisen dann auf Gleichstände auf Platz 1–3 hin. Das Stechen selbst wird nicht
-in BowTally erfasst.
+„Abgeschlossen“ weisen dann auf Gleichstände auf Platz 1–3 hin. Das Ergebnis des Stechens trägst
+du in der <b>Auswertung</b> über <b>Stechen eintragen</b> ein (Punkte je Teilnehmer, wer mehr hat,
+steht vorn; gleiche Werte bleiben gleichauf, z.&nbsp;B. wenn das Stechen weitergeht). Das geht,
+bis die Ergebnisliste erstellt ist.
 Bei <b>Pro Ziel</b> werden Kills und X-Treffer aus den gewählten Zonen gezählt, bei
 <b>Nur Gesamtpunkte</b> und <b>Rundenwertung</b> trägst du die Anzahl in der Spalte neben den
 Punkten ein (erst die Punkte, dann die Anzahl).</p>
@@ -454,6 +456,21 @@ Fährst du mit der Maus über ein Turnier, erscheint eine Vorschau mit
 <p><b>ICS exportieren</b> schreibt alle Turniere in eine Kalenderdatei
 (<code>.ics</code>) im Exportordner, die du in andere Kalender-Apps importieren
 kannst.</p>
+<h3>Eingebaute Regelwerke und ihre Quellen</h3>
+<p>Die Gleichstandsregeln der Standard-Regelwerke folgen den Regelwerken der Verbände
+(Stand der Recherche: WA 2026, IBO, IFAA 2021/22, DBSV WKO 2024):</p>
+<ul>
+  <li><b>WA Halle 18&nbsp;m / 25&nbsp;m</b>: meiste 10er, dann 9er, dann gleicher Rang (kein X)</li>
+  <li><b>WA 3D</b>: meiste 11er, dann 10er, dann gleicher Rang</li>
+  <li><b>IBO 3D</b> (Hunter, Standard, 12-Ring): meiste Treffer in der höchsten Wertung; für die
+      vorderen Plätze ist ein Stechen vorgeschrieben</li>
+  <li><b>DBSV 3D-Waldrunde</b>: meiste 15er, dann gleicher Rang; Kills werden nur gezählt</li>
+  <li><b>IFAA Feld</b>: bei Gleichstand Stechen für jede Auszeichnung</li>
+</ul>
+<p>Regelwerke ohne belegbare Quelle (ASA&nbsp;3D, NFAA&nbsp;3D, 3D&nbsp;Standard&nbsp;3-Pfeil,
+DBSV&nbsp;3D-Jagdrunde, Blasrohr Standard) gibt es nicht mehr als Standard; Turniere, die eines davon
+nutzten, behalten es als eigenes Regelwerk. Standard für neue Turniere ist „3D Hunter (IBO)“. Wer
+eine andere Regel braucht, kopiert ein Regelwerk und passt die Kopie an.</p>
 <h3>Regelwerke exportieren und importieren</h3>
 <p>Der Export (Excel, OpenDocument, CSV) enthält je Regelwerk eine lesbare Zeile mit
 Bezeichnung, Beschreibung, Disziplin, Schüssen je Ziel, Nachschuss, den Zonen und den
