@@ -6,6 +6,20 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **📎 Dokumente und Notizen als eigene Tabs** — Im Schützen-Dialog haben Notizen und Dokumente je
+  einen eigenen Tab, im Mitglieder-Dialog die Dokumente. Dokumente zu Schützen sind neu und
+  werden wie die Mitglieder-Dateien im Datenordner abgelegt und in Backup und Restore gesichert.
+
+### Geändert
+
+- **🎨 Dialoge und Menüs** — Speichern ist blau und Abbrechen schwarz. Bei Änderungen wird
+  Speichern rot. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
+  Icon, kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
+  Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein Drittel breiter und der
+  Passwortdialog beim Restore zeigt „Abbrechen“.
+
 ## [2026.11.4] – 2026-11-17
 
 ### Hinzugefügt
