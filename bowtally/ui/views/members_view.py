@@ -31,6 +31,7 @@ HEADERS = ["Mitgliedsnummer", "Name", "Ort", "E-Mail", "Status", "Turnierhelfer"
 EXPORT_HEADERS = ["Mitgliedsnummer", "Nachname", "Vorname", "Straße", "PLZ", "Ort", "Telefon",
                   "E-Mail", "Mitglied seit", "Gekündigt am", "Status", "Turnierhelfer"]
 AUTO_ENTRY_TIP = "Automatisch erfasster Einsatz, nicht änderbar"
+_HEADER_ALIGN = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
 
 def _hours_text(hours) -> str:
@@ -128,7 +129,7 @@ class MemberDialog(RecordDialog):
         self.bank_form = Form(label_width=SETTINGS_LABEL_W, combo_width=SETTINGS_COMBO_W)
         b = self.bank_form
         b.add("account_holder", "Kontoinhaber", QLineEdit(),
-              trailing=button("Aus Basisdaten übernehmen", self._copy_account_holder))
+              trailing=button("Basisdaten übernehmen", self._copy_account_holder))
         b.add("iban", "IBAN", QLineEdit(), validator=_iban_validator)
         b.add("bic", "BIC (optional)", QLineEdit())
         b.add("bank_name", "Name der Bank", QLineEdit())
@@ -182,6 +183,7 @@ class MemberDialog(RecordDialog):
         t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         t.horizontalHeader().setStretchLastSection(True)
+        t.horizontalHeader().setDefaultAlignment(_HEADER_ALIGN)
         t.itemSelectionChanged.connect(self._update_history_buttons)
         self._btn_edit = button("Bearbeiten", self._edit_entry)
         self._btn_delete = button("Löschen", self._delete_entry)
@@ -268,6 +270,7 @@ class MemberDialog(RecordDialog):
         t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         t.horizontalHeader().setStretchLastSection(True)
+        t.horizontalHeader().setDefaultAlignment(_HEADER_ALIGN)
         t.setColumnWidth(0, 300)
         t.itemSelectionChanged.connect(self._update_file_buttons)
         t.itemDoubleClicked.connect(lambda _item: self._open_file())

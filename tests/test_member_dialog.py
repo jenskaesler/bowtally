@@ -113,3 +113,10 @@ def test_notes_have_the_label_above_and_use_the_full_width(app):
     from PySide6.QtWidgets import QFormLayout
     dialog = _dialog()
     assert dialog.notes_form._lay.rowWrapPolicy() == QFormLayout.RowWrapPolicy.WrapAllRows
+
+
+def test_list_headers_in_the_dialog_are_left_aligned(app):
+    from PySide6.QtCore import Qt
+    dialog = _dialog(_member())
+    for table in (dialog._files_table, dialog._history):
+        assert table.horizontalHeader().defaultAlignment() & Qt.AlignmentFlag.AlignLeft

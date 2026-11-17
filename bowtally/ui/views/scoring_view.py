@@ -14,7 +14,7 @@ from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QRegularExpressio
 from PySide6.QtGui import QBrush, QColor, QRegularExpressionValidator, QStandardItem, \
     QStandardItemModel
 from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QCheckBox, QComboBox,
-                               QCompleter, QFrame,
+                               QCompleter,
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMenu,
                                QStackedWidget, QStyledItemDelegate, QTabBar, QTableView,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
@@ -258,13 +258,9 @@ class ScoringView(QWidget):
         lay.addWidget(self.round_bar)
         lay.addLayout(bar)
         # class tabs hang directly on the list, like the tabs of the results view
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setObjectName("separator")
         attached = QVBoxLayout()
         attached.setSpacing(0)
         attached.addWidget(self.class_tabs)
-        attached.addWidget(line)
         attached.addWidget(self._stack, 1)
         lay.addLayout(attached, 1)
         lay.addWidget(self.hint)
