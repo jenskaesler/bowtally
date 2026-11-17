@@ -66,7 +66,7 @@ flowchart LR
 - ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert.
 - 🎯 **Auslosung** – (nur wenn im Turnier-Assistenten „Teilnehmer per Auslosung einteilen“ gewählt wurde) automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
 - 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang.
-- 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop, Material aus dem Inventar mit angeforderter Menge und Einmalposten; PDF-Druck Aufbauplan und Scheibenplan.
+- 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop, Material aus dem Inventar mit angeforderter Menge und Einmalposten; PDF-Druck Aufbauplan und Zielplan.
 - 📋 **Wertungszettel-Vorlagen** – konfigurierbare Spalten per Drag-and-Drop-Editor; vier eingebaute Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
 
 ### Auswertung

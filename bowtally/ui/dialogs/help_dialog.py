@@ -309,8 +309,8 @@ Bei voller Teilnehmerzahl ist der Button gesperrt.</p>
     ("Parcours, Zeitplan & Preise", """
 <h2>Parcours, Zeitplan &amp; Preise</h2>
 <h3>Parcours-Planung</h3>
-<p>Der Tab <b>Parcours</b> (ab Phase <i>Vorbereitung</i>) enthält alle Scheiben bzw.
-3D-Tiere. Felder: Scheiben-Nr., Tier / Bezeichnung, Distanz (m),
+<p>Der Tab <b>Parcours</b> (ab Phase <i>Vorbereitung</i>) enthält alle Ziele (Scheiben
+bzw. 3D-Tiere). Mit <b>Neues Ziel</b> legst du eins an. Felder: Ziel-Nr., Tier / Bezeichnung, Distanz (m),
 Pfeilstoppklasse, Geländetyp, Max. Gruppengröße und Helfernotiz.</p>
 <p>Über <b>Aus Inventar …</b> im Bearbeitungsdialog lassen sich Bezeichnungen
 direkt aus dem Vereinsinventar übernehmen (nur Artikel mit <i>Für Parcoursplanung
@@ -321,12 +321,12 @@ Parcoursplan zeigt, ob der Bestand reicht oder wie viele Einheiten fehlen. Für 
 Turnier gemietetes oder gekauftes Material legst du als <b>Einmalposten</b> an; er gehört
 nicht zum Inventar und zählt nicht zum Inventarwert.</p>
 <p>Drucken: <b>Aufbauplan</b> (mit Helfernotizen für Helfer) und
-<b>Scheibenplan</b> (ohne Notizen für Teilnehmer) als PDF.</p>
+<b>Zielplan</b> (ohne Notizen für Teilnehmer) als PDF.</p>
 <h3>Zeitplan</h3>
 <p>Der Tab <b>Zeitplan</b> erscheint ab Phase <i>Vorbereitung</i>, sofern im
 Assistenten keine Auslosung eingestellt ist. Hier werden Startgruppen und
 -zeiten verwaltet.</p>
-<h3>Auslosung</h3>
+<a name="auslosung"></a><h3>Auslosung</h3>
 <p>Wird im Turnier-Assistenten unter <i>Konfiguration</i> <b>Teilnehmer per
 Auslosung einteilen</b> aktiviert, ersetzt die Auslosung den Zeitplan. Der
 Button <b>Auslosung …</b> im Teilnehmer-Tab verteilt Teilnehmer zufällig auf

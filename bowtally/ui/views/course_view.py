@@ -10,6 +10,7 @@ from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
+from bowtally.ui.components.help_link import help_link
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.confirm_dialog import choose
@@ -20,17 +21,18 @@ from bowtally.ui.views.fees_view import AmountField
 from bowtally.ui.views.participants_view import money
 
 MATERIAL_HEADERS = ["Artikel", "Angefordert", "Bestand", "Status", "Einzelpreis", "Summe", "Typ"]
-HEADERS =["Nr.", "Tier / Scheibe", "Distanz (m)", "Pfeilstopp", "Gelände", "Max. Gruppe", "Helfernotiz"]
+HEADERS =["Nr.", "Tier / Ziel", "Distanz (m)", "Pfeilstopp", "Gelände", "Max. Gruppe", "Helfernotiz"]
 ARROW_STOPS = ["", "Klasse 1", "Klasse 2", "Klasse 3", "Klasse 4", "Klasse 5"]
 TERRAIN_TYPES = ["", "Flach", "Hang", "Wald", "Wiese", "Wasser", "Hügel"]
 
 
 class CourseTargetDialog(RecordDialog):
-    _default_size = (600, 500)
+    _default_size = (780, 640)
+    _size_name = "CourseTargetDialog_v2"
 
     def __init__(self, record=None, parent=None):
         self._record = record
-        super().__init__("Neue Scheibe" if record is None else "Scheibe bearbeiten", parent=parent)
+        super().__init__("Neues Ziel" if record is None else "Ziel bearbeiten", parent=parent)
         self.set_left_footer_widget(self._inv_btn)
         if record:
             self.form.set_values({
@@ -68,14 +70,14 @@ class CourseTargetDialog(RecordDialog):
         inv_btn = QPushButton("Aus Inventar …")
         inv_btn.setToolTip("Bezeichnung aus aktivem Vereinsinventar übernehmen")
         inv_btn.clicked.connect(self._pick_from_inventory)
-        self.form.add("number", "Scheiben-Nr.", num, required=True)
+        self.form.add("number", "Ziel-Nr.", num, required=True)
         self._inv_btn = inv_btn
         self.form.add("animal_name", "Tier / Bezeichnung", name_edit)
         self.form.add("distance_m", "Distanz", dist)
         self.form.add("arrow_stop_class", "Pfeilstoppklasse", arrow)
         self.form.add("terrain_type", "Geländetyp", terrain)
-        self.form.add("max_group_size", "Max. Gruppengröße", grp,
-                      hint="Wird bei der Auslosung berücksichtigt: keine Startgruppe wird größer als dieser Wert.")
+        self.form.add("max_group_size", "Max. Gruppengröße", grp)
+        self.form.add_note(help_link("Parcours, Zeitplan & Preise", "auslosung"))
         self.form.add("helper_note", "Helfernotiz", note)
 
     def _pick_from_inventory(self):
@@ -104,7 +106,7 @@ class CourseTargetDialog(RecordDialog):
             t = cs.save_target(data, self._record.id if self._record else None,
                                context.tournament_id)
         except Exception as exc:
-            show_error(self, exc, "Scheibe konnte nicht gespeichert werden")
+            show_error(self, exc, "Ziel konnte nicht gespeichert werden")
             return False
         self.saved_id = t.id
         return True
@@ -112,17 +114,17 @@ class CourseTargetDialog(RecordDialog):
 
 class CourseView(ListView):
     def __init__(self, parent=None):
-        empty = EmptyState("target", "Noch keine Scheiben",
-                           "Lege Scheiben an, um den Parcours zu planen.", "Neue Scheibe")
+        empty = EmptyState("target", "Noch keine Ziele",
+                           "Lege Ziele an, um den Parcours zu planen.", "Neues Ziel")
         super().__init__("Parcours-Planung", HEADERS, empty,
                          search_placeholder="Tier, Pfeilstopp oder Gelände …",
                          reorderable=True, parent=parent)
         empty.actionTriggered.connect(self.new_item)
-        self._btn_new = button("Neue Scheibe", self.new_item, "primary",
-                               "Neue Scheibe anlegen (Strg+N)")
+        self._btn_new = button("Neues Ziel", self.new_item, "primary",
+                               "Neues Ziel anlegen (Strg+N)")
         self.header.add(self._btn_new,
                         button("Aufbauplan", self._print_setup, tooltip="Aufbauplan mit Helfernotizen als PDF"),
-                        button("Scheibenplan", self._print_layout, tooltip="Scheibenplan ohne Notizen als PDF"))
+                        button("Zielplan", self._print_layout, tooltip="Zielplan ohne Notizen als PDF"))
         self.table.activated.connect(self.edit_item)
         self.table.reordered.connect(self._save_order)
         self._targets = {}
@@ -147,7 +149,7 @@ class CourseView(ListView):
         ] for r in rows], [r.id for r in rows])
         t = context.tournament()
         n = len(rows)
-        self.header.set_subtitle(f"{n} Scheibe{'n' if n != 1 else ''}"
+        self.header.set_subtitle(f"{n} Ziel{'e' if n != 1 else ''}"
                                  + (f" | Turnier: {t.name}" if t else ""))
         self.on_selection(self.table.selected_ids())
 
@@ -160,7 +162,7 @@ class CourseView(ListView):
             self.action_bar.set_actions("", [])
             return
         self.action_bar.set_actions(
-            f"Scheibe {r.number}" + (f" – {r.animal_name}" if r.animal_name else ""),
+            f"Ziel {r.number}" + (f" – {r.animal_name}" if r.animal_name else ""),
             [Action("Bearbeiten", self.edit_item, enabled=not closed),
              Action("Löschen", self.delete_item, "danger", enabled=not closed)])
 
@@ -188,8 +190,8 @@ class CourseView(ListView):
         r = self._targets.get(self.table.selected_id())
         if r is None:
             return
-        label = f"Scheibe {r.number}" + (f" – {r.animal_name}" if r.animal_name else "")
-        if not ConfirmDialog.ask(self, "Scheibe löschen?", label + " wird gelöscht."):
+        label = f"Ziel {r.number}" + (f" – {r.animal_name}" if r.animal_name else "")
+        if not ConfirmDialog.ask(self, "Ziel löschen?", label + " wird gelöscht."):
             return
         try:
             cs.delete_target(r.id)
@@ -231,7 +233,7 @@ class CourseView(ListView):
                 from bowtally.reports.course_plan import build_course_plan
                 from bowtally.ui.dialogs.export_helper import open_path
                 path = build_course_plan(tid, with_notes=with_notes)
-            label = "Aufbauplan" if with_notes else "Scheibenplan"
+            label = "Aufbauplan" if with_notes else "Zielplan"
             Toast.show(self, f"{label} erstellt", Toast.SUCCESS,
                        ("Öffnen", lambda: open_path(self, path)))
         except Exception as exc:
@@ -240,7 +242,8 @@ class CourseView(ListView):
 
 class CourseItemDialog(RecordDialog):
     """Material for the course plan: an inventory item or a one-off posting with a quantity."""
-    _default_size = (520, 0)
+    _default_size = (680, 440)
+    _size_name = "CourseItemDialog_v2"
 
     def __init__(self, record=None, one_off=False, parent=None):
         self._record = record
@@ -397,7 +400,7 @@ class CoursePage(QTabWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDocumentMode(True)
-        self.addTab(CourseView(), "Scheiben")
+        self.addTab(CourseView(), "Ziele")
         self.addTab(CourseMaterialView(), "Material")
 
     def set_tournament(self, t):

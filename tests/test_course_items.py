@@ -92,4 +92,4 @@ def test_dialogs_add_edit_and_remove_material(app, db, monkeypatch):
 def test_course_tab_holds_targets_and_material(app):
     from bowtally.ui.views.course_view import CoursePage
     page = CoursePage()
-    assert [page.tabText(i) for i in range(page.count())] == ["Scheiben", "Material"]
+    assert [page.tabText(i) for i in range(page.count())] == ["Ziele", "Material"]

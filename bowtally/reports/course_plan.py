@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PDF reports for parcours planning: Aufbauplan (with notes) and Scheibenplan (without notes)."""
+"""PDF reports for parcours planning: Aufbauplan (with notes) and Zielplan (without notes)."""
 import re
 from datetime import datetime
 from pathlib import Path
@@ -24,7 +24,7 @@ def _path(tournament_id: int, label: str) -> Path:
 
 def build_course_plan(tournament_id: int, with_notes: bool = True,
                       path: str | Path | None = None) -> Path:
-    label = "Aufbauplan" if with_notes else "Scheibenplan"
+    label = "Aufbauplan" if with_notes else "Zielplan"
     path = Path(path) if path else _path(tournament_id, label)
     t = ts.get_tournament(tournament_id)
     targets = cs.list_targets(tournament_id)

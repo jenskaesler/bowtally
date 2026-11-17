@@ -332,7 +332,6 @@ class ParticipantsView(QWidget):
         bar.addWidget(self.capacity)
         bar.addStretch(1)
         bar.addWidget(self.search)
-        bar.addSpacing(8)
         bar.addWidget(self.btn_more)
         bar.addWidget(self.btn_add)
 

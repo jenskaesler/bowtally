@@ -85,13 +85,18 @@ class RecordDialog(QDialog):
         lay.addWidget(sep)
         lay.addLayout(self._footer_layout)
 
+    @property
+    def _size_name(self) -> str:
+        """Key of the saved size; a subclass sets a new name to make a new default size apply."""
+        return type(self).__name__
+
     def showEvent(self, event):
         super().showEvent(event)
         s = QSettings("BowTally", "BowTally")
         if s.value("dialogs/size_version", 0, type=int) < SIZE_VERSION:
             s.remove("dialogs")     # sizes saved before the content-based default would hide fields
             s.setValue("dialogs/size_version", SIZE_VERSION)
-        key = f"dialogs/{type(self).__name__}"
+        key = f"dialogs/{self._size_name}"
         w = s.value(f"{key}/width", type=int)
         h = s.value(f"{key}/height", type=int)
         if w and h:
@@ -121,7 +126,7 @@ class RecordDialog(QDialog):
 
     def done(self, result):
         s = QSettings("BowTally", "BowTally")
-        key = f"dialogs/{type(self).__name__}"
+        key = f"dialogs/{self._size_name}"
         s.setValue(f"{key}/width", self.width())
         s.setValue(f"{key}/height", self.height())
         super().done(result)
@@ -158,7 +163,7 @@ class RecordDialog(QDialog):
             event.ignore()
             return
         s = QSettings("BowTally", "BowTally")
-        key = f"dialogs/{type(self).__name__}"
+        key = f"dialogs/{self._size_name}"
         s.setValue(f"{key}/width", self.width())
         s.setValue(f"{key}/height", self.height())
         super().closeEvent(event)
