@@ -159,7 +159,7 @@ Veranstalter und Ort aus dem Vereinsprofil ein; bereits geänderte Felder
 werden erst nach Rückfrage überschrieben. Der Button erscheint nur, wenn im
 Vereinsprofil Name oder Ort hinterlegt sind.</p>
 <h3>2 Konfiguration</h3>
-<p><b>Wertungsmodus</b>: <i>Scheibenwertung</i> (Punkte je Scheibe),
+<p><b>Wertungsmodus</b>: <i>Pro Ziel</i> (Punkte je Ziel und Schuss),
 <i>Rundenwertung</i> (Punkte je Runde) oder <i>Nur Gesamtpunkte</i>.</p>
 <p><b>Auslosung oder Startgruppen:</b> Mit <i>Teilnehmer per Auslosung
 einteilen</i> werden die Gruppen später per Auslosung vergeben (das Feld
@@ -342,11 +342,11 @@ Jede Zelle wird sofort gespeichert; <b>Speichern</b> (Strg+S) bestätigt dies nu
 <ul>
   <li><b>Klassen-Tabs</b>, Gruppenfilter (nur sichtbar, wenn Startgruppen existieren) und Suche
       nach Name oder Startnummer</li>
-  <li><b>Nur unvollständige</b> zeigt nur Teilnehmer mit fehlenden Scheibenergebnissen</li>
+  <li><b>Nur unvollständige</b> zeigt nur Teilnehmer mit fehlenden Zielergebnissen</li>
   <li>Rechtsklick auf eine Spaltenüberschrift setzt die Scheibe für alle sichtbaren
       Teilnehmer auf eine Zone (mit Rückfrage)</li>
   <li>Bei mehreren Runden wählst du die Runde über Tabs über der Tabelle</li>
-  <li>Zählt das Regelwerk Sonderwertungen (z. B. Kill oder X), erscheinen zusätzliche Spalten</li>
+  <li>Zählt das Regelwerk Kills oder X-Treffer, erscheinen zusätzliche Spalten</li>
 </ul>
 <p>Bei den Wertungsmodi <i>Rundenwertung</i> und <i>Nur Gesamtpunkte</i> trägst du stattdessen
 die Punkte je Runde bzw. die Gesamtpunkte in einer einfachen Tabelle ein.</p>
@@ -355,16 +355,22 @@ die Eingabe gesperrt.</p>
 <h3>Rang berechnen</h3>
 <p>Der Rang wird beim Öffnen der Auswertung neu berechnet, wenn <i>automatisch neu berechnen</i>
 aktiv ist (Einstellungen → Turnierverwaltung → Allgemein). Andernfalls klickst du auf
-<b>Neu berechnen</b> (F5). Bei Punktgleichstand greift die konfigurierte Tie-Break-Logik; bleiben
+<b>Neu berechnen</b> (F5). Bei Punktgleichstand gelten die Gleichstandsregeln des Regelwerks; bleiben
 Teilnehmer gleichauf, steht „ex aequo“ beim Rang.</p>
-<h3>Tie-Break-Logik</h3>
-<ul>
-  <li><b>most_top_scores (Meiste Top-Treffer)</b> – bei gleicher Punktzahl entscheidet die Anzahl der
-      Treffer, beginnend bei der höchsten Wertung</li>
-  <li><b>total_highest (Gesamthöchste Wertung)</b> – nur die Gesamtpunkte zählen; gleiche Punktzahl
-      bedeutet gleicher Rang</li>
-</ul>
-<p>Sonderwertungen, die im Regelwerk als Tie-Break markiert sind, werden zusätzlich berücksichtigt.</p>
+<h3>Gleichstand</h3>
+<p>Die Regeln für einen Punktgleichstand stellst du im jeweiligen Regelwerk ein
+(<b>Regelwerke</b> → Regelwerk bearbeiten). Reihenfolge:</p>
+<ol>
+  <li><b>Kills</b> (nur 3D-Parcours) – wenn „Kills zählen“ und „Bei gleicher Punktzahl gewinnt
+      die höhere Anzahl an Kills“ eingeschaltet sind</li>
+  <li><b>X-Treffer</b> (nur Scheibe) – ebenso</li>
+  <li><b>Treffer in der höchsten Wertung</b> – wenn eingeschaltet, zählt die Anzahl der Treffer ab
+      der höchsten Zone</li>
+</ol>
+<p>Bleibt es danach gleich, teilen sich die Teilnehmer den Rang (zwei erste Plätze).
+Bei <b>Pro Ziel</b> werden Kills und X-Treffer aus den gewählten Zonen gezählt, bei
+<b>Nur Gesamtpunkte</b> und <b>Rundenwertung</b> trägst du die Anzahl in der Spalte neben den
+Punkten ein (erst die Punkte, dann die Anzahl).</p>
 <h3>Exportieren</h3>
 <p>Ranglisten lassen sich als Excel, OpenDocument oder CSV sowie als PDF exportieren, siehe
 „Auswertung &amp; Ergebnisliste“. Einschreibe- und Teilnehmerlisten exportierst du über die
@@ -442,6 +448,13 @@ Fährst du mit der Maus über ein Turnier, erscheint eine Vorschau mit
 <p><b>ICS exportieren</b> schreibt alle Turniere in eine Kalenderdatei
 (<code>.ics</code>) im Exportordner, die du in andere Kalender-Apps importieren
 kannst.</p>
+<h3>Regelwerke exportieren und importieren</h3>
+<p>Der Export (Excel, OpenDocument, CSV) enthält je Regelwerk eine lesbare Zeile mit
+Bezeichnung, Beschreibung, Disziplin, Schüssen je Ziel, Nachschuss, den Zonen und den
+Ja/Nein-Spalten für Kills, X-Treffer und Treffer in der höchsten Wertung. Die Zonen stehen als
+Text: <code>Kill-Zone = 11 [Kill]; Körper = 8; Miss = 0 [Miss]</code> (Name = Punkte, der Typ
+in eckigen Klammern ist optional). Dieselbe Tabelle lässt sich wieder importieren; ältere
+Dateien mit JSON-Zonen werden weiterhin gelesen.</p>
 <h3>Regelwerk-Standard</h3>
 <p>In der Liste der Regelwerke lässt sich über <b>Als Standard setzen</b>
 (Rechtsklick → Kontextmenü) ein Regelwerk als Standard markieren (⭐).
@@ -529,6 +542,10 @@ und <b>Turnierregeln</b> (globale Texte).</p>
 viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
 (Chip <i>Standard</i>) sind schreibgeschützt – über <b>Kopieren</b> erstellst
 du eine anpassbare Kopie.</p>
+<p>Jedes Regelwerk hat eine <b>Disziplin</b> (3D-Parcours oder Scheibe). Unter
+<b>Zusatzwertungen und Gleichstand</b> schaltest du ein, ob <b>Kills</b> (nur 3D-Parcours) und
+<b>X-Treffer</b> (nur Scheibe) gezählt werden und ob bei gleicher Punktzahl die höhere Anzahl
+gewinnt. Gezählt werden Zonen mit dem passenden <b>Typ</b> in der Zonenliste.</p>
 <h3>Regelwerk-Standard</h3>
 <p>In der Liste der Regelwerke lässt sich über <b>Als Standard setzen</b>
 (Rechtsklick → Kontextmenü) ein Regelwerk als Standard markieren (⭐).
@@ -560,8 +577,8 @@ können diese Daten per Klick auf <b>Übernehmen</b> als Turnierkontakt übernom
 Im Verwendungszweck können Platzhalter genutzt werden (z. B.
 <code>{name}</code>).</p>
 <h3>Turnierverwaltung → Allgemein</h3>
-<p>Tie-Break-Logik, <i>automatisch neu berechnen</i> (Rang) und
-<i>Warteliste bei Vollbelegung</i>.</p>
+<p><i>Automatisch neu berechnen</i> (Rang) und <i>Warteliste bei Vollbelegung</i>. Die
+Gleichstandsregeln stellst du je Regelwerk ein.</p>
 <h3>Turnierverwaltung → Druck &amp; Listen</h3>
 <p>Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
 und Einzelwertung je Scheibe auf Ausdrucken sowie Textvorlagen für
@@ -582,6 +599,10 @@ individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> un
 wie viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
 (Chip <i>Standard</i>) sind schreibgeschützt – über <b>Kopieren</b> erstellst
 du eine anpassbare Kopie.</p>
+<p>Jedes Regelwerk hat eine <b>Disziplin</b> (3D-Parcours oder Scheibe). Unter
+<b>Zusatzwertungen und Gleichstand</b> schaltest du ein, ob <b>Kills</b> (nur 3D-Parcours) und
+<b>X-Treffer</b> (nur Scheibe) gezählt werden und ob bei gleicher Punktzahl die höhere Anzahl
+gewinnt. Gezählt werden Zonen mit dem passenden <b>Typ</b> in der Zonenliste.</p>
 <h3>Bogenklassen</h3>
 <p>Bogenklassen gruppieren Schützen für die Wertung (z. B. Recurve, Compound).
 Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
@@ -683,6 +704,9 @@ Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.<
 <p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
 nach Rückfrage ersetzt – das lässt sich nicht rückgängig machen. Danach die App neu starten.
 </p>
+<p>Backups älterer Versionen lassen sich ebenfalls wiederherstellen: Helfer werden dabei zu
+Mitgliedern, Regelwerke ohne Disziplin bekommen sie aus ihrem Namen, und die frühere globale
+Einstellung „Tie-Break-Logik“ entfällt (die Regel gilt jetzt je Regelwerk).</p>
 <h3>Updates</h3>
 <p>Unter Einstellungen → System → Allgemein sucht BowTally auf Wunsch <b>beim Start nach
 Updates</b> (<i>Beim Start nach Updates suchen</i>). <b>Jetzt prüfen</b> startet die Suche sofort;

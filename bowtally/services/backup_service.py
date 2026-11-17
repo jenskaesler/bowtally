@@ -95,7 +95,7 @@ def create_backup(session, app_version: str) -> dict:
         "type": "bowtally_backup",
         "bowtally_version": app_version,
         "backup_created_at": datetime.now().isoformat(),
-        "format_version": "2",
+        "format_version": "3",
         "logo_path": None,
     }
     try:
@@ -322,6 +322,9 @@ def test_nextcloud(url: str, user: str, password: str, remote_path: str) -> None
 
 # ------------------------------------------------------------------ restore
 
+OBSOLETE_SETTINGS = {"result_tiebreak_mode"}     # tie-break is a per-rule option now
+
+
 def _import_data(conn, inspector, data: dict) -> None:
     from sqlalchemy import text as _text
     for table in EXPORT_TABLE_ORDER:
@@ -333,7 +336,8 @@ def _import_data(conn, inspector, data: dict) -> None:
         except Exception:
             continue
         for row in rows:
-            if row.get("is_builtin"):
+            if row.get("is_builtin") or (table == "app_settings"
+                                         and row.get("key") in OBSOLETE_SETTINGS):
                 continue
             filtered = {k: v for k, v in row.items() if k in schema_cols}
             if not filtered:
@@ -351,7 +355,7 @@ def _restore_impl(backup: dict) -> None:
     from bowtally.database import seed
 
     meta = backup.get("meta", {})
-    if meta.get("format_version") not in ("1", "2"):
+    if meta.get("format_version") not in ("1", "2", "3"):
         raise ValueError(f"Unbekanntes Backup-Format (format_version={meta.get('format_version')})")
     data = backup.get("data", {})
     if "helpers" in data:  # format 1: helpers -> members

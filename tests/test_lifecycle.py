@@ -111,7 +111,7 @@ def test_full_lifecycle_with_blockers_and_warnings():
     prog = ts.get_completion_progress(t.id)
     assert (prog.entered, prog.needed) == (3, 4) and prog.incomplete_ids == [parts[1].id]
     res = ts.transition_phase(t.id, "scoring")
-    assert res.warnings == ["1 Teilnehmer haben unvollständige Scheibenergebnisse"]
+    assert res.warnings == ["1 Teilnehmer haben unvollständige Zielergebnisse"]
     _go(t, "scoring")
 
     # scoring -> closed: warnings only; afterwards everything is locked

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """Scoring rules: modal CRUD with zone editor, clone, delete. Builtin rules are read-only."""
-import json
-
 from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QHeaderView, QHBoxLayout,
@@ -29,15 +27,7 @@ from bowtally.ui.views.bow_classes_view import READ_ONLY_HINT, builtin_chip
 HEADERS = ["Bezeichnung", "Zonen", "Schüsse/Scheibe", "Nachschuss", "Typ", "Standard"]
 MAX_POINTS = 30
 MAX_SHOTS = 3
-ZONE_TYPES = [
-    ("", "(kein)"),
-    ("kill", "Kill"),
-    ("x", "X-Ring"),
-    ("12", "12-Ring"),
-    ("body", "Body/Vital"),
-    ("hit", "Treffer"),
-    ("miss", "Miss"),
-]
+ZONE_TYPES = sc.ZONE_TYPES
 
 
 def zone_summary(rule) -> str:
@@ -163,14 +153,6 @@ def _zones_validator(zones) -> str | None:
     return f"Zone '{dup.pop()}' ist doppelt vorhanden" if dup else None
 
 
-def _json_validator(text) -> str | None:
-    try:
-        value = json.loads(text or "{}")
-    except json.JSONDecodeError as exc:
-        return f"Kein gültiges JSON (Zeile {exc.lineno}, Spalte {exc.colno})"
-    return None if isinstance(value, dict) else "Sonderregeln müssen ein JSON-Objekt sein"
-
-
 class ScoringRuleDialog(RecordDialog):
     _default_size = (956, 756)
 
@@ -181,15 +163,22 @@ class ScoringRuleDialog(RecordDialog):
             "Neues Regelwerk" if record is None else "Regelwerk bearbeiten",
             read_only=ro, read_only_hint=READ_ONLY_HINT if ro else "", parent=parent)
         if record is None:
-            self.form.set_values({
-                "max_shots_per_target": 1,
-                "ring_values": [{"zone": "Miss", "points": 0}],
-                "rules_json": '{\n  "tiebreak": "most_top_scores"\n}',
-            })
+            self.form.set_values({"max_shots_per_target": 1, "discipline": "3d",
+                                  "ring_values": [{"zone": "Miss", "points": 0}],
+                                  "top_hits": True})
         else:
-            values = {k: getattr(record, k) for k in self.form.fields}
-            values["rules_json"] = json.dumps(record.rules_json or {}, ensure_ascii=False, indent=2)
+            discipline = sc.rule_discipline(record)
+            specials = {sp["key"]: sp for sp in (record.tracked_specials or [])}
+            values = {k: getattr(record, k) for k in self.form.fields if hasattr(record, k)}
+            values["discipline"] = discipline
+            for key in sc.COUNTER_KEYS:
+                applies = sc.COUNTER_DISCIPLINE[key] == discipline
+                values[f"count_{key}"] = applies and bool(specials.get(key, {}).get("track"))
+                values[f"tie_{key}"] = applies and bool(specials.get(key, {}).get("tiebreak"))
+            tiebreak = (record.rules_json or {}).get("tiebreak") or "most_top_scores"
+            values["top_hits"] = tiebreak == "most_top_scores"
             self.form.set_values(values)
+        self._apply_discipline()
         self._baseline = self.form.snapshot()
         self.saved_id: int | None = None
         self.saved_name: str = ""
@@ -200,20 +189,61 @@ class ScoringRuleDialog(RecordDialog):
         shots = QSpinBox()
         shots.setRange(1, MAX_SHOTS)
         ze = ZoneEditor()
-        rules = QPlainTextEdit()
-        rules.setMinimumHeight(72)
         self.form.add("name", "Bezeichnung", QLineEdit(), required=True)
         self.form.add("description", "Beschreibung", desc)
+        discipline = QComboBox()
+        for key, label in sc.DISCIPLINES:
+            discipline.addItem(label, key)
+        self.form.add("discipline", "Disziplin", discipline)
         self.form.add("max_shots_per_target", "Max. Schüsse je Scheibe", shots)
         self.form.add("allow_retry_shot", "Nachschuss", QCheckBox("Nachschuss erlaubt"))
         self.form.add("ring_values", "Zonen", ze, required=True,
                       validator=_zones_validator,
                       required_message="Mindestens eine Zone ist erforderlich")
-        self.form.add("rules_json", "Sonderregeln (JSON)", rules, validator=_json_validator)
+        self._add_counter_switches()
+
+    def _add_counter_switches(self):
+        """Kill / X: switch counting on, and whether the higher count wins a points tie."""
+        f = self.form
+        f.add_widget(QLabel("Zusatzwertungen und Gleichstand", objectName="sectionTitle"))
+        for key, name in (("kill", "Kills"), ("x", "X-Treffer")):
+            count = QCheckBox(f"{name} zählen")
+            count.setToolTip("Nur bei 3D-Parcours" if key == "kill" else "Nur bei Scheibe")
+            tie = QCheckBox(f"Bei gleicher Punktzahl gewinnt die höhere Anzahl an {name}")
+            count.toggled.connect(lambda on, t=tie: t.setEnabled(on and not self._read_only))
+            f.add(f"count_{key}", name, count)
+            f.add(f"tie_{key}", "", tie)
+        f.fields["discipline"].widget.currentIndexChanged.connect(lambda _i: self._apply_discipline())
+        f.add("top_hits", "Treffer in der höchsten Wertung",
+              QCheckBox("Bei weiterem Gleichstand gewinnt, wer mehr Treffer in der höchsten Wertung hat"))
+        f.add_widget(QLabel(
+            "Kills zählen nur bei 3D-Parcours, X-Treffer nur bei Scheibe. Gezählt werden Zonen mit dem "
+            "passenden Typ (Spalte „Typ“ der Zonenliste). Bei "
+            "„Nur Gesamtpunkte“ und „Rundenwertung“ trägst du die Anzahl neben den Punkten ein. Reihenfolge "
+            "bei Punktgleichstand: Kills, X-Treffer, Treffer in der höchsten Wertung; bleibt es "
+            "gleich, teilen sich die Teilnehmer den Rang.", objectName="pageSubtitle", wordWrap=True))
+
+    def _apply_discipline(self):
+        """Kill is only available for 3D, X only for Scheibe; the other one is switched off."""
+        fields = self.form.fields
+        discipline = fields["discipline"].value()
+        for key in sc.COUNTER_KEYS:
+            count, tie = fields[f"count_{key}"].widget, fields[f"tie_{key}"].widget
+            applies = sc.COUNTER_DISCIPLINE[key] == discipline and not self._read_only
+            count.setEnabled(applies)
+            if sc.COUNTER_DISCIPLINE[key] != discipline and not self._read_only:
+                count.setChecked(False)
+                tie.setChecked(False)
+            tie.setEnabled(applies and count.isChecked())
 
     def _do_save(self) -> bool:
         data = self.form.values()
-        data["rules_json"] = json.loads(data.get("rules_json") or "{}")
+        discipline = data.pop("discipline")
+        flags = {k: data.pop(k) for k in list(data) if k.startswith(("count_", "tie_", "top_"))}
+        data.update(sc.rule_options_to_data(
+            discipline, flags, data["ring_values"],
+            (self._record.tracked_specials or []) if self._record else None,
+            self._record.rules_json if self._record else None))
         try:
             rule = sc.save_rule(data, self._record.id if self._record else None)
         except Exception as exc:
@@ -347,13 +377,8 @@ class _RulesTab(ListView):
         self.refresh()
 
     def _export_sheets(self, _filtered: bool):
-        rows = [[r.name, r.description, r.max_shots_per_target,
-                 "Ja" if r.allow_retry_shot else "Nein",
-                 json.dumps(r.ring_values, ensure_ascii=False),
-                 json.dumps(r.rules_json or {}, ensure_ascii=False)]
-                for r in self._rules.values()]
-        return [("Regelwerke", ["Bezeichnung", "Beschreibung", "Schüsse/Scheibe",
-                                "Nachschuss", "Zonen (JSON)", "Sonderregeln (JSON)"], rows)]
+        return [("Regelwerke", sc.RULE_EXPORT_HEADERS,
+                 [sc.rule_export_row(r) for r in self._rules.values()])]
 
     def _import(self):
         res = run_import(self, RULE_IMPORT_FIELDS, "Regelwerke importieren")

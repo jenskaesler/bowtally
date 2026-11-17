@@ -472,7 +472,7 @@ def get_phase_conditions(tournament_id: int, target_phase: str | None = None) ->
         needed = scores_needed(t)
         starters = _starters(parts)
         incomplete = [p for p in starters if counts.get(p.id, 0) < needed]
-        kind = "Scheibenergebnisse" if t.scoring_mode == "per_target" else "Ergebnisse"
+        kind = "Zielergebnisse" if t.scoring_mode == "per_target" else "Ergebnisse"
         c += [Condition("Ergebnisse vorhanden", "blocker", bool(counts),
                         "Es wurden noch keine Ergebnisse eingetragen"),
               Condition("Ergebnisse vollständig", "warning", not incomplete,

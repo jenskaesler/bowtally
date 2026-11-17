@@ -159,6 +159,9 @@ class ScoringView(QWidget):
         self._loading = False
         self._stay = None
         self._current_round = 1
+        self._simple_points_cols: list[int] = []
+        self._simple_specials: list[dict] = []
+        self._simple_block = 1
         self.cols: list[tuple[int, int]] = []
         self._tracked_keys: list[str] = []
         self._spec_labels: list[str] = []
@@ -197,7 +200,7 @@ class ScoringView(QWidget):
         self.search = SearchBar("Name oder Startnummer …")
         self.search.searchChanged.connect(lambda _t: self._apply_filter())
         self.incomplete_only = QCheckBox("Nur unvollständige")
-        self.incomplete_only.setToolTip("Nur Teilnehmer mit fehlenden Scheibenergebnissen")
+        self.incomplete_only.setToolTip("Nur Teilnehmer mit fehlenden Zielergebnissen")
         self.incomplete_only.toggled.connect(lambda _v: self._apply_filter())
         self.save_btn = button("Speichern", self.save, "primary",
                                "Alle Eingaben speichern (Strg+S). Jede Zelle wird zusätzlich "
@@ -324,7 +327,7 @@ class ScoringView(QWidget):
         shots = t.shots_per_target
         self.cols = [(tg, s) for tg in range(1, t.num_targets + 1) for s in range(1, shots + 1)]
         _rule = t.scoring_rule
-        _tracked = [sp for sp in (_rule.tracked_specials or []) if sp.get("track")] if _rule else []
+        _tracked = [sp for sp in sc.active_specials(_rule) if sp.get("track")]
         self._tracked_keys = [sp["key"] for sp in _tracked]
         self._spec_labels = [sp["label"] for sp in _tracked]
         self._zone_type_map = {z["zone"]: (z.get("type") or "") for z in self.zones}
@@ -503,98 +506,90 @@ class ScoringView(QWidget):
             self._loading = False
 
     # ---- per_round / total_only simple table ----------------------------
-    def _load_per_round(self):
+    # Columns: Nr., Name, Verein, Klasse, then per round [points, one counter per active
+    # counter (Kill / X)], then Gesamt and the special totals. total_only is the same with one block.
+    def _counter_specials(self) -> list[dict]:
+        return sc.counter_specials(self.tournament.scoring_rule)
+
+    def _simple_item(self, text="", data=None, editable=False, bold=False) -> QTableWidgetItem:
+        it = QTableWidgetItem(text)
+        it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        if data is not None:
+            it.setData(Qt.ItemDataRole.UserRole, data)
+        if not editable:
+            it.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        if bold:
+            f = it.font()
+            f.setBold(True)
+            it.setFont(f)
+        return it
+
+    def _fill_simple_table(self, rounds: list[int], labels: list[str], total_label: str):
+        """Build header + rows; rounds = [1, 2, ...] (per_round) or [0] (total_only)."""
         t = self.tournament
-        num_rounds = self._num_rounds()
-        labels = self._round_labels()
+        specials = self._counter_specials()
+        block = 1 + len(specials)
+        total_col = 4 + len(rounds) * block
+        self._simple_specials, self._simple_block = specials, block
+        self._simple_points_cols = [4 + i * block for i in range(len(rounds))]
         locked = ts.scoring_locked(t)
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
         with busy():
             all_sc = sc.get_all_scores(t.id)
-        self._simple_table.blockSignals(True)
-        self._simple_table.setColumnCount(4 + num_rounds + 1)
-        headers = ["Nr.", "Name", "Verein", "Klasse"] + labels + ["Gesamt"]
-        self._simple_table.setHorizontalHeaderLabels(headers)
-        self._simple_table.setRowCount(len(parts))
-        right = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        headers = ["Nr.", "Name", "Verein", "Klasse"]
+        for label in labels:
+            headers += [label] + [f"{label} {sp['label']}" for sp in specials]
+        if len(rounds) == 1 and rounds[0] == 0:
+            headers = headers[:4] + [total_label] + [sp["label"] for sp in specials]
+        else:
+            headers += [total_label] + [f"{sp['label']} gesamt" for sp in specials]
+        table = self._simple_table
+        table.blockSignals(True)
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(parts))
         for row, p in enumerate(parts):
             for col, txt in enumerate([str(p.start_number or ""),
                                        f"{p.archer.last_name}, {p.archer.first_name}",
                                        p.archer.club or "",
                                        p.bow_class.name if p.bow_class else "–"]):
-                it = QTableWidgetItem(txt)
-                it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                it.setTextAlignment(right)
-                self._simple_table.setItem(row, col, it)
-            grand = 0
-            for rn in range(1, num_rounds + 1):
-                sc_entry = all_sc.get((p.id, rn, 0, 1))
-                pts = sc_entry.points if sc_entry else None
-                it = QTableWidgetItem("" if pts is None else str(pts))
-                it.setTextAlignment(right)
-                it.setData(Qt.ItemDataRole.UserRole, (p.id, rn))
-                if locked:
-                    it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                self._simple_table.setItem(row, 4 + rn - 1, it)
-                grand += pts or 0
-            total_it = QTableWidgetItem(str(grand))
-            total_it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-            total_it.setTextAlignment(right)
-            f = total_it.font()
-            f.setBold(True)
-            total_it.setFont(f)
-            self._simple_table.setItem(row, 4 + num_rounds, total_it)
-        self._simple_table.blockSignals(False)
-        self._simple_table.resizeColumnsToContents()
-        for c in range(4, 4 + num_rounds):
-            self._simple_table.setColumnWidth(c, max(80, self._simple_table.columnWidth(c)))
+                table.setItem(row, col, self._simple_item(txt))
+            for rn, col in zip(rounds, self._simple_points_cols):
+                entry = all_sc.get((p.id, rn, 0, 1))
+                table.setItem(row, col, self._simple_item(
+                    "" if entry is None else str(entry.points), (p.id, rn), not locked))
+                for i, sp in enumerate(specials):
+                    count = (entry.specials or {}).get(sp["key"]) if entry else None
+                    table.setItem(row, col + 1 + i, self._simple_item(
+                        "" if not count else str(count), (p.id, rn, sp["key"]), not locked))
+            if rounds != [0]:
+                for col in range(total_col, total_col + 1 + len(specials)):
+                    table.setItem(row, col, self._simple_item(bold=col == total_col))
+        table.blockSignals(False)
+        if rounds != [0]:
+            for row in range(len(parts)):
+                self._update_simple_total(row)
+        table.resizeColumnsToContents()
+        for col in self._simple_points_cols:
+            table.setColumnWidth(col, max(80, table.columnWidth(col)))
         self.save_btn.setEnabled(not locked)
         self._apply_simple_filter()
+        kills = f" · {', '.join(sp['label'] for sp in specials)} nach den Punkten eintragen"             if specials else ""
         self.hint.setText("Turnier abgeschlossen – Eingaben gesperrt." if locked else
-                          "Gesamtpunkte je Runde direkt eintragen · jede Zelle wird sofort gespeichert")
+                          "Gesamtpunkte direkt eintragen · jede Zelle wird sofort gespeichert" + kills)
+
+    def _load_per_round(self):
+        self._fill_simple_table(list(range(1, self._num_rounds() + 1)), self._round_labels(),
+                                "Gesamt")
 
     def _load_total_only(self):
-        t = self.tournament
-        locked = ts.scoring_locked(t)
-        parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
-                                                      p.archer.last_name))
-        with busy():
-            all_sc = sc.get_all_scores(t.id)
-        self._simple_table.blockSignals(True)
-        self._simple_table.setColumnCount(5)
-        self._simple_table.setHorizontalHeaderLabels(["Nr.", "Name", "Verein", "Klasse", "Gesamt"])
-        self._simple_table.setRowCount(len(parts))
-        right = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        for row, p in enumerate(parts):
-            for col, txt in enumerate([str(p.start_number or ""),
-                                       f"{p.archer.last_name}, {p.archer.first_name}",
-                                       p.archer.club or "",
-                                       p.bow_class.name if p.bow_class else "–"]):
-                it = QTableWidgetItem(txt)
-                it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                it.setTextAlignment(right)
-                self._simple_table.setItem(row, col, it)
-            sc_entry = all_sc.get((p.id, 0, 0, 1))
-            pts = sc_entry.points if sc_entry else None
-            it = QTableWidgetItem("" if pts is None else str(pts))
-            it.setTextAlignment(right)
-            it.setData(Qt.ItemDataRole.UserRole, (p.id, 0))  # round 0 = total_only
-            if locked:
-                it.setFlags(Qt.ItemFlag.ItemIsEnabled)
-            self._simple_table.setItem(row, 4, it)
-        self._simple_table.blockSignals(False)
-        self._simple_table.resizeColumnsToContents()
-        self.save_btn.setEnabled(not locked)
-        self._apply_simple_filter()
-        self.hint.setText("Turnier abgeschlossen – Eingaben gesperrt." if locked else
-                          "Gesamtpunkte direkt eintragen · jede Zelle wird sofort gespeichert")
+        self._fill_simple_table([0], ["Gesamt"], "Gesamt")
 
     def _apply_simple_filter(self):
         """Hide complete rows while 'Nur unvollständige' is on (per_round / total_only tables)."""
-        score_cols = range(4, 4 + (self._num_rounds() if self._scoring_mode() == "per_round" else 1))
         for r in range(self._simple_table.rowCount()):
-            complete = all(self._simple_table.item(r, c).text() for c in score_cols)
+            complete = all(self._simple_table.item(r, c).text() for c in self._simple_points_cols)
             self._simple_table.setRowHidden(r, self.simple_incomplete_only.isChecked() and complete)
 
     def _on_simple_changed(self, item: QTableWidgetItem):
@@ -603,19 +598,23 @@ class ScoringView(QWidget):
         data = item.data(Qt.ItemDataRole.UserRole)
         if data is None:
             return
-        pid, rnd = data
+        pid, rnd, *special = data
         text = item.text().strip()
+        table = self._simple_table
         try:
-            if not text:
-                sc.set_score(pid, 0, 1, None, round_number=rnd)
-                self._update_simple_total(item.row())
-                self._mark_saved()
-                return
-            points = int(text)
-            sc.set_score(pid, 0, 1, (points, None), round_number=rnd)
-            self._simple_table.blockSignals(True)
-            item.setText(str(points))   # drops leading zeros
-            self._simple_table.blockSignals(False)
+            if special:
+                sc.set_special(pid, rnd, special[0], int(text) if text else None)
+            elif text:
+                sc.set_score(pid, 0, 1, (int(text), None), round_number=rnd)
+            else:
+                sc.set_score(pid, 0, 1, None, round_number=rnd)     # also drops the counters
+                table.blockSignals(True)
+                for i in range(len(self._simple_specials)):
+                    table.item(item.row(), item.column() + 1 + i).setText("")
+                table.blockSignals(False)
+            table.blockSignals(True)
+            item.setText(str(int(text)) if text else "")   # drops leading zeros
+            table.blockSignals(False)
             self._update_simple_total(item.row())
             self._mark_saved()
         except Exception as exc:
@@ -623,21 +622,21 @@ class ScoringView(QWidget):
             QTimer.singleShot(0, lambda: self.set_tournament(self.tournament))  # show stored values
 
     def _update_simple_total(self, row: int):
-        mode = self._scoring_mode()
-        num_rounds = self._num_rounds()
-        if mode == "total_only":
+        if self._scoring_mode() == "total_only":
             return  # total IS the cell
-        total = 0
-        for rn in range(num_rounds):
-            it = self._simple_table.item(row, 4 + rn)
-            if it and it.text().lstrip("-").isdigit():
-                total += int(it.text())
-        total_col = 4 + num_rounds
-        tot_it = self._simple_table.item(row, total_col)
-        if tot_it:
-            self._simple_table.blockSignals(True)
-            tot_it.setText(str(total))
-            self._simple_table.blockSignals(False)
+        table = self._simple_table
+        block = self._simple_block
+        total_col = 4 + self._num_rounds() * block
+
+        def number(col):
+            text = table.item(row, col).text()
+            return int(text) if text.isdigit() else 0
+
+        table.blockSignals(True)
+        for i in range(block):
+            total = sum(number(4 + rn * block + i) for rn in range(self._num_rounds()))
+            table.item(row, total_col + i).setText(str(total) if i == 0 or total else "")
+        table.blockSignals(False)
 
     def _mark_saved(self):
         bar = self.window().statusBar() if self.window() else None

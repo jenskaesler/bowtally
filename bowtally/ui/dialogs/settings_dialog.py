@@ -47,7 +47,6 @@ LABEL_OVERRIDES = {
     ss.KEY_PRINT_SHOW_SCORES_PER_TARGET: "Einzelwertung einfügen",
     ss.KEY_UI_LANGUAGE: "Sprache",
     ss.KEY_FONT_FAMILY: "Schriftart",
-    ss.KEY_RESULT_TIEBREAK_MODE: "Tie-Break-Logik",
     ss.KEY_RESULT_AUTO_RANK: "automatisch neu berechnen",
     ss.KEY_PRINT_PAPER_SIZE: "Papiergröße",
     ss.KEY_PRINT_ORIENTATION: "Format",

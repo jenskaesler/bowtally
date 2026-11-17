@@ -63,7 +63,7 @@ def test_multi_round_per_target_needs_every_shot_of_every_round():
 
 def test_per_target_message_keeps_its_wording():
     t, _ = _tournament_with_starter("per_target")
-    assert _scoring_warnings(t) == ["1 Teilnehmer haben unvollständige Scheibenergebnisse"]
+    assert _scoring_warnings(t) == ["1 Teilnehmer haben unvollständige Zielergebnisse"]
 
 
 def test_negative_total_is_refused_by_the_service():
@@ -113,3 +113,57 @@ def test_total_entry_is_saved_and_incomplete_filter_hides_complete_rows(app):
     assert app.errors == [] and [s.points for s in scores.values()] == [250]
     view.show_incomplete()
     assert [view._simple_table.isRowHidden(r) for r in range(2)] == [True, False]
+
+
+def test_total_table_has_a_kill_column_that_needs_points_first(app):
+    t, pid = _tournament_with_starter("total_only")
+    view = _view_for(t, app)
+    table = view._simple_table
+    assert table.horizontalHeaderItem(5).text() == "Kill"
+    table.item(0, 5).setText("3")                  # no points yet -> refused, nothing stored
+    assert len(app.errors) == 1 and sc.get_all_scores(t.id) == {}
+    app.errors.clear()
+    view = _view_for(t, app)
+    view._simple_table.item(0, 4).setText("200")
+    view._simple_table.item(0, 5).setText("3")
+    assert app.errors == [] and sc.get_all_scores(t.id)[(pid, 0, 0, 1)].specials == {"kill": 3}
+    view._simple_table.item(0, 4).setText("")      # clearing the points clears the kills too
+    assert sc.get_all_scores(t.id) == {} and view._simple_table.item(0, 5).text() == ""
+
+
+def test_per_round_table_sums_points_and_kills_over_rounds(app):
+    t, pid = _tournament_with_starter("per_round", num_rounds=2)
+    view = _view_for(t, app)
+    table = view._simple_table
+    headers = [table.horizontalHeaderItem(c).text() for c in range(table.columnCount())]
+    assert headers[4:] == ["1. Runde", "1. Runde Kill", "2. Runde", "2. Runde Kill",
+                           "Gesamt", "Kill gesamt"]
+    for col, value in ((4, "100"), (5, "2"), (6, "90"), (7, "1")):
+        table.item(0, col).setText(value)
+    assert app.errors == []
+    assert (table.item(0, 8).text(), table.item(0, 9).text()) == ("190", "3")
+
+
+@pytest.mark.parametrize("mode", ["total_only", "per_round"])
+def test_results_view_and_pdf_show_the_kill_column(app, tmp_path, monkeypatch, mode):
+    from bowtally.reports import result_list
+    from bowtally.ui.views.results_view import ResultsView
+    t, first = _tournament_with_starter(mode)
+    second = md.save_archer({"first_name": "C", "last_name": "D"})
+    ts.add_participants(t.id, [second.id])
+    for pid, kills in zip((p.id for p in ts.get_tournament(t.id).participants), (3, 5)):
+        sc.set_score(pid, 0, 1, (200, None), round_number=0 if mode == "total_only" else 1)
+        sc.set_special(pid, 0 if mode == "total_only" else 1, "kill", kills)
+
+    view = ResultsView()
+    view.set_tournament(ts.get_tournament(t.id))
+    _title, headers, rows = view.sheets[0]
+    assert headers[-2:] == ["Kill", "Gesamt"]
+    assert [r[-2] for r in rows] == [5, 3]            # more kills first, same points
+
+    tables = []
+    original = result_list.Table
+    monkeypatch.setattr(result_list, "Table", lambda data, *a, **k: tables.append(data)
+                        or original(data, *a, **k))
+    result_list.build_result_list(t.id, tmp_path / "r.pdf")
+    assert any(data[0][-2:] == ["Kill", "Gesamt"] and data[1][-2] == "5" for data in tables)

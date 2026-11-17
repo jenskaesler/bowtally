@@ -61,17 +61,19 @@ BOW_CLASS_IMPORT_FIELDS = [
     ImportField("description", "Beschreibung", aliases=["beschreibung", "description"]),
 ]
 
-RULE_IMPORT_FIELDS = [
+RULE_IMPORT_FIELDS = [      # same order as scoring_service.RULE_EXPORT_HEADERS
     ImportField("name", "Bezeichnung", True, aliases=["regelwerk", "rule"]),
-    ImportField("description", "Beschreibung", aliases=["beschreibung", "description"]),
-    ImportField("max_shots_per_target", "Schüsse/Scheibe", type="int",
+    ImportField("description", "Beschreibung", aliases=["description"]),
+    ImportField("discipline", "Disziplin", aliases=["discipline"]),
+    ImportField("max_shots_per_target", "Schüsse je Ziel", type="int",
                 aliases=["max_shots_per_target", "schüsse/scheibe", "schüsse"]),
-    ImportField("allow_retry_shot", "Nachschuss", type="bool",
-                aliases=["allow_retry_shot", "nachschuss"]),
-    ImportField("ring_values", "Zonen (JSON)", required=True,
-                aliases=["ring_values", "zonen (json)", "zonen"]),
-    ImportField("rules_json", "Sonderregeln (JSON)",
-                aliases=["rules_json", "sonderregeln (json)", "sonderregeln"]),
+    ImportField("allow_retry_shot", "Nachschuss", type="bool", aliases=["allow_retry_shot"]),
+    ImportField("ring_values", "Zonen", required=True, aliases=["ring_values", "zonen (json)"]),
+    ImportField("count_kill", "Kills zählen", type="bool"),
+    ImportField("tie_kill", "Bei Gleichstand zählen Kills", type="bool"),
+    ImportField("count_x", "X-Treffer zählen", type="bool"),
+    ImportField("tie_x", "Bei Gleichstand zählen X-Treffer", type="bool"),
+    ImportField("top_hits", "Treffer in der höchsten Wertung", type="bool"),
 ]
 
 INVENTORY_IMPORT_FIELDS = [

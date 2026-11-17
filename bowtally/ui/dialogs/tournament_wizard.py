@@ -326,7 +326,7 @@ class TournamentWizard(QWizard):
         self.scoring_mode = QComboBox()
         self.scoring_mode.setFixedWidth(WIZARD_COMBO_W)
         for val, lbl in [
-            ("per_target", "Scheibenwertung"),
+            ("per_target", "Pro Ziel"),
             ("per_round", "Rundenwertung"),
             ("total_only", "Nur Gesamtpunkte"),
         ]:

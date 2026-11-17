@@ -15,6 +15,7 @@ from reportlab.platypus import (Image, PageBreak, Paragraph, SimpleDocTemplate, 
 from bowtally import config
 from bowtally.reports import templates as tpl
 from bowtally.services import ranking_service, settings_service as ss
+from bowtally.services.scoring_service import COUNTER_KEYS, active_specials
 from bowtally.services.tournament_service import get_tournament
 
 log = logging.getLogger(__name__)
@@ -92,8 +93,7 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
                             author=club.get("club_name") or "BowTally", creator="BowTally")
     ranking = ranking_service.compute_ranking(tournament_id)
     class_names = {bc.id: bc.name for bc in t.bow_classes}
-    tracked_spec = [sp for sp in ((t.scoring_rule.tracked_specials or [])
-                                  if t.scoring_rule else []) if sp.get("track")]
+    tracked_spec = [sp for sp in active_specials(t.scoring_rule) if sp.get("track")]
 
     # ---- cover page
     story = [Spacer(1, 15 * mm)]
@@ -148,18 +148,23 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
     fixed = {"rank": 11 * mm, "no": 12 * mm, "total": 15 * mm}
     rest = width - sum(fixed.values())
 
+    # per_round / total_only only know the active Kill / X counters
+    tie_specials = [sp for sp in (tracked_specials or []) if sp.get("key") in COUNTER_KEYS]
+    spec_w = 12 * mm
+    rest -= spec_w * len(tie_specials) if scoring_mode != "per_target" else 0
+
     if scoring_mode == "total_only":
         name_w = rest * 0.55
         club_w = rest - name_w
-        header = ["Rang", "St.-Nr.", "Name", "Verein", "Gesamt"]
-        widths = [fixed["rank"], fixed["no"], name_w, club_w, fixed["total"]]
+        header = ["Rang", "St.-Nr.", "Name", "Verein"] + [sp["label"] for sp in tie_specials]             + ["Gesamt"]
+        widths = [fixed["rank"], fixed["no"], name_w, club_w] + [spec_w] * len(tie_specials)             + [fixed["total"]]
         data = [header]
         style = _base_style(font, bold, secondary, border)
         for i, r in enumerate(rows, start=1):
             podium = r.rank <= tpl.PODIUM_PLACES and r.total > 0
             cell = st["cell_podium"] if podium else st["cell"]
             line = [f"{r.rank}.", r.start_number or "",
-                    Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell), r.total]
+                    Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell)]                 + [str(r.specials.get(sp["key"]) or "") for sp in tie_specials] + [r.total]
             data.append(line)
             _add_podium_style(style, i, r.rank, r.total, primary, bold)
         table = Table(data, colWidths=widths, repeatRows=1)
@@ -172,8 +177,8 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
         rnd_w = min((rest * 0.4) / max(n_rounds, 1), 20 * mm)
         name_w = (rest - rnd_w * n_rounds) * 0.55
         club_w = rest - rnd_w * n_rounds - name_w
-        header = ["Rang", "St.-Nr.", "Name", "Verein"] + labels + ["Gesamt"]
-        widths = [fixed["rank"], fixed["no"], name_w, club_w] + [rnd_w] * n_rounds + [fixed["total"]]
+        header = ["Rang", "St.-Nr.", "Name", "Verein"] + labels             + [sp["label"] for sp in tie_specials] + ["Gesamt"]
+        widths = [fixed["rank"], fixed["no"], name_w, club_w] + [rnd_w] * n_rounds             + [spec_w] * len(tie_specials) + [fixed["total"]]
         data = [header]
         style = _base_style(font, bold, secondary, border)
         for i, r in enumerate(rows, start=1):
@@ -182,7 +187,8 @@ def _class_table(rows, num_targets, show_targets, width, st, font, bold, primary
             rnd_scores = ["" if v is None else str(v) for v in (r.round_totals or [])]
             line = ([f"{r.rank}.", r.start_number or "",
                      Paragraph(_esc(r.name), cell), Paragraph(_esc(r.club), cell)]
-                    + rnd_scores + [r.total])
+                    + rnd_scores + [str(r.specials.get(sp["key"]) or "") for sp in tie_specials]
+                    + [r.total])
             data.append(line)
             _add_podium_style(style, i, r.rank, r.total, primary, bold)
         table = Table(data, colWidths=widths, repeatRows=1)

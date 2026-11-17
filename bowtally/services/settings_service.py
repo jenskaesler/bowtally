@@ -25,7 +25,6 @@ KEY_PRINT_PAPER_SIZE = "print_paper_size"
 KEY_PRINT_ORIENTATION = "print_orientation"
 KEY_PRINT_SHOW_LOGO = "print_show_logo"
 KEY_PRINT_SHOW_SCORES_PER_TARGET = "print_show_scores_per_target"
-KEY_RESULT_TIEBREAK_MODE = "result_tiebreak_mode"
 KEY_RESULT_AUTO_RANK = "result_auto_rank"
 KEY_UI_LANGUAGE = "ui_language"
 KEY_TOURNAMENT_RULES_TEXT = "tournament_rules_text"
@@ -47,7 +46,6 @@ COLOR_PREFIX = "color_"
 OPTIONS = {
     KEY_PRINT_PAPER_SIZE: ["A4", "A5", "A3", "Letter"],
     KEY_PRINT_ORIENTATION: ["portrait", "landscape"],
-    KEY_RESULT_TIEBREAK_MODE: ["most_top_scores", "total_highest"],
     KEY_UI_LANGUAGE: ["de"],
     KEY_UI_THEME_MODE: ["system", "light", "dark"],
     "waitlist_mode": ["block", "auto"],

@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QHBoxLayout, QLa
 
 from bowtally.reports.result_list import build_result_list, temp_pdf_path
 from bowtally.services import ranking_service as rs
+from bowtally.services import scoring_service as sc
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 from bowtally.ui import busy, button, confirm, show_error, theme
@@ -184,20 +185,24 @@ class ResultsView(QWidget):
         lay.addWidget(self.tabs, 1)
         theme.notifier.changed.connect(lambda: self.tournament and self.recalculate())
 
+    def _counter_specials(self) -> list[dict]:
+        return sc.counter_specials(self.tournament.scoring_rule)
+
     def headers(self) -> list[str]:
         t = self.tournament
         mode = getattr(t, "scoring_mode", "per_target") or "per_target"
         num_rounds = getattr(t, "num_rounds", 1) or 1
+        base = ["Rang", "Nr.", "Name", "Verein", "Klasse"]
+        specials = [sp["label"] for sp in self._counter_specials()] + ["Gesamt"]
         if mode == "total_only":
-            return ["Rang", "Nr.", "Name", "Verein", "Klasse", "Gesamt"]
+            return base + specials
         if mode == "per_round":
             rounds = getattr(t, "rounds", []) or []
             labels = ([r.label for r in sorted(rounds, key=lambda r: r.round_number)]
                       if rounds else [f"{i}. Runde" for i in range(1, num_rounds + 1)])
-            return ["Rang", "Nr.", "Name", "Verein", "Klasse"] + labels + ["Gesamt"]
+            return base + labels + specials
         # per_target: one column per target (across all rounds for multi-round)
-        return (["Rang", "Nr.", "Name", "Verein", "Klasse"]
-                + [str(i) for i in range(1, t.num_targets * num_rounds + 1)] + ["Gesamt"])
+        return base + [str(i) for i in range(1, t.num_targets * num_rounds + 1)] + specials
 
     def set_tournament(self, t):
         first_time = self.tournament is None or self.tournament.id != t.id
@@ -231,6 +236,7 @@ class ResultsView(QWidget):
                              for rows in per_class.values() for r in rows}
         mode = getattr(t, "scoring_mode", "per_target") or "per_target"
         hdrs = self.headers()
+        special_keys = [sp["key"] for sp in self._counter_specials()]
         for title, rows in [("Gesamt", overall)] + [
                 (names.get(cid, "Ohne Klasse"), rows) for cid, rows in per_class.items() if rows]:
             counts = Counter(r.rank for r in rows)
@@ -246,14 +252,16 @@ class ResultsView(QWidget):
                 values = [Cell(r.rank, text=rank_text(r.rank, counts), sort=r.rank),
                           r.start_number, r.name, r.club, r.bow_class] + \
                     [Cell(v, text="" if v is None else str(v), sort=-1 if v is None else v)
-                     for v in detail] + [Cell(r.total, bold=True)]
+                     for v in detail] +                     [Cell(r.specials.get(k, 0), text=str(r.specials.get(k) or ""))
+                     for k in special_keys] + [Cell(r.total, bold=True)]
                 if bg:
                     values = [(v if isinstance(v, Cell) else Cell(v)) for v in values]
                     for v in values:
                         v.background = bg
                 table_rows.append(values)
                 export_rows.append([rank_text(r.rank, counts), r.start_number, r.name, r.club,
-                                    r.bow_class] + list(detail) + [r.total])
+                                    r.bow_class] + list(detail)
+                                   + [r.specials.get(k) or "" for k in special_keys] + [r.total])
             empty = EmptyState("target", "Noch keine Teilnehmer",
                                "Sobald Teilnehmer zugewiesen sind, erscheint hier die Rangliste.")
             table = DataTable(hdrs, empty)

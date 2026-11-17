@@ -23,6 +23,116 @@ def get_rule(rule_id: int) -> ScoringRule | None:
         return s.get(ScoringRule, rule_id)
 
 
+COUNTER_KEYS = ("kill", "x")        # counters a rule can switch on; entered by hand in per_round / total_only
+
+
+def derive_tracked_specials(ring_values: list[dict]) -> list[dict]:
+    """One counter per zone type used in the rule (labelled with its first zone)."""
+    first_zone: dict[str, str] = {}
+    for z in ring_values:
+        zone_type = (z.get("type") or "").strip()
+        if zone_type and zone_type not in first_zone:
+            first_zone[zone_type] = z["zone"]
+    return [{"key": k, "label": lbl, "track": True, "tiebreak": k in {"kill", "x", "12"}}
+            for k, lbl in first_zone.items()]
+
+
+DISCIPLINES = (("3d", "3D-Parcours"), ("target", "Scheibe"))
+COUNTER_DISCIPLINE = {"kill": "3d", "x": "target"}      # Kill only counts in 3D, X only on targets
+
+
+def rule_discipline(rule) -> str:
+    """'3d' or 'target': stored in the rule, else guessed from its name."""
+    stored = (rule.rules_json or {}).get("discipline")
+    return stored or ("3d" if "3d" in rule.name.lower() else "target")
+
+
+def active_specials(rule) -> list[dict]:
+    """The rule's tracked specials that apply to its discipline (no Kill on targets, no X in 3D)."""
+    if not rule:
+        return []
+    discipline = rule_discipline(rule)
+    return [sp for sp in (rule.tracked_specials or [])
+            if COUNTER_DISCIPLINE.get(sp.get("key"), discipline) == discipline]
+
+
+def counter_specials(rule) -> list[dict]:
+    """The rule's active Kill / X counters, Kill first."""
+    specials = active_specials(rule)
+    return [sp for key in COUNTER_KEYS for sp in specials if sp.get("key") == key and sp.get("track")]
+
+
+ZONE_TYPES = [("", "(kein)"), ("kill", "Kill"), ("x", "X-Ring"), ("12", "12-Ring"),
+              ("body", "Body/Vital"), ("hit", "Treffer"), ("miss", "Miss")]
+_COUNTER_LABEL = {"kill": "Kill", "x": "X"}
+
+
+def rule_options_to_data(discipline: str, flags: dict, ring_values: list[dict],
+                         previous_specials: list[dict] | None = None,
+                         previous_rules_json: dict | None = None) -> dict:
+    """tracked_specials + rules_json from the switches (count_/tie_ for kill and x, top_hits).
+
+    Kill is only possible in 3D, X only on targets. Specials other than Kill / X are kept.
+    """
+    previous = previous_specials if previous_specials is not None \
+        else derive_tracked_specials(ring_values)
+    labels = {sp["key"]: sp["label"] for sp in previous}
+    counters = [{"key": k, "label": labels.get(k) or _COUNTER_LABEL[k], "track": True,
+                 "tiebreak": bool(flags.get(f"tie_{k}"))}
+                for k in COUNTER_KEYS if flags.get(f"count_{k}") and COUNTER_DISCIPLINE[k] == discipline]
+    return {"tracked_specials": counters + [sp for sp in previous if sp["key"] not in COUNTER_KEYS],
+            "rules_json": {**(previous_rules_json or {}), "discipline": discipline,
+                           "tiebreak": "most_top_scores" if flags.get("top_hits") else "total_highest"}}
+
+
+def format_zones(zones: list[dict]) -> str:
+    """'Kill-Zone = 11 [Kill]; Körper = 8; Miss = 0 [Miss]'"""
+    labels = dict(ZONE_TYPES)
+    return "; ".join(f"{z['zone']} = {z['points']}"
+                     + (f" [{labels.get(z['type'], z['type'])}]" if z.get("type") else "")
+                     for z in zones)
+
+
+def parse_zones(text: str) -> list[dict]:
+    """Inverse of format_zones; the type may be given by key or label."""
+    types = {name.lower(): key for key, label in ZONE_TYPES if key for name in (key, label)}
+    zones = []
+    for part in (text or "").split(";"):
+        part = part.strip()
+        if not part:
+            continue
+        zone_type = ""
+        if part.endswith("]") and "[" in part:
+            part, _, label = part[:-1].rpartition("[")
+            zone_type = types.get(label.strip().lower())
+            if zone_type is None:
+                raise ValidationError(f"Unbekannter Zonentyp '{label.strip()}'.")
+        name, sep, points = part.rpartition("=")
+        if not sep or not name.strip():
+            raise ValidationError(f"Zone '{part.strip()}' braucht die Form 'Name = Punkte'.")
+        try:
+            zone = {"zone": name.strip(), "points": int(points.strip())}
+        except ValueError:
+            raise ValidationError(f"Ungültiger Punktwert in '{part.strip()}'.") from None
+        zones.append({**zone, **({"type": zone_type} if zone_type else {})})
+    return zones
+
+
+RULE_EXPORT_HEADERS = ["Bezeichnung", "Beschreibung", "Disziplin", "Schüsse je Ziel", "Nachschuss",
+                       "Zonen", "Kills zählen", "Bei Gleichstand zählen Kills", "X-Treffer zählen",
+                       "Bei Gleichstand zählen X-Treffer", "Treffer in der höchsten Wertung"]
+
+
+def rule_export_row(rule) -> list:
+    counters = {sp["key"]: sp for sp in counter_specials(rule)}
+    yes_no = lambda value: "Ja" if value else "Nein"  # noqa: E731
+    top_hits = (rule.rules_json or {}).get("tiebreak", "most_top_scores") == "most_top_scores"
+    return [rule.name, rule.description or "", dict(DISCIPLINES)[rule_discipline(rule)],
+            rule.max_shots_per_target, yes_no(rule.allow_retry_shot), format_zones(rule.ring_values),
+            yes_no("kill" in counters), yes_no(counters.get("kill", {}).get("tiebreak")),
+            yes_no("x" in counters), yes_no(counters.get("x", {}).get("tiebreak")), yes_no(top_hits)]
+
+
 def _validate_rule(data: dict) -> dict:
     data = {k: v for k, v in data.items() if k in RULE_FIELDS}
     data["name"] = (data.get("name") or "").strip()
@@ -45,17 +155,8 @@ def _validate_rule(data: dict) -> dict:
                             **({} if not z.get("type")
                                else {"type": z["type"].strip()})}
                            for z in zones]
-    # auto-derive tracked_specials from zone types if not provided
-    if not data.get("tracked_specials"):
-        _tb = {"kill", "x", "12"}
-        seen: dict[str, str] = {}
-        for z in data["ring_values"]:
-            zt = (z.get("type") or "").strip()
-            if zt and zt not in seen:
-                seen[zt] = z["zone"]
-        data["tracked_specials"] = [{"key": k, "label": lbl, "track": True,
-                                     "tiebreak": k in _tb}
-                                    for k, lbl in seen.items()]
+    if data.get("tracked_specials") is None:    # [] means: nothing is counted
+        data["tracked_specials"] = derive_tracked_specials(data["ring_values"])
     if int(data.get("max_shots_per_target") or 1) < 1:
         raise ValidationError("Mindestens ein Schuss je Scheibe.")
     return data
@@ -99,28 +200,47 @@ def clone_rule(rule_id: int) -> ScoringRule:
                       "rules_json": dict(src.rules_json or {})})
 
 
+def _parse_discipline(text, name: str) -> str:
+    text = (text or "").strip().lower()
+    if text:
+        return "3d" if "3d" in text else "target"
+    return "3d" if "3d" in name.lower() else "target"
+
+
+def _rule_data_from_record(rec: dict) -> dict | None:
+    """Readable import row -> data for _validate_rule (None = row is unusable)."""
+    import json as _json
+    name = (rec.get("name") or "").strip()
+    zones = rec.get("ring_values")
+    try:
+        if isinstance(zones, str):      # readable text; JSON from older exports still works
+            zones = _json.loads(zones) if zones.strip().startswith("[") else parse_zones(zones)
+    except (ValueError, ValidationError):
+        return None
+    if not name or not zones:
+        return None
+    discipline = _parse_discipline(rec.get("discipline"), name)
+    flags = {k: bool(rec.get(k)) for k in ("count_kill", "tie_kill", "count_x", "tie_x")}
+    flags["top_hits"] = rec.get("top_hits") is not False        # empty cell = default (on)
+    return {"name": name, "description": rec.get("description"), "ring_values": zones,
+            "max_shots_per_target": rec.get("max_shots_per_target") or 1,
+            "allow_retry_shot": bool(rec.get("allow_retry_shot")),
+            **rule_options_to_data(discipline, flags, zones)}
+
+
 def import_rules(records: list[dict], strategy: str) -> dict:
     """strategy: 'skip' | 'update' | 'new'. Returns counters."""
-    import json as _json
     result = {"created": 0, "updated": 0, "skipped": 0}
     with session_scope() as s:
         for rec in records:
-            rec = dict(rec)
-            for key in ("ring_values", "rules_json"):
-                v = rec.get(key)
-                if isinstance(v, str) and v.strip():
-                    try:
-                        rec[key] = _json.loads(v)
-                    except Exception:
-                        rec[key] = None
-            name = (rec.get("name") or "").strip()
-            if not name or not rec.get("ring_values"):
+            raw = _rule_data_from_record(dict(rec))
+            if raw is None:
                 continue
             existing = None if strategy == "new" else s.scalars(
-                select(ScoringRule).where(ScoringRule.name == name,
+                select(ScoringRule).where(ScoringRule.name == raw["name"],
                                           ScoringRule.is_builtin.is_(False))).first()
             try:
-                data = _validate_rule(rec)
+                data = _validate_rule(raw)
             except ValidationError:
                 continue
             if existing is None:
@@ -214,17 +334,44 @@ def recent_scores(limit: int = 12) -> list[dict]:
         return out
 
 
+def _open_participant(s, participant_id: int) -> TournamentParticipant:
+    part = s.get(TournamentParticipant, participant_id)
+    if part is None:
+        raise ValidationError("Teilnehmer nicht gefunden.")
+    t = part.tournament
+    if t.status == "closed" or t.results_generated_at is not None:
+        raise ValidationError("Die Auswertung ist geschlossen, Eingaben sind gesperrt.")
+    return part
+
+
+def set_special(participant_id: int, round_number: int, key: str, count: int | None) -> None:
+    """Kill-style counter of a per_round / total_only result (round 0 = total_only).
+
+    It lives on the points row, so the points must be entered first. None or 0 removes it.
+    """
+    if count is not None and count < 0:
+        raise ValidationError("Negative Anzahlen sind nicht erlaubt.")
+    with session_scope() as s:
+        _open_participant(s, participant_id)
+        sc = s.scalar(select(Score).where(Score.participant_id == participant_id,
+                                          Score.round_number == round_number,
+                                          Score.target_number == 0, Score.shot_number == 1))
+        if sc is None:
+            if count:
+                raise ValidationError("Bitte zuerst die Punkte eintragen.")
+            return
+        specials = {k: v for k, v in (sc.specials or {}).items() if k != key}
+        if count:
+            specials[key] = count
+        sc.specials = specials
+
+
 def set_score(participant_id: int, target: int, shot: int,
               entry: tuple[int, str | None] | None,
               round_number: int = 1) -> None:
     """Upsert or (entry=None) delete one score."""
     with session_scope() as s:
-        part = s.get(TournamentParticipant, participant_id)
-        if part is None:
-            raise ValidationError("Teilnehmer nicht gefunden.")
-        t = part.tournament
-        if t.status == "closed" or t.results_generated_at is not None:
-            raise ValidationError("Die Auswertung ist geschlossen, Eingaben sind gesperrt.")
+        t = _open_participant(s, participant_id).tournament
         # target=0 is the per_round/total_only convention; skip range check for it
         if target != 0 and (not 1 <= target <= t.num_targets or
                             not 1 <= shot <= t.shots_per_target):
@@ -246,10 +393,12 @@ def set_score(participant_id: int, target: int, shot: int,
             s.add(sc)
         sc.points = points
         sc.zone_hit = zone
+        if target == 0:
+            return      # per_round / total_only rows keep their kill counters
         rule = s.get(ScoringRule, t.scoring_rule_id) if t.scoring_rule_id else None
         sc.specials = {}
         if rule and zone and rule.tracked_specials:
             zone_map = {z["zone"]: (z.get("type") or "") for z in rule.ring_values}
             zt = zone_map.get(zone, "")
-            if zt and any(sp["key"] == zt and sp.get("track") for sp in rule.tracked_specials):
+            if zt and any(sp["key"] == zt and sp.get("track") for sp in active_specials(rule)):
                 sc.specials = {zt: 1}

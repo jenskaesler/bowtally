@@ -143,7 +143,7 @@ def test_format2_round_trip_keeps_member_with_iban(tmp_path, monkeypatch):
     with Session(engine) as session:
         exported = backup_service.create_backup(session, "test")
     engine.dispose()
-    assert exported["meta"]["format_version"] == "2"
+    assert exported["meta"]["format_version"] == "3"
     assert "helpers" not in exported["data"]
     (member,) = exported["data"]["members"]
     assert member["iban"] == "DE89370400440532013000" and member["member_number"] == "42"
@@ -152,7 +152,7 @@ def test_format2_round_trip_keeps_member_with_iban(tmp_path, monkeypatch):
 def test_restore_rejects_unknown_format(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DB_PATH", tmp_path / "bowtally.db")
     with pytest.raises(ValueError, match="Unbekanntes Backup-Format"):
-        backup_service._restore_impl({"meta": {"format_version": "3"}, "data": {}})
+        backup_service._restore_impl({"meta": {"format_version": "99"}, "data": {}})
 
 
 def test_backup_without_password_is_refused(tmp_path, monkeypatch):
@@ -195,3 +195,38 @@ def test_encrypted_zip_needs_correct_password(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="Das Passwort ist falsch."):
         backup_service.restore(str(zip_path), "falsch")
     assert not (tmp_path / "bowtally.db").exists()
+
+
+def test_restore_ignores_obsolete_setting_and_keeps_rule_options(tmp_path, monkeypatch):
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+    rule = {"id": 900, "name": "Mein 3D", "is_builtin": 0, "max_shots_per_target": 1,
+            "ring_values": json.dumps([{"zone": "Kill", "points": 10, "type": "kill"}]),
+            "tracked_specials": json.dumps([{"key": "kill", "label": "Kill", "track": True,
+                                             "tiebreak": True}]),       # JSON columns are text in backups
+            "rules_json": json.dumps({"discipline": "3d", "tiebreak": "total_highest"})}
+    backup = {"meta": {"format_version": "2"}, "data": {
+        "app_settings": [{"key": "result_tiebreak_mode", "value": "total_highest",
+                          "category": "behavior", "value_type": "string"}],
+        "scoring_rules": [rule]}}
+
+    backup_service._restore_impl(backup)
+
+    with sqlite3.connect(db_path) as con:
+        assert con.execute("SELECT 1 FROM app_settings WHERE key = 'result_tiebreak_mode'").fetchone() is None
+        row = con.execute("SELECT tracked_specials, rules_json FROM scoring_rules "
+                          "WHERE name = 'Mein 3D'").fetchone()
+    assert json.loads(row[0])[0]["tiebreak"] is True
+    assert json.loads(row[1]) == {"discipline": "3d", "tiebreak": "total_highest"}
+
+
+def test_builtin_rules_count_kill_miss_and_x_per_target(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "bowtally.db")
+    from bowtally.database.engine import init_database
+    from bowtally.services import scoring_service as sc
+    init_database()
+    types = {r.name: {z["zone"]: z.get("type", "") for z in r.ring_values} for r in sc.list_rules()}
+    assert types["DBSV 3D-Jagdrunde"]["Innere Killzone"] == "kill"
+    assert types["DBSV 3D-Jagdrunde"]["Miss"] == "miss"
+    assert types["WA Halle 18m"]["X (10 innen)"] == "x" and types["WA Halle 18m"]["10"] == ""
+    assert types["3D Hunter (IBO)"]["Vital innen"] == ""        # not unambiguous: left to the user

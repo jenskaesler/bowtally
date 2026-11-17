@@ -18,6 +18,18 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   „Datenauskunft senden" mit allen gespeicherten Daten des Mitglieds (Art. 15 DSGVO). Die IBAN
   ist bis auf die letzten vier Stellen durch Sternchen ersetzt. Der Text ist unter
   Einstellungen → E-Mail-Vorlagen → Datenauskunft anpassbar (Platzhalter `{daten}`).
+- **🎯 Kills und X-Treffer je Regelwerk** — Im Regelwerk lassen sich „Kills zählen“ und „X-Treffer
+  zählen“ ein- und ausschalten, jeweils mit „Bei gleicher Punktzahl gewinnt die höhere Anzahl“.
+  Kills zählen nur bei der neuen Regelwerk-Disziplin „3D-Parcours“, X-Treffer nur bei „Scheibe“
+  (bei bestehenden Regelwerken aus dem Namen abgeleitet).
+  Bei „Gesamtwertung“ und „Pro Runde“ gibt es dafür eine Spalte neben den Punkten; sie erscheint
+  auch in Ergebnisansicht und PDF. Die JSON-Eingabe „Sonderregeln“ ist durch Schalter ersetzt,
+  die Tie-Break-Einstellung (englische Begriffe) wandert ins Regelwerk: Kills, X-Treffer, dann
+  Treffer in der höchsten Wertung; bleibt es gleich, teilen sich Teilnehmer den Rang.
+- **📤 Regelwerke lesbar exportieren und importieren** — Statt JSON-Spalten enthält die Tabelle
+  Disziplin, Schüsse je Ziel, Nachschuss, die Zonen als Text (`Kill-Zone = 11 [Kill]; Körper = 8`)
+  und Ja/Nein-Spalten für Kills, X-Treffer und Treffer in der höchsten Wertung. Ältere Dateien mit
+  JSON-Zonen lassen sich weiter importieren.
 - **🤝 Turnier-Helfer** — Neben „Neuer Helfer" (nur für das Turnier) gibt es „Aus
   Mitgliederkartei" (nur aktive Mitglieder mit Flag „Turnierhelfer"). Beim Abschluss eines
   Turniers wird die Helferhistorie der verknüpften Mitglieder automatisch ergänzt.
@@ -48,6 +60,15 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   des Mailprogramms (die Größe bleibt 10 pt).
 
 ### Geändert
+
+- **🎯 „Pro Ziel“** — Der Wertungsmodus „Scheibenwertung“ heißt jetzt „Pro Ziel“; Meldungen und
+  Hilfetexte sprechen von Zielergebnissen.
+- **💾 Backup (Format 3)** — Die Regelwerk-Optionen (Disziplin, Zähler, Gleichstand) sind im Backup
+  enthalten. Die überflüssige globale Einstellung „Tie-Break-Logik“ wurde entfernt (Migration) und
+  wird beim Wiederherstellen alter Backups ignoriert. Backups der Formate 1 und 2 lassen sich weiter
+  wiederherstellen.
+- **🏹 Eingebaute Regelwerke** — Zonen mit eindeutiger Bedeutung (Killzone, Miss, X) haben jetzt
+  einen Typ, damit „Pro Ziel“ Kills, Fehlschüsse und X automatisch zählt.
 
 - **🎯 Auslosung nur bei Bedarf** — „Auslosung durchführen" im Leitfaden, in der Rückfrage
   beim Phasenwechsel und „Auslosung …" im ⋮-Menü der Teilnehmer erscheinen nur, wenn die

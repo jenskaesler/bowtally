@@ -27,8 +27,6 @@ DEFAULT_SETTINGS = [
     ("print_show_logo", "true", "print", "boolean", "Vereinslogo in Ergebnisliste anzeigen"),
     ("print_show_scores_per_target", "true", "print", "boolean",
      "Einzelwertungen je Scheibe drucken"),
-    ("result_tiebreak_mode", "most_top_scores", "behavior", "string",
-     "Tie-Break-Logik: most_top_scores oder total_highest"),
     ("result_auto_rank", "true", "behavior", "boolean",
      "Rang automatisch neu berechnen bei Änderung"),
     ("ui_language", "de", "ui", "string", "Sprache (Vorbereitung für i18n, aktuell nur de)"),

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 
 from bowtally.services import settings_service
-from bowtally.services.scoring_service import get_all_scores, get_scores
+from bowtally.services.scoring_service import active_specials, get_all_scores, get_scores
 from bowtally.services.tournament_service import get_tournament
 
 TIEBREAK_MOST_TOP = "most_top_scores"
@@ -28,14 +28,12 @@ class RankRow:
 
 def tiebreak_key(row: RankRow, mode: str, point_levels: list[int],
                  tiebreak_specials: list[str] = ()) -> tuple:
-    """Higher key = better. most_top_scores compares hit counts from the top zone down."""
+    """Higher key = better: total, then the rule's tie-break specials (e.g. kills), then - for
+    most_top_scores - hit counts from the top zone down."""
+    key = (row.total,) + tuple(row.specials.get(k, 0) for k in tiebreak_specials)
     if mode == TIEBREAK_MOST_TOP:
-        base = (row.total,) + tuple(row.shot_points.count(v) for v in point_levels)
-    else:
-        base = (row.total,)
-    if tiebreak_specials:
-        return base + tuple(row.specials.get(k, 0) for k in tiebreak_specials)
-    return base
+        key += tuple(row.shot_points.count(v) for v in point_levels)
+    return key
 
 
 def rank_rows(rows: list[RankRow], mode: str, point_levels: list[int],
@@ -63,12 +61,12 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
     Handles per_target (single/multi-round), per_round and total_only scoring modes.
     """
     t = get_tournament(tournament_id)
-    mode = mode or settings_service.get(settings_service.KEY_RESULT_TIEBREAK_MODE,
-                                        TIEBREAK_MOST_TOP)
+    rule_mode = (t.scoring_rule.rules_json or {}).get("tiebreak") if t.scoring_rule else None
+    mode = mode or rule_mode or TIEBREAK_MOST_TOP
     scoring_mode = getattr(t, "scoring_mode", "per_target") or "per_target"
     num_rounds = getattr(t, "num_rounds", 1) or 1
     levels = [z["points"] for z in (t.scoring_rule.ring_values if t.scoring_rule else [])]
-    _tracked = (t.scoring_rule.tracked_specials or []) if t.scoring_rule else []
+    _tracked = active_specials(t.scoring_rule)
     tiebreak_specials = [sp["key"] for sp in _tracked if sp.get("tiebreak")]
 
     by_class: dict[int | None, list[RankRow]] = {bc.id: [] for bc in t.bow_classes}
@@ -82,7 +80,8 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
                           name=f"{p.archer.last_name}, {p.archer.first_name}",
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
-                          target_totals=[], total=total)
+                          target_totals=[], total=total,
+                          specials=dict(sc.specials or {}) if sc else {})
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     elif scoring_mode == "per_round":
@@ -91,16 +90,20 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
         for p in t.participants:
             rtotals = []
             grand = 0
+            spec_total: dict[str, int] = {}
             for rn in round_numbers:
                 sc = scores.get((p.id, rn, 0, 1))
                 pts = sc.points if sc else None
                 rtotals.append(pts)
                 grand += pts or 0
+                for k, v in (sc.specials or {}).items() if sc else ():
+                    spec_total[k] = spec_total.get(k, 0) + v
             row = RankRow(participant_id=p.id, start_number=p.start_number,
                           name=f"{p.archer.last_name}, {p.archer.first_name}",
                           club=p.archer.club or "", bow_class_id=p.bow_class_id,
                           bow_class=p.bow_class.name if p.bow_class else "-",
-                          target_totals=[], round_totals=rtotals, total=grand)
+                          target_totals=[], round_totals=rtotals, total=grand,
+                          specials=spec_total)
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     else:  # per_target (single or multi-round)
