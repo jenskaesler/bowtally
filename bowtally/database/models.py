@@ -239,6 +239,8 @@ class Tournament(Base):
         cascade="all, delete-orphan", order_by="CourseTarget.sort_order, CourseTarget.id")
     schedule_groups: Mapped[list["ScheduleGroup"]] = relationship(
         cascade="all, delete-orphan", order_by="ScheduleGroup.id")
+    course_items: Mapped[list["CourseItem"]] = relationship(
+        cascade="all, delete-orphan", order_by="CourseItem.sort_order, CourseItem.id")
 
 
 REGISTRATION_STATUSES = ("registered", "confirmed", "checked_in", "dns", "dnf", "dsq",
@@ -523,19 +525,71 @@ class ActivityLog(Base):
     detail_json: Mapped[dict | None] = mapped_column(JSON)
 
 
-class InventoryItem(Base):
-    __tablename__ = "inventory_items"
-    __table_args__ = (
-        CheckConstraint("item_type IN ('target_face', '3d_target')", name="ck_inventory_type"),
-        CheckConstraint("condition IN ('gut', 'mittel', 'schlecht') OR condition IS NULL",
-                        name="ck_inventory_condition"),
-    )
+class InventoryCategory(Base):
+    __tablename__ = "inventory_categories"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    item_type: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+
+class InventoryItem(Base):
+    __tablename__ = "inventory_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    manufacturer: Mapped[str | None] = mapped_column(Text)
-    quantity: Mapped[int] = mapped_column(Integer, default=1)
-    condition: Mapped[str | None] = mapped_column(Text)
+    category_id: Mapped[int | None] = mapped_column(ForeignKey("inventory_categories.id"))
+    size: Mapped[str | None] = mapped_column(Text)
+    shop_url: Mapped[str | None] = mapped_column(Text)
+    unit_price: Mapped[float] = mapped_column(Float, nullable=False, default=0, server_default="0")
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    use_in_course: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
+                                                server_default="0")
     notes: Mapped[str | None] = mapped_column(Text)
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    category: Mapped["InventoryCategory | None"] = relationship()
+    files: Mapped[list["InventoryFile"]] = relationship(cascade="all, delete-orphan",
+                                                        order_by="InventoryFile.id")
+    repairs: Mapped[list["InventoryRepair"]] = relationship(
+        cascade="all, delete-orphan", order_by="InventoryRepair.date, InventoryRepair.id")
+
+
+class InventoryFile(Base):
+    """File attached to an inventory item; `stored_path` is relative to the app data folder."""
+    __tablename__ = "inventory_files"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("inventory_items.id", ondelete="CASCADE"))
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    stored_path: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    added_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
+
+
+class InventoryRepair(Base):
+    __tablename__ = "inventory_repairs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("inventory_items.id", ondelete="CASCADE"))
+    date: Mapped[date] = mapped_column(Date, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    cost: Mapped[float] = mapped_column(Float, nullable=False)
+    performed_by: Mapped[str | None] = mapped_column(Text)
+
+
+class CourseItem(Base):
+    """Inventory item (or one-off item) a tournament needs for its course."""
+    __tablename__ = "course_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id", ondelete="CASCADE"))
+    inventory_item_id: Mapped[int | None] = mapped_column(
+        ForeignKey("inventory_items.id", ondelete="SET NULL"))
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    unit_price: Mapped[float] = mapped_column(Float, nullable=False, default=0, server_default="0")
+    is_one_off: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
+                                             server_default="0")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    inventory_item: Mapped["InventoryItem | None"] = relationship()

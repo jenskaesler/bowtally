@@ -18,10 +18,11 @@ EXPORT_TABLE_ORDER = [
     "tournament_rounds", "scores", "members", "tournament_helpers", "member_helper_history",
     "member_files", "archer_files",
     "score_sheet_templates", "prizes", "course_targets", "schedule_groups",
-    "phase_transition_log", "inventory_items", "activity_log", "backup_log",
+    "phase_transition_log", "inventory_categories", "inventory_items", "inventory_files",
+    "inventory_repairs", "course_items", "activity_log", "backup_log",
     "tournament_bow_classes",
 ]
-FILE_TABLES = ("member_files", "archer_files")   # table name = folder name below the app data folder
+FILE_TABLES = ("member_files", "archer_files", "inventory_files")   # table name = folder name below the app data folder
 
 
 class BackupPasswordRequired(ValueError):

@@ -14,7 +14,7 @@ class ImportField:
     key: str
     label: str
     required: bool = False
-    type: str = "str"                     # str | int | date | bool
+    type: str = "str"                     # str | int | float | date | bool
     aliases: list[str] = field(default_factory=list)
 
 
@@ -80,11 +80,14 @@ RULE_IMPORT_FIELDS = [      # same order as scoring_service.RULE_EXPORT_HEADERS
 
 INVENTORY_IMPORT_FIELDS = [
     ImportField("name", "Bezeichnung", True, aliases=["bezeichnung", "name"]),
-    ImportField("manufacturer", "Hersteller", aliases=["hersteller", "manufacturer"]),
-    ImportField("quantity", "Anzahl", type="int", aliases=["anzahl", "quantity", "menge"]),
-    ImportField("condition", "Zustand", aliases=["zustand", "condition"]),
-    ImportField("notes", "Notizen", aliases=["notizen", "bemerkung", "notes"]),
-    ImportField("active", "Aktiv", type="bool", aliases=["aktiv", "active"]),
+    ImportField("category", "Kategorie", aliases=["category"]),
+    ImportField("size", "Größe", aliases=["groesse", "size", "maße", "masse"]),
+    ImportField("shop_url", "Link zum Shop", aliases=["shop-link", "shop", "link", "url"]),
+    ImportField("unit_price", "Einzelpreis", True, type="float", aliases=["preis", "price"]),
+    ImportField("quantity", "Anzahl", type="int", aliases=["quantity", "menge", "bestand"]),
+    ImportField("use_in_course", "Parcoursplanung", type="bool",
+                aliases=["für parcoursplanung", "parcours"]),
+    ImportField("notes", "Notizen", aliases=["bemerkung", "notes"]),
 ]
 
 DUPLICATE_STRATEGIES = {"skip": "Überspringen", "update": "Aktualisieren", "new": "Immer neu"}
@@ -195,6 +198,11 @@ def _convert(value, ftype: str):
     if ftype == "int":
         try:
             return int(float(str(value).replace(",", ".")))
+        except ValueError:
+            raise ValueError(f"keine Zahl '{value}'") from None
+    if ftype == "float":
+        try:
+            return float(str(value).replace(",", "."))
         except ValueError:
             raise ValueError(f"keine Zahl '{value}'") from None
     if ftype == "date":

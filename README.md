@@ -66,7 +66,7 @@ flowchart LR
 - ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert.
 - 🎯 **Auslosung** – (nur wenn im Turnier-Assistenten „Teilnehmer per Auslosung einteilen“ gewählt wurde) automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
 - 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang.
-- 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop; PDF-Druck Aufbauplan und Scheibenplan.
+- 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop, Material aus dem Inventar mit angeforderter Menge und Einmalposten; PDF-Druck Aufbauplan und Scheibenplan.
 - 📋 **Wertungszettel-Vorlagen** – konfigurierbare Spalten per Drag-and-Drop-Editor; vier eingebaute Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
 
 ### Auswertung
@@ -84,7 +84,7 @@ flowchart LR
 - 📏 **Regelwerke** – 9 eingebaute Regelwerke mit Gleichstandsregeln nach WA, IBO, IFAA und DBSV (3D Hunter, IBO 3D Standard/12-Ring, WA 3D, DBSV Waldrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m) plus eigene durch Klonen; Kills/X, Disziplin, Gleichstand und Stechen je Regelwerk einstellbar, Regelwerke lesbar exportier-/importierbar.
 - 👥 **Mitglieder** – Mitgliederkartei mit Mitgliedsnummer, Adresse, Einwilligung (Datum erscheint beim Ankreuzen), Notizen und Dateien, Bankverbindung (IBAN-Prüfziffer, SEPA-Mandat) und Helferhistorie; Datenauskunft per E-Mail mit maskierter IBAN; Excel-Export/-Import ohne Bankdaten.
 - 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
-- 📦 **Inventar und Logbuch** – Scheiben und 3D-Ziele verwalten; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
+- 📦 **Inventar und Logbuch** – Ausrüstung (Ziele, Tische, Pavillons …) mit Kategorien, Preisen, Dokumenten und Reparaturkosten verwalten, Parcoursplan mit Bestandsprüfung; Logbuch mit chronologischer Liste aller Aktivitäten (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
 
 ### Einstellungen

@@ -19,7 +19,7 @@ from bowtally.ui.dialogs.tournament_wizard import TournamentWizard
 from bowtally.ui.views.helpers_view import HelperDialog
 from bowtally.ui.views import ListView
 from bowtally.ui.views.checkin_view import CHECKIN_PHASES, CheckinView
-from bowtally.ui.views.course_view import CourseView
+from bowtally.ui.views.course_view import CoursePage
 from bowtally.ui.views.fees_view import FeesView
 from bowtally.ui.views.helpers_view import HelpersView
 from bowtally.ui.views.notes_view import NotesView
@@ -170,7 +170,7 @@ class TournamentDetail(QWidget):
         self.header.add(button("Alle Turniere", self.backRequested.emit,
                                tooltip="Turnierliste anzeigen (das Turnier bleibt geöffnet)"),
                         self.btn_edit)
-        self.pages = {"participants": ParticipantsView(), "course": CourseView(),
+        self.pages = {"participants": ParticipantsView(), "course": CoursePage(),
                       "schedule": ScheduleView(), "checkin": CheckinView(),
                       "scoring": ScoringView(), "results": ResultsView(),
                       "prizes": PrizesView(), "fees": FeesView(), "helpers": HelpersView(tournament_mode=True),

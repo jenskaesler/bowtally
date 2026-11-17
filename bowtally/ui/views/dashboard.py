@@ -9,6 +9,7 @@ from PySide6.QtGui import QDrag, QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
                                QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
+from bowtally.services import course_service as cs
 from bowtally.services import member_service as ms
 from bowtally.services import inventory_service as inv_svc
 from bowtally.services import master_data_service as md
@@ -214,7 +215,9 @@ class GlobalDashboard(QWidget):
 
         c, lay = _dcard("inventory", "Inventar")
         self.inventory_count = QLabel("0", objectName="cardValue")
+        self.inventory_value = QLabel(objectName="pageSubtitle")
         lay.addWidget(self.inventory_count)
+        lay.addWidget(self.inventory_value)
         lay.addWidget(_link("Inventar öffnen →", lambda: self.navigate.emit("inventory"),
                             "Inventar verwalten"))
         lay.addStretch()
@@ -319,6 +322,7 @@ class GlobalDashboard(QWidget):
         helpers = ms.list_members(include_inactive=False, only_helpers=True)
         self.helpers_count.setText(str(len(helpers)))
         self.inventory_count.setText(str(len(inv_svc.list_items())))
+        self.inventory_value.setText(f"Gesamtwert {money(inv_svc.inventory_total_value())}")
         upcoming_cal = [t for t in tournaments if t.date >= date.today()]
         self.upcoming_count.setText(str(len(upcoming_cal)))
         self.upcoming_lbl.setText(upcoming_cal[0].name if upcoming_cal
@@ -411,8 +415,28 @@ class TournamentDashboard(QWidget):
         self.grid.addWidget(self._classes_card(t), 1, 1 if show_progress else 0,
                             1, 1 if show_progress else 2)
         self.grid.addWidget(self._schedule_card(t), 1, 2)
+        self.grid.addWidget(self._costs_card(t), 2, 0, 1, 3)
         if t.internal_notes:
-            self.grid.addWidget(self._notes_card(t), 2, 0, 1, 3)
+            self.grid.addWidget(self._notes_card(t), 3, 0, 1, 3)
+
+    def _costs_card(self, t):
+        card, c = _card("Material", on_click=lambda: self.action.emit("course"))
+        row = QHBoxLayout()
+        for title, value, hint in (
+                ("Kosten Einmalartikel", cs.one_off_cost(t.id),
+                 "Für dieses Turnier angelegte Einmalposten, echte Zusatzkosten"),
+                ("Warenwert Bestandsinventar", cs.stock_goods_value(t.id),
+                 "Angeforderte Menge × Einzelpreis der verwendeten Inventarartikel, "
+                 "bereits vorhanden")):
+            col = QVBoxLayout()
+            col.addWidget(QLabel(title, objectName="sectionTitle"))
+            col.addWidget(QLabel(money(value), objectName="cardValue"))
+            hint_label = QLabel(hint, objectName="pageSubtitle")
+            hint_label.setWordWrap(True)
+            col.addWidget(hint_label)
+            row.addLayout(col, 1)
+        c.addLayout(row)
+        return card
 
     def _notes_card(self, t):
         card, c = _card("Notizen")

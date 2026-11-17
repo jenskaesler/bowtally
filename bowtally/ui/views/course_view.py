@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Parcours-Planung: list of course targets for the active tournament, with drag-drop reorder."""
-from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QHBoxLayout, QLineEdit,
-                               QPlainTextEdit, QPushButton, QSpinBox, QWidget)
+from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QLineEdit,
+                               QPlainTextEdit, QPushButton, QSpinBox, QTabWidget, QWidget)
 
 from bowtally.services import course_service as cs
+from bowtally.services import inventory_service as inv
 from bowtally.services import tournament_service as ts
-from bowtally.ui import busy, button, show_error
+from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
@@ -15,8 +16,11 @@ from bowtally.ui.components.confirm_dialog import choose
 from bowtally.ui.context import context
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
+from bowtally.ui.views.fees_view import AmountField
+from bowtally.ui.views.participants_view import money
 
-HEADERS = ["Nr.", "Tier / Scheibe", "Distanz (m)", "Pfeilstopp", "Gelände", "Max. Gruppe", "Helfernotiz"]
+MATERIAL_HEADERS = ["Artikel", "Angefordert", "Bestand", "Status", "Einzelpreis", "Summe", "Typ"]
+HEADERS =["Nr.", "Tier / Scheibe", "Distanz (m)", "Pfeilstopp", "Gelände", "Max. Gruppe", "Helfernotiz"]
 ARROW_STOPS = ["", "Klasse 1", "Klasse 2", "Klasse 3", "Klasse 4", "Klasse 5"]
 TERRAIN_TYPES = ["", "Flach", "Hang", "Wald", "Wiese", "Wasser", "Hügel"]
 
@@ -76,12 +80,11 @@ class CourseTargetDialog(RecordDialog):
 
     def _pick_from_inventory(self):
         from bowtally.services import inventory_service as inv
-        items = inv.list_items(active_only=True)
+        items = inv.list_items(course_only=True)
         if not items:
-            Toast.show(self, "Kein aktives Inventar vorhanden.", Toast.WARNING)
+            Toast.show(self, "Kein Inventar für die Parcoursplanung vorhanden.", Toast.WARNING)
             return
-        options = [(f"{i.name} ({inv.ITEM_TYPE_LABELS.get(i.item_type, '')})", i.name)
-                   for i in items]
+        options = [(i.name, i.name) for i in items]
         result = choose(self, "Aus Inventar wählen", "Bezeichnung übernehmen:", options)
         if result is not choose.CANCELLED and result:
             self.form.set_values({"animal_name": result})
@@ -233,3 +236,175 @@ class CourseView(ListView):
                        ("Öffnen", lambda: open_path(self, path)))
         except Exception as exc:
             show_error(self, exc, "PDF konnte nicht erstellt werden")
+
+
+class CourseItemDialog(RecordDialog):
+    """Material for the course plan: an inventory item or a one-off posting with a quantity."""
+    _default_size = (520, 0)
+
+    def __init__(self, record=None, one_off=False, parent=None):
+        self._record = record
+        self._one_off = record.is_one_off if record else one_off
+        super().__init__("Einmalposten" if self._one_off else "Material aus Inventar", parent=parent)
+        if record:
+            self.form.set_values({"name": record.name, "unit_price": record.unit_price,
+                                  "quantity": record.quantity,
+                                  "inventory_item_id": record.inventory_item_id})
+        self._baseline = self.form.snapshot()
+        self.saved_id: int | None = None
+
+    def _setup_form(self):
+        quantity = QSpinBox()
+        quantity.setRange(1, 9999)
+        if self._one_off:
+            self.form.add("name", "Bezeichnung", QLineEdit(), required=True)
+            self.form.add("unit_price", "Einzelpreis", AmountField())
+        else:
+            combo = QComboBox()
+            items = inv.list_items(course_only=True)
+            current = self._record.inventory_item if self._record else None
+            if current and current.id not in {i.id for i in items}:
+                items.append(current)       # still shown after its planning flag was removed
+            for item in items:
+                combo.addItem(f"{item.name} (Bestand {item.quantity})", item.id)
+            combo.setEnabled(self._record is None)      # to swap the article, remove and add again
+            self.form.add("inventory_item_id", "Artikel", combo, required=True)
+        self.form.add("quantity", "Angeforderte Menge", quantity)
+
+    def _do_save(self) -> bool:
+        vals = self.form.values()
+        data = {"quantity": int(vals["quantity"])}
+        data.update({"name": vals["name"], "unit_price": vals["unit_price"]} if self._one_off
+                    else {"inventory_item_id": vals["inventory_item_id"]})
+        try:
+            item = cs.save_course_item(data, self._record.id if self._record else None,
+                                       context.tournament_id)
+        except Exception as exc:
+            show_error(self, exc, "Posten konnte nicht gespeichert werden")
+            return False
+        self.saved_id = item.id
+        return True
+
+
+class CourseMaterialView(ListView):
+    def __init__(self, parent=None):
+        empty = EmptyState("target", "Noch kein Material",
+                           "Wähle Artikel aus dem Inventar oder lege Einmalposten an.",
+                           "Aus Inventar hinzufügen")
+        super().__init__("Material", MATERIAL_HEADERS, empty,
+                         search_placeholder="Artikel …", parent=parent)
+        empty.actionTriggered.connect(self.new_item)
+        self._btn_new = button("Aus Inventar hinzufügen", self.new_item, "primary",
+                               "Artikel mit Parcoursplanung-Kennzeichen aus dem Inventar wählen (Strg+N)")
+        self._btn_one_off = button("Einmalposten anlegen", self.new_one_off,
+                                   tooltip="Material nur für dieses Turnier, nicht im Inventar")
+        self.header.add(self._btn_new, self._btn_one_off)
+        self.totals = QLabel()
+        self.main_layout.insertWidget(2, self.totals)       # between table and action bar
+        self.table.activated.connect(self.edit_item)
+        self._items = {}
+
+    def set_tournament(self, _t):
+        self.refresh()
+
+    def refresh(self):
+        tid = context.tournament_id
+        if not tid:
+            self.table.set_rows([], [])
+            return
+        rows = cs.list_course_items(tid)
+        self._items = {r.id: r for r in rows}
+        self.table.set_rows([self._row(r) for r in rows], [r.id for r in rows])
+        self.totals.setText(f"Kosten Einmalartikel: {money(cs.one_off_cost(tid))}   |   "
+                            f"Warenwert Bestandsinventar: {money(cs.stock_goods_value(tid))}")
+        t = context.tournament()
+        self.header.set_subtitle(f"{len(rows)} Posten" + (f" | Turnier: {t.name}" if t else ""))
+        self.on_selection(self.table.selected_ids())
+
+    @staticmethod
+    def _row(r) -> list:
+        stock = r.inventory_item
+        price = stock.unit_price if stock else r.unit_price
+        colors = theme.current()
+        if stock is None:
+            status = Cell("–")
+        elif (missing := cs.stock_shortfall(r)):
+            status = Cell(f"Es fehlen {missing}", foreground=colors["danger"], bold=True)
+        else:
+            status = Cell("gedeckt", foreground=colors["success"])
+        return [r.name, r.quantity, stock.quantity if stock else "–", status,
+                Cell(price, text=money(price)), Cell(price * r.quantity, text=money(price * r.quantity)),
+                "Einmalposten" if r.is_one_off else "Inventar"]
+
+    def on_selection(self, ids):
+        r = self._items.get(self.table.selected_id())
+        closed = self.tournament_closed
+        for btn in (self._btn_new, self._btn_one_off):
+            btn.setEnabled(not closed)
+        if r is None:
+            self.action_bar.set_actions("", [])
+            return
+        self.action_bar.set_actions(r.name, [
+            Action("Bearbeiten", self.edit_item, enabled=not closed),
+            Action("Entfernen", self.delete_item, "danger", enabled=not closed)])
+
+    def new_item(self):
+        if not context.tournament_id or self.tournament_closed:
+            return
+        if not inv.list_items(course_only=True):
+            Toast.show(self, "Kein Inventar für die Parcoursplanung vorhanden.", Toast.WARNING)
+            return
+        self._open(CourseItemDialog(parent=self))
+
+    def new_one_off(self):
+        if context.tournament_id and not self.tournament_closed:
+            self._open(CourseItemDialog(one_off=True, parent=self))
+
+    def edit_item(self):
+        r = self._items.get(self.table.selected_id())
+        if r is not None and not self.tournament_closed:
+            self._open(CourseItemDialog(r, parent=self))
+
+    def _open(self, dlg):
+        if dlg.exec():
+            self.refresh()
+            self.table.select_ids([dlg.saved_id])
+
+    def delete_item(self):
+        r = self._items.get(self.table.selected_id())
+        if r is None or not ConfirmDialog.ask(self, "Posten entfernen?",
+                                              f"„{r.name}“ wird aus dem Parcoursplan entfernt.",
+                                              "Entfernen"):
+            return
+        try:
+            cs.delete_course_item(r.id)
+        except Exception as exc:
+            show_error(self, exc, "Entfernen fehlgeschlagen")
+            return
+        self.refresh()
+
+    def context_entries(self, row_id):
+        if row_id not in self._items:
+            return []
+        closed = self.tournament_closed
+        return [("Bearbeiten", self.edit_item, not closed), None,
+                ("Entfernen", self.delete_item, not closed)]
+
+
+class CoursePage(QTabWidget):
+    """Parcours tab of a tournament: targets and material side by side."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setDocumentMode(True)
+        self.addTab(CourseView(), "Scheiben")
+        self.addTab(CourseMaterialView(), "Material")
+
+    def set_tournament(self, t):
+        self.currentWidget().set_tournament(t)
+
+    def shortcut_new(self):
+        self.currentWidget().shortcut_new()
+
+    def shortcut_find(self):
+        self.currentWidget().shortcut_find()

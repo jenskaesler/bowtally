@@ -20,7 +20,7 @@ _SECTIONS = [
   <li><b>Kalender</b> – alle Turniere im Jahres-, Monats-, Wochen- und Tagesraster</li>
   <li><b>Schützen</b> und <b>Mitglieder</b> – Stammdaten; Helfer plant man im Turnier (Tab <b>Helfer</b>)</li>
   <li><b>Regelwerke &amp; Klassen</b> – Punktverteilung und Wertungsgruppen</li>
-  <li><b>Inventar</b> – Scheiben und 3D-Ziele des Vereins</li>
+  <li><b>Inventar</b> – alle Ausrüstungsgegenstände des Vereins (Ziele, Tische, Pavillons …)</li>
   <li><b>Logbuch</b> – Protokoll der Aktivitäten</li>
   <li><b>Einstellungen</b> – Vereinsprofil, E-Mail-Vorlagen, Druck, Backup, Updates und Design</li>
 </ul>
@@ -307,8 +307,13 @@ Bei voller Teilnehmerzahl ist der Button gesperrt.</p>
 3D-Tiere. Felder: Scheiben-Nr., Tier / Bezeichnung, Distanz (m),
 Pfeilstoppklasse, Geländetyp, Max. Gruppengröße und Helfernotiz.</p>
 <p>Über <b>Aus Inventar …</b> im Bearbeitungsdialog lassen sich Bezeichnungen
-direkt aus dem Vereinsinventar übernehmen. Die Reihenfolge ist per
-<b>Drag-and-Drop</b> änderbar und wird dauerhaft gespeichert.</p>
+direkt aus dem Vereinsinventar übernehmen (nur Artikel mit <i>Für Parcoursplanung
+verwenden</i>). Die Reihenfolge ist per <b>Drag-and-Drop</b> änderbar und wird
+dauerhaft gespeichert.</p>
+<p>Zusätzlich wählst du Inventarartikel mit einer <b>angeforderten Menge</b> aus. Der
+Parcoursplan zeigt, ob der Bestand reicht oder wie viele Einheiten fehlen. Für dieses
+Turnier gemietetes oder gekauftes Material legst du als <b>Einmalposten</b> an; er gehört
+nicht zum Inventar und zählt nicht zum Inventarwert.</p>
 <p>Drucken: <b>Aufbauplan</b> (mit Helfernotizen für Helfer) und
 <b>Scheibenplan</b> (ohne Notizen für Teilnehmer) als PDF.</p>
 <h3>Zeitplan</h3>
@@ -440,13 +445,18 @@ Zusammenfassung mit Datum, Teilnehmerzahl und Einnahmen.</p>
     ("Inventar & Kalender", """
 <h2>Inventar &amp; Kalender</h2>
 <h3>Vereinsinventar</h3>
-<p>Das Modul <b>Inventar</b> (Seitenleiste) verwaltet in zwei Tabs <b>Scheiben</b>
-(Scheibenbilder) und <b>3D-Ziele</b> des Vereins. Felder: Bezeichnung, Hersteller,
-Anzahl, Zustand (Gut / Mittel / Schlecht), Notizen und ob der Eintrag aktiv ist.
-<i>Inaktive anzeigen</i> blendet inaktive Einträge ein; Import und Export sind
-möglich.</p>
-<p>Aktive Einträge erscheinen im Parcours-Dialog unter <b>Aus Inventar …</b>,
-um Scheibenbezeichnungen schnell zu übernehmen.</p>
+<p>Das Modul <b>Inventar</b> (Seitenleiste) verwaltet alle wiederverwendbaren Gegenstände
+für Turniere. Die Liste lässt sich oben links nach <b>Kategorie</b> filtern. Jeder Artikel hat
+einen Dialog mit den Tabs <b>Stammdaten</b> (Bezeichnung, Kategorie, Größe, Shop-Link,
+Einzelpreis, Anzahl, Gesamtpreis = Einzelpreis × Anzahl, <i>Für Parcoursplanung verwenden</i>),
+<b>Notizen</b>, <b>Dokumente</b> (z. B. Rechnung oder Foto) und <b>Reparaturkosten</b>
+(Datum, Beschreibung, Kosten, durchgeführt von). Reparaturkosten zählen nicht zum Inventarwert.
+Import und Export sind möglich.</p>
+<p>Die <b>Kategorien</b> pflegst du unter Einstellungen → Inventarkategorien. Eine Kategorie
+lässt sich nur löschen, wenn keine Artikel mehr darin sind; sonst bietet das Programm an, die
+Artikel in eine andere Kategorie zu verschieben.</p>
+<p>Artikel mit <i>Für Parcoursplanung verwenden</i> stehen im Parcoursplan eines Turniers zur
+Auswahl.</p>
 <h3>Kalender</h3>
 <p>Der Kalender zeigt alle Turniere als farbige Badges (Farbe je Phase). Mit den
 Buttons <b>Jahr</b>, <b>Monat</b>, <b>Woche</b> und <b>Tag</b> wechselst du die
@@ -548,7 +558,7 @@ auf die letzten vier Stellen durch Sternchen ersetzt. Der Text lässt sich unter
 <p>Ohne geöffnetes Turnier zeigt das Dashboard Kacheln für
 <i>Aktive Turniere</i>, <i>Nächstes Turnier</i>, <i>Turnierarchiv</i>,
 <i>Schützen</i>, <i>Regelwerke</i>, <i>Bogenklassen</i>, <i>Helfer</i>,
-<i>Inventar</i> und <i>Kalender</i> mit Direktlinks. Die Kacheln lassen sich
+<i>Inventar</i> (mit Gesamtwert) und <i>Kalender</i> mit Direktlinks. Die Kacheln lassen sich
 per Drag-and-Drop umsortieren; die Reihenfolge bleibt erhalten.</p>
 <h3>Turnier-Dashboard</h3>
 <p>Mit geöffnetem Turnier (<b>Turnier-Dashboard</b> in der Seitenleiste) zeigt
@@ -556,8 +566,10 @@ es Karten für <b>Teilnehmer</b> (inklusive Hinweis „Ausschreibung veraltet“
 mit <b>Neu generieren</b>), <b>Einnahmen</b>, <b>Aktuelle Phase</b> (nächste
 Aufgabe, Notizen und Link <b>Zum Leitfaden</b>), <b>Ergebnisfortschritt</b>
 (ab der Phase Schießen), <b>Klassen</b> und <b>Zeitplan</b> (Anmeldefrist,
-Turnierdatum, Einschreibung ab, Schießbeginn mit Countdown). Ein Klick auf
-eine Karte öffnet die passende Ansicht.</p>
+Turnierdatum, Einschreibung ab, Schießbeginn mit Countdown). Die Karte
+<b>Material</b> zeigt getrennt die <b>Kosten Einmalartikel</b> (echte Zusatzkosten dieses
+Turniers) und den <b>Warenwert Bestandsinventar</b> (angeforderte Menge × Einzelpreis der
+verwendeten Inventarartikel). Ein Klick auf eine Karte öffnet die passende Ansicht.</p>
 <h3>Logbuch</h3>
 <p>Das <b>Logbuch</b> protokolliert Aktivitäten. Du kannst nach Turnier,
 Zeitraum (Gesamter Zeitraum, Heute, 7 oder 30 Tage) und Text filtern sowie

@@ -12,8 +12,9 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                                QVBoxLayout, QWidget)
 
 from bowtally import config
+from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.help_link import help_link
-from bowtally.services import ValidationError, settings_service as ss
+from bowtally.services import ValidationError, inventory_service as inv, settings_service as ss
 from bowtally.ui import burger_button, button, restore_geom, save_geom, show_error, theme
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
@@ -157,7 +158,8 @@ class SettingsDialog(QDialog):
                                  ("bank", "Bankdaten")]),
         ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
                                  ("print", "Druck & Listen"),
-                                 ("email", "E-Mail-Vorlagen")]),
+                                 ("email", "E-Mail-Vorlagen"),
+                                 ("inventory_categories", "Inventarkategorien")]),
         ("SYSTEM",             [("general", "Allgemein"),
                                  ("backup", "Backup")]),
         ("DARSTELLUNG",        [("design", "Design"),
@@ -188,7 +190,8 @@ class SettingsDialog(QDialog):
             ("behavior", self._category_tab("behavior")),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
-            ("general",  self._general_tab()),
+            ("inventory_categories", self._inventory_categories_tab()),
+            ("general", self._general_tab()),
             ("backup",   self._backup_tab()),
             ("nav",      self._nav_tab()),
         ]
@@ -1073,6 +1076,97 @@ class SettingsDialog(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setWidget(inner)
         return scroll
+
+    # ------------------------------------------------------------ inventory categories tab
+    def _inventory_categories_tab(self) -> QWidget:
+        """Categories are stored right away; they do not use the Speichern button."""
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        box = QGroupBox("Inventarkategorien")
+        box_lay = QVBoxLayout(box)
+        box_lay.addWidget(QLabel("Kategorien für das Dropdown und den Filter im Inventar.",
+                                 objectName="pageSubtitle"))
+        self._category_list = QListWidget()
+        self._category_list.setMinimumHeight(220)
+        box_lay.addWidget(self._category_list, 1)
+        buttons = QHBoxLayout()
+        buttons.addWidget(button("Neu", self._add_category, "primary"))
+        buttons.addWidget(button("Umbenennen", self._rename_category))
+        buttons.addWidget(button("Löschen", self._delete_category))
+        buttons.addStretch()
+        box_lay.addLayout(buttons)
+        lay.addWidget(box, 1)
+        self._reload_categories()
+        return w
+
+    def _reload_categories(self):
+        self._category_list.clear()
+        for category in inv.list_categories():
+            item = QListWidgetItem(category.name)
+            item.setData(Qt.ItemDataRole.UserRole, category.id)
+            self._category_list.addItem(item)
+
+    def _ask_text(self, title: str, label: str, text: str = "", items: list | None = None):
+        """Text or list choice with a German cancel button; None if cancelled."""
+        dialog = QInputDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.setLabelText(label)
+        dialog.setCancelButtonText("Abbrechen")
+        if items is None:
+            dialog.setTextValue(text)
+        else:
+            dialog.setComboBoxItems(items)
+        return dialog.textValue() if dialog.exec() else None
+
+    def _add_category(self):
+        name = self._ask_text("Neue Kategorie", "Name der Kategorie:")
+        if name is not None:
+            self._save_category(name)
+
+    def _rename_category(self):
+        item = self._category_list.currentItem()
+        if item is None:
+            return
+        name = self._ask_text("Kategorie umbenennen", "Neuer Name:", item.text())
+        if name is not None:
+            self._save_category(name, item.data(Qt.ItemDataRole.UserRole))
+
+    def _save_category(self, name: str, category_id: int | None = None):
+        try:
+            inv.save_category(name, category_id)
+        except ValidationError as exc:
+            show_error(self, exc)
+        self._reload_categories()
+
+    def _delete_category(self):
+        item = self._category_list.currentItem()
+        if item is None:
+            return
+        category_id = item.data(Qt.ItemDataRole.UserRole)
+        move_to = None
+        count = inv.count_items_in_category(category_id)
+        if count:
+            others = {c.name: c.id for c in inv.list_categories() if c.id != category_id}
+            if not others:
+                show_error(self, ValidationError(
+                    f"Die Kategorie wird noch von {count} Artikel(n) verwendet. "
+                    "Lege zuerst eine zweite Kategorie an, in die sie verschoben werden können."))
+                return
+            target = self._ask_text("Kategorie löschen",
+                                    f"{count} Artikel verwenden „{item.text()}“.\n"
+                                    "In welche Kategorie sollen sie verschoben werden?",
+                                    items=list(others))
+            if target is None:
+                return
+            move_to = others[target]
+        elif not ConfirmDialog.ask(self, "Kategorie löschen?", f"„{item.text()}“ wird gelöscht.",
+                                   "Löschen", destructive=True):
+            return
+        try:
+            inv.delete_category(category_id, move_to)
+        except ValidationError as exc:
+            show_error(self, exc)
+        self._reload_categories()
 
     # ------------------------------------------------------------ email templates tab
     def _email_tab(self) -> QWidget:
