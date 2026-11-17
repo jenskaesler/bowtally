@@ -6,6 +6,19 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- **📦 Inventar neu aufgebaut** — Ein Artikel-Dialog mit den Tabs Stammdaten, Notizen, Dokumente und
+  Reparaturkosten ersetzt die bisherigen Listen für Scheiben und 3D-Ziele. Artikel haben
+  Kategorie, Größe, Shop-Link, Einzelpreis, Bestand und einen berechneten Gesamtpreis. Die
+  Inventarkategorien werden in den Einstellungen gepflegt, die Liste lässt sich nach Kategorie
+  filtern. **Das bisherige Inventar wird nicht übernommen**, der Bestand startet leer.
+- **🗺️ Parcoursplan mit Material** — Im Parcours gibt es den Unter-Tab „Material“: Artikel mit
+  Parcoursplanungs-Flag mit angeforderter Menge (Anzeige, ob der Bestand reicht) und turnierbezogene
+  Einmalposten. Das Haupt-Dashboard zeigt den Inventar-Gesamtwert, das Turnierdashboard
+  „Kosten Einmalartikel“ und „Warenwert Bestandsinventar“ getrennt. Backup, Restore, Import und
+  Export enthalten die neuen Daten.
+
 ### Hinzugefügt
 
 - **📎 Dokumente und Notizen als eigene Tabs** — Im Schützen-Dialog haben Notizen und Dokumente je
