@@ -1,5 +1,5 @@
-BowTally Non-Commercial Copyleft License
-Version 1.0, October 2026
+BowTally Non-Commercial-Distribution Copyleft License
+Version 2.0, November 2026
 
 Copyright (c) 2026 Jens Kaesler <mail@jens-kaesler.de>
 
@@ -10,47 +10,81 @@ TERMS AND CONDITIONS
 "Software" means the BowTally source code, documentation, and all associated files
 in this repository.
 
-"Commercial use" means any use of the Software, in whole or in part, that is
-primarily intended for or directed toward commercial advantage or monetary
-compensation. This includes, but is not limited to, selling the Software, including
-it in a paid product or service, or using it to provide a paid service to third
-parties.
-
 "Modified version" means any work based on or derived from the Software, including
-translations, adaptations, and software that incorporates the Software in whole or
-in part.
+translations, adaptations, and any software that incorporates the Software in whole
+or in part.
+
+"Commercial Distribution" means offering, selling, licensing, sublicensing, or
+otherwise making the Software or a Modified version available to third parties in
+exchange for a fee, including as a hosted or managed service (e.g. Software-as-a-
+Service), or incorporating the Software or a Modified version into any product or
+service that is itself sold or licensed for a fee.
+
+Commercial Distribution does NOT include using the Software or a Modified version
+for your own internal purposes or activities, even where those activities
+themselves generate revenue, income, membership fees, or other monetary
+compensation (for example, an association using the Software to organize and
+charge entry fees for its own tournament). Such use is explicitly permitted under
+Section 2 without restriction and without any requirement to contact or seek
+permission from the copyright holder.
 
 2. GRANT OF RIGHTS
 
-Subject to the terms of this License, you are granted a non-exclusive,
-non-transferable, worldwide, royalty-free license to:
+Subject to the terms of this License, you are granted a perpetual, worldwide,
+royalty-free, non-exclusive license to:
 
-  a. Use, copy, and distribute the Software for non-commercial purposes.
-  b. Modify the Software for non-commercial purposes.
+  a. Use the Software for any purpose, including commercial and revenue-generating
+     activities, without restriction and without prior notice to or permission
+     from the copyright holder.
+  b. Copy, modify, and create Modified versions of the Software.
+  c. Distribute the Software and Modified versions, subject strictly to the
+     conditions in Section 3.
+
+This License and the rights granted herein are irrevocable for the Software as
+published, except as provided in Section 5.
 
 3. CONDITIONS
 
-a. NON-COMMERCIAL USE ONLY
+a. NO COMMERCIAL DISTRIBUTION WITHOUT PERMISSION
 
-You may not use the Software or any Modified version for Commercial use without
-prior written permission from the copyright holder.
+You may not engage in Commercial Distribution, as defined in Section 1, of the
+Software or any Modified version without prior written permission from the
+copyright holder.
 
-b. COPYLEFT (SHARE-ALIKE)
+b. MANDATORY COPYLEFT (SHARE-ALIKE)
 
-If you distribute, publish, or make available a Modified version of the Software,
-you must:
+If you distribute, publish, deploy, or otherwise make available to any third party
+a Modified version of the Software, in whole or in part, and regardless of whether
+this constitutes Commercial Distribution, you MUST:
 
-  i.  Release the complete source code of the Modified version publicly on GitHub
-      (or an equivalent publicly accessible version control platform) before or at
-      the time of distribution.
-  ii. License the Modified version under the same terms as this License.
-  iii. Clearly state that changes were made to the original Software and the date
-       of such changes.
+  i.   License the entire Modified version under this exact License, with no
+       additional restrictions, no additional terms, and no further conditions
+       of any kind beyond what this License states.
+  ii.  Make the complete corresponding source code of the Modified version
+       publicly and freely available, at no charge, on GitHub or an equivalent
+       publicly accessible version control platform, no later than the time of
+       distribution.
+  iii. Clearly and prominently state that changes were made to the original
+       Software, identify the nature of those changes, and state the date on
+       which they were made.
+  iv.  Preserve this entire License text, unmodified, and all copyright and
+       attribution notices in the Modified version.
+
+This obligation is permanent and applies to every subsequent redistribution and
+to every further Modified version derived from it, without exception and without
+time limit. It may not be waived, narrowed, or overridden by any other agreement
+you enter into with a third party.
 
 c. ATTRIBUTION
 
-You must retain all copyright notices and this License text in all copies of the
-Software and any Modified versions.
+You must retain all copyright notices and this License text, unmodified and in
+full, in all copies of the Software and any Modified versions.
+
+d. NO ADDITIONAL RESTRICTIONS
+
+You may not impose any additional license terms, restrictions, patent claims, or
+technical measures (e.g. DRM) on the Software or a Modified version that would
+restrict the rights granted to downstream recipients under this License.
 
 4. NO WARRANTY
 
@@ -61,13 +95,33 @@ HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-5. TERMINATION
+5. TERMINATION AND ENFORCEMENT
 
-Your rights under this License terminate automatically if you violate any of its
-terms. Upon termination, you must cease all use and distribution of the Software
-and destroy all copies in your possession.
+Your rights under this License terminate automatically and immediately upon any
+violation of Section 3. Termination is retroactive to the moment of violation and
+does not require notice from the copyright holder to take effect.
 
-6. CONTACT
+Upon termination, you must immediately cease all use, copying, and distribution
+of the Software and any Modified version, and destroy or remove all copies in
+your possession or control.
 
-For commercial licensing inquiries or permissions beyond the scope of this License,
-contact: mail@jens-kaesler.de
+A violation of Section 3, in particular Commercial Distribution without
+permission or failure to release a Modified version under this License and its
+full source code, constitutes copyright infringement. The copyright holder
+reserves the right to pursue any and all legal remedies available under
+applicable copyright law against any party who violates this License, including
+but not limited to injunctive relief and claims for damages.
+
+Rights for any party who has at no point violated this License are not affected
+by the termination of another party's rights.
+
+6. NO IMPLIED LICENSE
+
+Nothing in this License shall be construed as granting any rights under patent,
+trademark, or any other intellectual property right of the copyright holder,
+except as expressly stated above.
+
+7. CONTACT
+
+For Commercial Distribution licensing inquiries or permissions beyond the scope
+of this License, contact: mail@jens-kaesler.de
