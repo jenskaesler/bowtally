@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
                                QFileDialog, QFormLayout, QFrame, QGridLayout,
                                QGroupBox, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QListWidget,
                                QListWidgetItem, QPlainTextEdit, QPushButton,
-                               QScrollArea, QSpinBox, QStackedWidget, QToolButton,
+                               QScrollArea, QSizePolicy, QSpinBox, QStackedWidget, QToolButton,
                                QVBoxLayout, QWidget)
 
 from bowtally import config
@@ -743,8 +743,8 @@ class SettingsDialog(QDialog):
 
     def _backup_tab(self) -> QWidget:
         from bowtally.services import backup_service as bs
-        w = QWidget()
-        lay = QVBoxLayout(w)
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
 
         # ---- Box 1: Backup-Einstellungen
         settings_box = QGroupBox("Backup-Einstellungen")
@@ -909,7 +909,14 @@ class SettingsDialog(QDialog):
         restore_lay.addLayout(restore_btns)
         lay.addWidget(restore_box)
         lay.addStretch()
-        return w
+        # Minimum = the box never shrinks below its size hint (no squeezed rows, no cut-off buttons);
+        # the tab scrolls instead.
+        for box in (settings_box, target_box, restore_box):
+            box.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(inner)
+        return scroll
 
     def _suggest_backup_password(self, show_password: QCheckBox):
         import secrets

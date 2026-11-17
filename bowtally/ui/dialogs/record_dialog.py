@@ -25,6 +25,7 @@ from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.form_field import Form
 from bowtally.ui.constants import SETTINGS_COMBO_W, SETTINGS_LABEL_W
 
+SIZE_VERSION = 2
 _DISCARD_TITLE = "Änderungen verwerfen?"
 _DISCARD_TEXT = "Es gibt ungespeicherte Änderungen. Trotzdem schließen?"
 
@@ -56,6 +57,7 @@ class RecordDialog(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(body)
+        self._body, self._scroll = body, scroll
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
@@ -85,6 +87,9 @@ class RecordDialog(QDialog):
     def showEvent(self, event):
         super().showEvent(event)
         s = QSettings("BowTally", "BowTally")
+        if s.value("dialogs/size_version", 0, type=int) < SIZE_VERSION:
+            s.remove("dialogs")     # sizes saved before the content-based default would hide fields
+            s.setValue("dialogs/size_version", SIZE_VERSION)
         key = f"dialogs/{type(self).__name__}"
         w = s.value(f"{key}/width", type=int)
         h = s.value(f"{key}/height", type=int)
@@ -92,15 +97,11 @@ class RecordDialog(QDialog):
             self.resize(w, h)
         else:
             dw, dh = getattr(self, "_default_size", (560, 0))
-            if dh:
-                self.resize(dw, dh)
-            else:
-                self.adjustSize()
-                screen_h = QApplication.primaryScreen().availableGeometry().height()
-                if self.height() > screen_h * 0.8:
-                    self.resize(self.width(), int(screen_h * 0.8))
-                if self.width() < dw:
-                    self.resize(dw, self.height())
+            chrome = self.sizeHint() - self._scroll.sizeHint()    # margins, hint, separator, footer
+            body = self._body.sizeHint()
+            screen = QApplication.primaryScreen().availableGeometry()
+            self.resize(min(max(dw, body.width() + chrome.width()), int(screen.width() * 0.9)),
+                        min(max(dh, body.height() + chrome.height()), int(screen.height() * 0.9)))
         p = self.parent()
         if p:
             pg = p.window().geometry()

@@ -112,8 +112,8 @@ class MemberDialog(RecordDialog):
 
         self.bank_form = Form(label_width=SETTINGS_LABEL_W, combo_width=SETTINGS_COMBO_W)
         b = self.bank_form
-        b.add("account_holder", "Kontoinhaber", QLineEdit())
-        b.add_widget(button("Aus Basisdaten übernehmen", self._copy_account_holder))
+        b.add("account_holder", "Kontoinhaber", QLineEdit(),
+              trailing=button("Aus Basisdaten übernehmen", self._copy_account_holder))
         b.add("iban", "IBAN", QLineEdit(), validator=_iban_validator)
         b.add("bic", "BIC (optional)", QLineEdit())
         b.add("bank_name", "Name der Bank", QLineEdit())

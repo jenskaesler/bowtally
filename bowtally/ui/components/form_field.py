@@ -10,7 +10,7 @@ from typing import Callable
 
 from PySide6.QtCore import QDate, QEvent, Qt, QTime, QTimer, Signal
 from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox,
-                               QFormLayout, QLabel, QLineEdit, QPlainTextEdit, QSizePolicy,
+                               QFormLayout, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QSizePolicy,
                                QSpinBox, QTextEdit, QTimeEdit, QVBoxLayout, QWidget)
 
 from bowtally.ui import repolish
@@ -128,7 +128,8 @@ class FormField(QWidget):
 
     def __init__(self, widget: QWidget, required: bool = False,
                  validator: Callable[[object], str | None] | None = None, hint: str = "",
-                 required_message: str = "", label_text: str = "", parent=None):
+                 required_message: str = "", label_text: str = "",
+                 trailing: QWidget | None = None, parent=None):
         super().__init__(parent)
         self.widget = widget
         self.required, self.validator = required, validator
@@ -138,7 +139,14 @@ class FormField(QWidget):
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(3)
-        lay.addWidget(widget)
+        if trailing is None:
+            lay.addWidget(widget)
+        else:
+            row = QHBoxLayout()
+            row.setSpacing(8)
+            row.addWidget(widget, 1)
+            row.addWidget(trailing)
+            lay.addLayout(row)
         if hint:
             lay.addWidget(QLabel(hint, objectName="fieldHint", wordWrap=True))
         lay.addWidget(self.error)
