@@ -12,6 +12,15 @@ from bowtally.ui import button
 from bowtally.updater.update_service import download_asset, sha256_of
 
 CANCEL_FLAG = "--cleanup-after"
+ERROR_ACCESS_DENIED = 5     # what ShellExecute returns when the user declines the UAC prompt
+CANCELLED_TEXT = ("Der Installer braucht Administratorrechte. Die Abfrage wurde abgebrochen, "
+                  "das Update wurde nicht installiert.")
+
+
+def _run_elevated(path: Path, params: str) -> int:
+    """Starts the installer with the Windows admin prompt (it needs elevated rights, Popen cannot ask)."""
+    import ctypes
+    return int(ctypes.windll.shell32.ShellExecuteW(None, "runas", str(path), params, None, 1))
 
 
 class _Worker(QObject):
@@ -119,10 +128,11 @@ class DownloadDialog(QDialog):
         self._install()
 
     def _install(self):
-        try:
-            subprocess.Popen([str(self.dest), "/S", f"{CANCEL_FLAG}={self.dest}"])
-        except OSError as exc:
-            self._fail(f"Installer konnte nicht gestartet werden: {exc}")
+        params = subprocess.list2cmdline(["/S", f"{CANCEL_FLAG}={self.dest}"])
+        code = _run_elevated(self.dest, params)
+        if code <= 32:      # ShellExecute reports success with a value above 32
+            self._fail(CANCELLED_TEXT if code == ERROR_ACCESS_DENIED
+                       else f"Installer konnte nicht gestartet werden (Fehlercode {code}).")
             return
         from PySide6.QtWidgets import QApplication
         QApplication.instance().quit()

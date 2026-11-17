@@ -775,7 +775,10 @@ Downloads-Ordner).</p>
   <li><b>Automatisches Backup beim Beenden der App</b> und die <b>Aufbewahrungsdauer</b>
       (1–365 Tage); ältere Backups werden nach einer Sicherung automatisch gelöscht</li>
   <li><b>Speicherort</b>: <i>Lokal</i> (Ordner), <i>Netzwerk</i> (NAS / Freigabe, optional mit
-      Anmeldung) oder <i>Nextcloud</i> (Server-URL, Benutzer, Passwort, Zielpfad)</li>
+      Anmeldung) oder <i>Nextcloud</i> (Server-URL, Benutzer, Passwort, Zielpfad). Nextcloud
+      ist nur ein Speicherziel für Backups: BowTally lädt die Datei hoch, gleicht aber keine
+      Daten ab und lädt nichts herunter; zum Wiederherstellen holst du die ZIP-Datei selbst
+      von Nextcloud</li>
   <li><b>Verbindung testen</b> prüft den gewählten Speicherort, <b>Backup jetzt erstellen</b>
       sichert sofort</li>
 </ul>
@@ -804,7 +807,9 @@ Updates</b> (<i>Beim Start nach Updates suchen</i>). <b>Jetzt prüfen</b> starte
 <i>Letzte Prüfung</i> zeigt den Zeitpunkt der letzten erfolgreichen Verbindung.</p>
 <p>Gibt es eine neue Version, zeigt ein Dialog die Neuerungen und einen Link zum vollständigen
 Changelog. Mit <b>Jetzt aktualisieren</b> lädt BowTally den Installer herunter, prüft die
-Prüfsumme (sofern vorhanden) und installiert das Update; <b>Später erinnern</b> verschiebt es,
+Prüfsumme (sofern vorhanden) und installiert das Update. Windows fragt dabei nach
+Administratorrechten, weil BowTally im Programmverzeichnis installiert ist; lehnst du die
+Abfrage ab, bleibt die alte Version unverändert. <b>Später erinnern</b> verschiebt es,
 <b>Diese Version überspringen</b> blendet sie aus.</p>
 <h3>Fehlermeldungen bei der Update-Prüfung</h3>
 <p>Bei einer manuellen Prüfung erscheint „Der Update-Server ist nicht erreichbar. Bitte
