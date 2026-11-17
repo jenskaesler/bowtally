@@ -30,6 +30,13 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   „Jetzt neu starten“ die App mit einem Klick neu.
 - **⬆️ Neue Version prüfen im Info-Dialog** — Neben „Schließen“ sucht der Button „Neue Version
   prüfen“ wie in den Einstellungen sofort nach einem Update.
+- **🔤 Mitgelieferte Schriften** — Open Sans (Standard), Inter und Source Sans 3 (SIL OFL 1.1)
+  gehören jetzt zum Programm und stehen auf jedem Rechner zur Verfügung. Die Schriftart wählst du
+  unter Einstellungen → System → Allgemein in einer Auswahlliste (zusätzlich Segoe UI); sie gilt
+  für die Oberfläche und die PDFs. Eine früher frei eingetragene Schrift bleibt erhalten. In
+  E-Mails folgen auf die gewählte Schrift Segoe UI, Arial und Sans-Serif als Ersatz. Die Auswahl
+  ist im Backup enthalten, die Schriftdateien sind Teil des Programms. Lizenzen:
+  `docs/THIRD-PARTY-NOTICES.md`.
 
 ### Geändert
 
