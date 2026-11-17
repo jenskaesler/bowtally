@@ -14,6 +14,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   IBAN-Prüfziffer und SEPA-Mandat sowie eine Helferhistorie. Bestehende Helfer und Turnier-
   Zuordnungen werden einmalig migriert (vorher entsteht automatisch eine Kopie
   `bowtally.db.pre-migration-<Revision>`). Bankdaten erscheinen in keinem Export.
+- **📨 Datenauskunft** — Statt „E-Mail senden" öffnet die Mitgliederliste jetzt einen Mailentwurf
+  „Datenauskunft senden" mit allen gespeicherten Daten des Mitglieds (Art. 15 DSGVO). Die IBAN
+  ist bis auf die letzten vier Stellen durch Sternchen ersetzt. Der Text ist unter
+  Einstellungen → E-Mail-Vorlagen → Datenauskunft anpassbar (Platzhalter `{daten}`).
 - **🤝 Turnier-Helfer** — Neben „Neuer Helfer" (nur für das Turnier) gibt es „Aus
   Mitgliederkartei" (nur aktive Mitglieder mit Flag „Turnierhelfer"). Beim Abschluss eines
   Turniers wird die Helferhistorie der verknüpften Mitglieder automatisch ergänzt.
@@ -71,6 +75,12 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   ging beim Speichern verloren.
 - **📑 Phasenwechsel** — Nach dem Ausblenden des aktiven Tabs bleibt dessen Nachfolger nicht
   mehr leer.
+- **🎯 Ergebniseingabe** — Der Hinweis „unvollständige Scheibenergebnisse" beim Wechsel nach
+  „Auswertung" und der Fortschritt in Leitfaden und Dashboard berücksichtigen jetzt die
+  Wertungsart (Gesamtwertung: ein Wert, pro Runde: ein Wert je Runde) und mehrere Runden.
+  Gesamt- und Rundenwerte akzeptieren nur Ziffern, ein abgelehnter Wert zeigt wieder den
+  gespeicherten Wert, „Nur unvollständige" wirkt auch in diesen Tabellen, und das Spalten-Menü
+  respektiert die Sperre nach der Ergebnisliste.
 
 ## [2026.11.3] – 2026-11-16
 

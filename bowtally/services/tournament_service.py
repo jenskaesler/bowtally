@@ -401,6 +401,16 @@ def _count_scores_by_participant(s, tournament_id: int) -> dict[int, int]:
     return {pid: n for pid, n in rows}
 
 
+def scores_needed(t) -> int:
+    """Scores one starter must have: 1 (total_only), one per round (per_round), else every shot."""
+    rounds = t.num_rounds or 1
+    if t.scoring_mode == "total_only":
+        return 1
+    if t.scoring_mode == "per_round":
+        return rounds
+    return rounds * t.num_targets * t.shots_per_target
+
+
 def get_phase_conditions(tournament_id: int, target_phase: str | None = None) -> list[Condition]:
     """Conditions for the transition into target_phase (default: the next phase)."""
     t = get_tournament(tournament_id)
@@ -459,14 +469,14 @@ def get_phase_conditions(tournament_id: int, target_phase: str | None = None) ->
     elif target == "scoring":
         with session_scope() as s:
             counts = _count_scores_by_participant(s, tournament_id)
-        needed = t.num_targets * t.shots_per_target
+        needed = scores_needed(t)
         starters = _starters(parts)
         incomplete = [p for p in starters if counts.get(p.id, 0) < needed]
+        kind = "Scheibenergebnisse" if t.scoring_mode == "per_target" else "Ergebnisse"
         c += [Condition("Ergebnisse vorhanden", "blocker", bool(counts),
                         "Es wurden noch keine Ergebnisse eingetragen"),
               Condition("Ergebnisse vollständig", "warning", not incomplete,
-                        f"{len(incomplete)} Teilnehmer haben unvollständige "
-                        "Scheibenergebnisse")]
+                        f"{len(incomplete)} Teilnehmer haben unvollständige {kind}")]
     elif target == "closed":
         c += [Condition("Ergebnisliste generiert", "warning", t.results_generated_at is not None,
                         "Die Ergebnisliste wurde noch nicht generiert"),
@@ -746,10 +756,10 @@ def get_completion_progress(tournament_id: int) -> CompletionProgress:
     t = get_tournament(tournament_id)
     with session_scope() as s:
         counts = _count_scores_by_participant(s, tournament_id)
-    per_target = t.num_targets * t.shots_per_target
+    per_starter = scores_needed(t)
     starters = _starters(t.participants)
-    needed = len(starters) * per_target
-    entered = sum(min(counts.get(p.id, 0), per_target) for p in starters)
+    needed = len(starters) * per_starter
+    entered = sum(min(counts.get(p.id, 0), per_starter) for p in starters)
     per_class = []
     for bc in t.bow_classes:
         in_class = [p for p in t.participants if p.bow_class_id == bc.id
@@ -759,8 +769,8 @@ def get_completion_progress(tournament_id: int) -> CompletionProgress:
         cls_starters = [p for p in starters if p.bow_class_id == bc.id]
         per_class.append(ClassProgress(
             bc.name, len(in_class), sum(p.registration_status == "checked_in" for p in in_class),
-            sum(counts.get(p.id, 0) >= per_target for p in cls_starters)))
-    incomplete = [p.id for p in starters if counts.get(p.id, 0) < per_target]
+            sum(counts.get(p.id, 0) >= per_starter for p in cls_starters)))
+    incomplete = [p.id for p in starters if counts.get(p.id, 0) < per_starter]
     return CompletionProgress(entered, needed, entered / needed * 100 if needed else 0.0,
                               per_class, incomplete)
 

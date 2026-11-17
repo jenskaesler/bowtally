@@ -9,9 +9,10 @@ Escape cancels the edit. Focusing a cell starts editing and opens the zone list.
 """
 from datetime import datetime
 
-from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QStringListModel, Qt, QTimer, \
-    Signal
-from PySide6.QtGui import QBrush, QColor, QStandardItem, QStandardItemModel
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, QRegularExpression, \
+    QStringListModel, Qt, QTimer, Signal
+from PySide6.QtGui import QBrush, QColor, QRegularExpressionValidator, QStandardItem, \
+    QStandardItemModel
 from PySide6.QtWidgets import (QAbstractItemDelegate, QAbstractItemView, QCheckBox, QComboBox,
                                QCompleter,
                                QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMenu,
@@ -127,6 +128,16 @@ class ScoreDelegate(QStyledItemDelegate):
         return super().eventFilter(obj, event)
 
 
+class _NumberDelegate(QStyledItemDelegate):
+    """Digits only: round and total points are whole, non-negative numbers."""
+
+    def createEditor(self, parent, option, index):
+        editor = QLineEdit(parent)
+        editor.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d{0,6}"), editor))
+        editor.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        return editor
+
+
 def _frozen_view(model) -> QTableView:
     v = QTableView()
     v.setModel(model)
@@ -225,11 +236,21 @@ class ScoringView(QWidget):
         self._simple_table.horizontalHeader().setStretchLastSection(True)
         self._simple_table.setAlternatingRowColors(True)
         self._simple_table.setWordWrap(False)
+        self._simple_table.setItemDelegate(_NumberDelegate(self._simple_table))
         self._simple_table.itemChanged.connect(self._on_simple_changed)
+
+        self.simple_incomplete_only = QCheckBox("Nur unvollständige")
+        self.simple_incomplete_only.setToolTip("Nur Teilnehmer mit fehlenden Ergebnissen")
+        self.simple_incomplete_only.toggled.connect(lambda _v: self._apply_simple_filter())
+        self._simple_page = QWidget()
+        simple_lay = QVBoxLayout(self._simple_page)
+        simple_lay.setContentsMargins(0, 0, 0, 0)
+        simple_lay.addWidget(self.simple_incomplete_only, 0, Qt.AlignmentFlag.AlignLeft)
+        simple_lay.addWidget(self._simple_table, 1)
 
         self._stack = QStackedWidget()
         self._stack.addWidget(self._grid_widget)
-        self._stack.addWidget(self._simple_table)
+        self._stack.addWidget(self._simple_page)
 
         self.hint = QLabel(objectName="pageSubtitle")
         self.hint.setWordWrap(True)
@@ -529,6 +550,7 @@ class ScoringView(QWidget):
         for c in range(4, 4 + num_rounds):
             self._simple_table.setColumnWidth(c, max(80, self._simple_table.columnWidth(c)))
         self.save_btn.setEnabled(not locked)
+        self._apply_simple_filter()
         self.hint.setText("Turnier abgeschlossen – Eingaben gesperrt." if locked else
                           "Gesamtpunkte je Runde direkt eintragen · jede Zelle wird sofort gespeichert")
 
@@ -564,8 +586,16 @@ class ScoringView(QWidget):
         self._simple_table.blockSignals(False)
         self._simple_table.resizeColumnsToContents()
         self.save_btn.setEnabled(not locked)
+        self._apply_simple_filter()
         self.hint.setText("Turnier abgeschlossen – Eingaben gesperrt." if locked else
                           "Gesamtpunkte direkt eintragen · jede Zelle wird sofort gespeichert")
+
+    def _apply_simple_filter(self):
+        """Hide complete rows while 'Nur unvollständige' is on (per_round / total_only tables)."""
+        score_cols = range(4, 4 + (self._num_rounds() if self._scoring_mode() == "per_round" else 1))
+        for r in range(self._simple_table.rowCount()):
+            complete = all(self._simple_table.item(r, c).text() for c in score_cols)
+            self._simple_table.setRowHidden(r, self.simple_incomplete_only.isChecked() and complete)
 
     def _on_simple_changed(self, item: QTableWidgetItem):
         if self._simple_table.signalsBlocked():
@@ -582,18 +612,15 @@ class ScoringView(QWidget):
                 self._mark_saved()
                 return
             points = int(text)
-            if points < 0:
-                raise ValueError("Negative Punktzahl nicht erlaubt")
             sc.set_score(pid, 0, 1, (points, None), round_number=rnd)
-            item.setText(str(points))
+            self._simple_table.blockSignals(True)
+            item.setText(str(points))   # drops leading zeros
+            self._simple_table.blockSignals(False)
             self._update_simple_total(item.row())
             self._mark_saved()
-        except (ValueError, Exception) as exc:
+        except Exception as exc:
             show_error(self, exc)
-            # restore
-            self._simple_table.blockSignals(True)
-            item.setText(text)
-            self._simple_table.blockSignals(False)
+            QTimer.singleShot(0, lambda: self.set_tournament(self.tournament))  # show stored values
 
     def _update_simple_total(self, row: int):
         mode = self._scoring_mode()
@@ -657,7 +684,7 @@ class ScoringView(QWidget):
 
     # ------------------------------------------------------------ bulk + save
     def _header_menu(self, pos):
-        if self.tournament is None or self.tournament.status == "closed":
+        if self.tournament is None or ts.scoring_locked(self.tournament):
             return
         col = self.mid.horizontalHeader().logicalIndexAt(pos)
         if col not in self._score_columns():
@@ -693,13 +720,17 @@ class ScoringView(QWidget):
 
     def save(self):
         """Cells are persisted on commit; this commits an open editor and confirms."""
-        if self.tournament is None or self.tournament.status == "closed":
+        if self.tournament is None or ts.scoring_locked(self.tournament):
             return
         self.mid.setFocus()   # closes an open editor -> commit
         self._mark_saved()
         Toast.show(self, "Alle Eingaben sind gespeichert", Toast.SUCCESS)
 
     def show_incomplete(self):
+        if self._scoring_mode() != "per_target":
+            self.simple_incomplete_only.setChecked(True)
+            self._apply_simple_filter()
+            return
         if self.class_tabs.count():
             self.class_tabs.setCurrentIndex(0)
         self.incomplete_only.setChecked(True)

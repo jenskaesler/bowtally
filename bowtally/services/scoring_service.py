@@ -238,6 +238,8 @@ def set_score(participant_id: int, target: int, shot: int,
                 s.delete(sc)
             return
         points, zone = entry
+        if points < 0:
+            raise ValidationError("Negative Punktzahlen sind nicht erlaubt.")
         if sc is None:
             sc = Score(participant_id=participant_id, round_number=round_number,
                        target_number=target, shot_number=shot)
