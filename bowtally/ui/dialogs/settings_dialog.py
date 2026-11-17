@@ -396,6 +396,11 @@ class SettingsDialog(QDialog):
     def _save_settings(self):
         try:
             state = self._state()
+            restart_reasons = []
+            if state["values"].get(ss.KEY_FONT_FAMILY) != self._saved["values"].get(ss.KEY_FONT_FAMILY):
+                restart_reasons.append("Schriftart")
+            if state["nav"] != self._saved["nav"]:
+                restart_reasons.append("Navigation")
             log_level = state["values"].get(ss.KEY_LOG_LEVEL, "info")
             was_debug = self._saved["values"].get(ss.KEY_LOG_LEVEL) == "debug"
             if log_level == "debug" and not was_debug \
@@ -412,6 +417,12 @@ class SettingsDialog(QDialog):
             return
         self._saved = self._state()
         self._update_save_btn()
+        if restart_reasons and ConfirmDialog.ask(
+                self, "Neustart erforderlich",
+                f"Die Änderung ({' und '.join(restart_reasons)}) gilt erst nach einem Neustart "
+                "von BowTally. Jetzt neu starten?",
+                "Jetzt neu starten", destructive=False, cancel_text="Später manuell"):
+            self._restart_app()
 
     def _close_dialog(self):
         if self._may_close():
@@ -1037,7 +1048,7 @@ class SettingsDialog(QDialog):
         if ConfirmDialog.ask(self, "Backup wiederhergestellt",
                              "Die Daten wurden wiederhergestellt. Die App muss neu gestartet "
                              "werden, damit sie wirksam werden.",
-                             "Jetzt neu starten", destructive=False):
+                             "Jetzt neu starten", destructive=False, cancel_text="Später"):
             self._restart_app()
 
     @staticmethod

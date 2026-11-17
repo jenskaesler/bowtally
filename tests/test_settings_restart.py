@@ -38,6 +38,44 @@ def test_declining_the_restart_keeps_the_app_running(dialog, monkeypatch):
     assert _restore(dialog, monkeypatch, [True, False]) == []
 
 
+def _save_with_font(dialog, monkeypatch, font, answer):
+    from bowtally.services import settings_service as ss
+    asked, restarts = [], []
+    monkeypatch.setattr(ConfirmDialog, "ask", lambda *a, **k: asked.append((a, k)) or answer)
+    monkeypatch.setattr(dialog, "_restart_app", lambda: restarts.append(True))
+    combo = dialog.value_widgets[ss.KEY_FONT_FAMILY]
+    combo.setCurrentIndex(combo.findData(font))
+    dialog._save_settings()
+    return asked, restarts
+
+
+def test_changed_font_asks_for_a_restart(dialog, monkeypatch):
+    asked, restarts = _save_with_font(dialog, monkeypatch, "Inter", True)
+    assert len(asked) == 1 and asked[0][1]["cancel_text"] == "Später manuell"
+    assert restarts == [True]
+
+
+def test_font_restart_can_be_postponed(dialog, monkeypatch):
+    asked, restarts = _save_with_font(dialog, monkeypatch, "Inter", False)
+    assert len(asked) == 1 and restarts == []
+
+
+def test_changed_navigation_asks_for_a_restart(dialog, monkeypatch):
+    asked, restarts = [], []
+    monkeypatch.setattr(ConfirmDialog, "ask", lambda *a, **k: asked.append(a) or True)
+    monkeypatch.setattr(dialog, "_restart_app", lambda: restarts.append(True))
+    dialog._reset_nav_order()
+    dialog._nav_list_widget.insertItem(0, dialog._nav_list_widget.takeItem(1))   # move one entry
+    dialog._save_settings()
+    assert len(asked) == 1 and "Navigation" in asked[0][2] and restarts == [True]
+
+
+def test_unchanged_font_does_not_ask(dialog, monkeypatch):
+    from bowtally.services import settings_service as ss
+    asked, _ = _save_with_font(dialog, monkeypatch, dialog._saved["values"][ss.KEY_FONT_FAMILY], True)
+    assert asked == []
+
+
 def test_logfile_button_opens_the_log(dialog, monkeypatch):
     from PySide6.QtWidgets import QPushButton
     from bowtally.ui.dialogs import settings_dialog

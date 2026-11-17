@@ -660,7 +660,8 @@ der <b>Standard-Exportpfad</b> für erzeugte Dateien (leer = Downloads-Ordner),
 siehe „Backup &amp; Updates“. Im Block <b>Oberfläche</b> stellst du Sprache und
 Schriftart ein. Zur Wahl stehen die mitgelieferten Schriften <b>Open Sans</b>
 (Standard), <b>Inter</b> und <b>Source Sans 3</b> sowie <b>Segoe UI</b>. Die Schrift gilt für
-die Oberfläche (nach einem Neustart der App) und sofort für PDFs. Die Schriftdateien gehören zum
+die Oberfläche (nach einem Neustart: nach dem Speichern fragt BowTally, ob es sofort neu
+starten soll) und sofort für PDFs. Die Schriftdateien gehören zum
 Programm und stehen nicht im Backup; die Auswahl selbst ist im Backup enthalten. Die Lizenzen
 stehen in <code>docs/THIRD-PARTY-NOTICES.md</code>.</p>
 <h3>System → Design</h3>
@@ -686,7 +687,8 @@ einer JSON-Datei.</p>
 <h3>Navigation</h3>
 <p>Unter Einstellungen → System → Allgemein → <b>Navigation</b> lässt sich die Reihenfolge der
 Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
-werden nach einem <b>Neustart</b> der App wirksam.</p>
+werden nach einem <b>Neustart</b> der App wirksam; nach dem Speichern fragt BowTally, ob es
+sofort neu starten soll.</p>
 <a name="erweitert"></a><h3>System → Erweitert</h3>
 <p>Der <b>Logging-Modus</b> bestimmt, wie ausführlich BowTally in die Logdatei
 <code>app.log</code> schreibt: <b>Info</b> (Standard), <b>Warnung</b> (nur Warnungen und

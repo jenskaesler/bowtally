@@ -7,7 +7,7 @@ from bowtally.ui import button
 
 class ConfirmDialog(QDialog):
     def __init__(self, parent, title: str, text: str, confirm_text: str = "Löschen",
-                 destructive: bool = True):
+                 destructive: bool = True, cancel_text: str = "Abbrechen"):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setMinimumWidth(420)
@@ -15,7 +15,8 @@ class ConfirmDialog(QDialog):
         heading.setObjectName("drawerTitle")
         body = QLabel(text)
         body.setWordWrap(True)
-        self.cancel = button("Abbrechen", self.reject, tooltip="Nichts ändern")
+        self.cancel = button(cancel_text, self.reject,
+                             tooltip="Nichts ändern" if cancel_text == "Abbrechen" else cancel_text)
         self.ok = button(confirm_text, self.accept, "danger" if destructive else "primary")
         row = QHBoxLayout()
         row.addStretch()
@@ -33,9 +34,9 @@ class ConfirmDialog(QDialog):
 
     @staticmethod
     def ask(parent, title: str, text: str, confirm_text: str = "Löschen",
-            destructive: bool = True) -> bool:
-        return ConfirmDialog(parent, title, text, confirm_text,
-                             destructive).exec() == QDialog.DialogCode.Accepted
+            destructive: bool = True, cancel_text: str = "Abbrechen") -> bool:
+        return ConfirmDialog(parent, title, text, confirm_text, destructive,
+                             cancel_text).exec() == QDialog.DialogCode.Accepted
 
 
 _CANCELLED = object()
