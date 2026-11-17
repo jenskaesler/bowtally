@@ -51,8 +51,8 @@ def test_export_then_import_keeps_zones_counters_and_tie_break():
     parcours = sc.save_rule({"name": "Eigenes 3D", "ring_values": ZONES, "max_shots_per_target": 2,
                              "allow_retry_shot": True, "description": "Beschreibung",
                              "tracked_specials": [], "rules_json": {"discipline": "3d"}})
-    options = sc.rule_options_to_data("3d", {"count_kill": True, "tie_kill": True, "top_hits": False},
-                                      ZONES)
+    options = sc.rule_options_to_data("3d", {"count_kill": True, "tie_kill": True, "top_hits": True,
+                                             "top_first": True, "shoot_off": True}, ZONES)
     sc.save_rule({"name": "Eigenes 3D", "ring_values": ZONES, "max_shots_per_target": 2,
                   "allow_retry_shot": True, "description": "Beschreibung", **options}, parcours.id)
     parcours = sc.get_rule(parcours.id)
@@ -63,7 +63,8 @@ def test_export_then_import_keeps_zones_counters_and_tie_break():
             copy.description) == (ZONES, 2, True, "Beschreibung")
     assert sc.rule_discipline(copy) == "3d"
     assert [(sp["key"], sp["tiebreak"]) for sp in sc.counter_specials(copy)] == [("kill", True)]
-    assert copy.rules_json["tiebreak"] == "total_highest"
+    assert (copy.rules_json["tiebreak"], copy.rules_json["top_hits_first"],
+            copy.rules_json["shoot_off"]) == ("most_top_scores", True, True)
 
 
 def test_import_accepts_old_files_with_json_zones_and_old_headers():

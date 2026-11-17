@@ -74,6 +74,8 @@ RULE_IMPORT_FIELDS = [      # same order as scoring_service.RULE_EXPORT_HEADERS
     ImportField("count_x", "X-Treffer zählen", type="bool"),
     ImportField("tie_x", "Bei Gleichstand zählen X-Treffer", type="bool"),
     ImportField("top_hits", "Treffer in der höchsten Wertung", type="bool"),
+    ImportField("top_first", "Treffer in der höchsten Wertung zuerst", type="bool"),
+    ImportField("shoot_off", "Stechen erforderlich", type="bool"),
 ]
 
 INVENTORY_IMPORT_FIELDS = [

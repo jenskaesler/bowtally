@@ -126,6 +126,7 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
     rounds = getattr(t, "rounds", []) or []
     round_labels = ([r.label for r in sorted(rounds, key=lambda r: r.round_number)]
                     if rounds else [f"{i}. Runde" for i in range(1, num_rounds + 1)])
+    ties = ranking_service.podium_ties(tournament_id)
     for cid in classes_with_people:
         story += [PageBreak(),
                   Paragraph(_esc(class_names.get(cid, "Ohne Klasse")), st["heading"]),
@@ -133,6 +134,9 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
                                bold, primary, secondary, border,
                                scoring_mode=scoring_mode, round_labels=round_labels,
                                tracked_specials=tracked_spec)]
+        class_ties = ranking_service.describe_ties([x for x in ties if x[0] == cid])
+        if class_ties:
+            story += [Spacer(1, 4 * mm), Paragraph(_esc(class_ties), st["muted"])]
     if not classes_with_people:
         story += [PageBreak(), Paragraph("Keine Teilnehmer erfasst.", st["muted"])]
 

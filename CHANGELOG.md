@@ -25,7 +25,10 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Bei „Gesamtwertung“ und „Pro Runde“ gibt es dafür eine Spalte neben den Punkten; sie erscheint
   auch in Ergebnisansicht und PDF. Die JSON-Eingabe „Sonderregeln“ ist durch Schalter ersetzt,
   die Tie-Break-Einstellung (englische Begriffe) wandert ins Regelwerk: Kills, X-Treffer, dann
-  Treffer in der höchsten Wertung; bleibt es gleich, teilen sich Teilnehmer den Rang.
+  Treffer in der höchsten Wertung; bleibt es gleich, teilen sich Teilnehmer den Rang. Neu: „Diese
+  Treffer vor Kills und X-Treffern prüfen“ (Reihenfolge je Regelwerk, z. B. DBSV-Außenrunde) und
+  „Stechen erforderlich“ (Hinweis bei Gleichstand auf Platz 1–3 in Ergebnisansicht, PDF und beim
+  Abschließen, passend zu IBO und IFAA).
 - **📤 Regelwerke lesbar exportieren und importieren** — Statt JSON-Spalten enthält die Tabelle
   Disziplin, Schüsse je Ziel, Nachschuss, die Zonen als Text (`Kill-Zone = 11 [Kill]; Körper = 8`)
   und Ja/Nein-Spalten für Kills, X-Treffer und Treffer in der höchsten Wertung. Ältere Dateien mit

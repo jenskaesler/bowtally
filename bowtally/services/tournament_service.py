@@ -478,8 +478,12 @@ def get_phase_conditions(tournament_id: int, target_phase: str | None = None) ->
               Condition("Ergebnisse vollständig", "warning", not incomplete,
                         f"{len(incomplete)} Teilnehmer haben unvollständige {kind}")]
     elif target == "closed":
+        from bowtally.services import ranking_service
+        ties = ranking_service.podium_ties(tournament_id)
         c += [Condition("Ergebnisliste generiert", "warning", t.results_generated_at is not None,
                         "Die Ergebnisliste wurde noch nicht generiert"),
+              Condition("Kein offener Gleichstand auf dem Podium", "warning", not ties,
+                        ranking_service.describe_ties(ties)),
               Condition("Alle Startgebühren bezahlt", "warning", not not_paid,
                         f"{len(not_paid)} Teilnehmer haben noch nicht bezahlt")]
     return c

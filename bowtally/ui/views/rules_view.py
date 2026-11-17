@@ -177,8 +177,12 @@ class ScoringRuleDialog(RecordDialog):
                 values[f"tie_{key}"] = applies and bool(specials.get(key, {}).get("tiebreak"))
             tiebreak = (record.rules_json or {}).get("tiebreak") or "most_top_scores"
             values["top_hits"] = tiebreak == "most_top_scores"
+            values["top_first"] = bool((record.rules_json or {}).get("top_hits_first"))
+            values["shoot_off"] = bool((record.rules_json or {}).get("shoot_off"))
             self.form.set_values(values)
         self._apply_discipline()
+        self.form.fields["top_first"].widget.setEnabled(
+            self.form.fields["top_hits"].widget.isChecked() and not ro)
         self._baseline = self.form.snapshot()
         self.saved_id: int | None = None
         self.saved_name: str = ""
@@ -214,14 +218,19 @@ class ScoringRuleDialog(RecordDialog):
             f.add(f"count_{key}", name, count)
             f.add(f"tie_{key}", "", tie)
         f.fields["discipline"].widget.currentIndexChanged.connect(lambda _i: self._apply_discipline())
-        f.add("top_hits", "Treffer in der höchsten Wertung",
-              QCheckBox("Bei weiterem Gleichstand gewinnt, wer mehr Treffer in der höchsten Wertung hat"))
+        top_hits = QCheckBox("Bei Gleichstand gewinnt, wer mehr Treffer in der höchsten Wertung hat")
+        top_first = QCheckBox("Diese Treffer vor Kills und X-Treffern prüfen")
+        top_hits.toggled.connect(lambda on: top_first.setEnabled(on and not self._read_only))
+        f.add("top_hits", "Treffer in der höchsten Wertung", top_hits)
+        f.add("top_first", "", top_first)
+        f.add("shoot_off", "Stechen", QCheckBox(
+            "Bei Gleichstand auf Platz 1–3 ist ein Stechen erforderlich (zeigt einen Hinweis)"))
         f.add_widget(QLabel(
             "Kills zählen nur bei 3D-Parcours, X-Treffer nur bei Scheibe. Gezählt werden Zonen mit dem "
             "passenden Typ (Spalte „Typ“ der Zonenliste). Bei "
             "„Nur Gesamtpunkte“ und „Rundenwertung“ trägst du die Anzahl neben den Punkten ein. Reihenfolge "
-            "bei Punktgleichstand: Kills, X-Treffer, Treffer in der höchsten Wertung; bleibt es "
-            "gleich, teilen sich die Teilnehmer den Rang.", objectName="pageSubtitle", wordWrap=True))
+            "bei Punktgleichstand: Kills, X-Treffer, Treffer in der höchsten Wertung (oder diese "
+            "zuerst); bleibt es gleich, teilen sich die Teilnehmer den Rang.", objectName="pageSubtitle", wordWrap=True))
 
     def _apply_discipline(self):
         """Kill is only available for 3D, X only for Scheibe; the other one is switched off."""
@@ -239,7 +248,8 @@ class ScoringRuleDialog(RecordDialog):
     def _do_save(self) -> bool:
         data = self.form.values()
         discipline = data.pop("discipline")
-        flags = {k: data.pop(k) for k in list(data) if k.startswith(("count_", "tie_", "top_"))}
+        flags = {k: data.pop(k) for k in list(data)
+                 if k.startswith(("count_", "tie_", "top_", "shoot_"))}
         data.update(sc.rule_options_to_data(
             discipline, flags, data["ring_values"],
             (self._record.tracked_specials or []) if self._record else None,

@@ -270,7 +270,9 @@ class ResultsView(QWidget):
             self.sheets.append((title, hdrs, export_rows))
         self.tabs.setCurrentIndex(max(0, min(current, self.tabs.count() - 1)))
         scored = sum(r.total > 0 for r in overall)
-        self.info.setText(f"{scored} von {len(overall)} Teilnehmern mit Ergebnissen")
+        ties = rs.describe_ties(rs.podium_ties(t.id))
+        self.info.setText(f"{scored} von {len(overall)} Teilnehmern mit Ergebnissen"
+                          + (f" · {ties}" if ties else ""))
 
     # ------------------------------------------------------------ PDF
     def _create_pdf(self):

@@ -8,6 +8,7 @@ from bowtally.services import master_data_service as md
 from bowtally.services import ranking_service as rs
 from bowtally.services import scoring_service as sc
 from bowtally.services import tournament_service as ts
+from bowtally.services.ranking_service import RankRow, rank_rows
 
 ZONES = [{"zone": "Vital", "points": 20, "type": "kill"}, {"zone": "Körper", "points": 10},
          {"zone": "Miss", "points": 0, "type": "miss"}]
@@ -103,7 +104,8 @@ def test_rule_dialog_switches_are_saved_as_specials_and_tie_break(app):
     saved = sc.get_rule(rule.id)
     assert [(sp["key"], sp["tiebreak"]) for sp in saved.tracked_specials] == \
         [("kill", True), ("miss", False)]
-    assert saved.rules_json == {"tiebreak": "total_highest", "keep": 1, "discipline": "3d"}
+    assert saved.rules_json == {"tiebreak": "total_highest", "keep": 1, "discipline": "3d",
+                                "top_hits_first": False, "shoot_off": False}
 
     dialog = _dialog(saved)
     assert dialog.form.fields["count_kill"].widget.isChecked()
@@ -135,3 +137,90 @@ def test_discipline_decides_which_counter_can_be_switched_on(app):
     saved = sc.get_rule(rule.id)
     assert saved.rules_json["discipline"] == "target"
     assert [sp["key"] for sp in sc.counter_specials(saved)] == ["x"]
+
+
+def _rows_a_b():
+    def row(pid, shots, kills):
+        return RankRow(pid, pid, f"A{pid}", "", 1, "RH", [], shot_points=shots, total=sum(shots),
+                       specials={"kill": kills})
+    return row(1, [20, 0, 10], 1), row(2, [10, 10, 10], 4)      # same total: A top hits, B kills
+
+
+def test_top_hits_can_be_checked_before_kills_and_x():
+    a, b = _rows_a_b()
+    ranked = rank_rows([a, b], "most_top_scores", [20, 10, 0], ["kill"])
+    assert [r.participant_id for r in ranked] == [2, 1]                       # kills first
+    a, b = _rows_a_b()
+    ranked = rank_rows([a, b], "most_top_scores", [20, 10, 0], ["kill"], top_hits_first=True)
+    assert [r.participant_id for r in ranked] == [1, 2]                       # top hits first
+
+
+def _tied_total_only(shoot_off: bool, tie_breaking_kills=(3, 3)):
+    rule = _rule(name="Parcours 3D", tracked_specials=[
+        {"key": "kill", "label": "Kill", "track": True, "tiebreak": True}],
+        rules_json={"discipline": "3d", "tiebreak": "total_highest", "shoot_off": shoot_off})
+    t = ts.save_tournament({"name": "T", "date": date(2026, 5, 1), "num_targets": 1,
+                            "shots_per_target": 1, "scoring_rule_id": rule.id,
+                            "scoring_mode": "total_only"}, [md.list_bow_classes()[0].id])
+    ts.add_participants(t.id, [md.save_archer({"first_name": f"P{i}", "last_name": "X"}).id
+                               for i in range(2)])
+    for p, kills in zip(sorted(ts.get_tournament(t.id).participants, key=lambda p: p.start_number or 0),
+                        tie_breaking_kills):
+        sc.set_score(p.id, 0, 1, (200, None), round_number=0)
+        sc.set_special(p.id, 0, "kill", kills)
+    return t
+
+
+def test_podium_ties_are_reported_when_the_rule_requires_a_shoot_off():
+    t = _tied_total_only(shoot_off=True)
+    ((_cid, _name, rank, names),) = rs.podium_ties(t.id)
+    assert rank == 1 and len(names) == 2
+    warnings = [c.message for c in ts.get_phase_conditions(t.id, "closed") if not c.ok]
+    assert any("Stechen" in w for w in warnings)
+    assert "Stechen" in rs.describe_ties(rs.podium_ties(t.id))
+
+
+def test_no_hint_without_the_shoot_off_option():
+    assert rs.podium_ties(_tied_total_only(shoot_off=False).id) == []
+
+
+def test_no_shoot_off_hint_when_kills_decide():
+    t = _tied_total_only(shoot_off=True, tie_breaking_kills=(3, 4))
+    assert rs.podium_ties(t.id) == []
+
+
+def test_rule_dialog_saves_top_hits_first_and_shoot_off(app):
+    rule = _rule(name="Parcours 3D", rules_json={"discipline": "3d"})
+    dialog = _dialog(rule)
+    f = dialog.form.fields
+    assert f["top_first"].widget.isEnabled()                    # top hits are on by default
+    f["top_hits"].set_value(False)
+    assert not f["top_first"].widget.isEnabled()
+    f["top_hits"].set_value(True)
+    f["top_first"].set_value(True)
+    f["shoot_off"].set_value(True)
+    assert dialog._do_save() and app.errors == []
+    saved = sc.get_rule(rule.id).rules_json
+    assert saved["top_hits_first"] is True and saved["shoot_off"] is True
+
+
+def test_results_view_and_pdf_show_the_shoot_off_hint(app, tmp_path, monkeypatch):
+    from reportlab.platypus import Paragraph
+    from bowtally.reports import result_list
+    from bowtally.ui.views.results_view import ResultsView
+    t = _tied_total_only(shoot_off=True)
+    view = ResultsView()
+    view.set_tournament(ts.get_tournament(t.id))
+    assert "Stechen laut Regelwerk" in view.info.text()
+
+    stories = []
+    original = result_list.SimpleDocTemplate
+
+    class Recorder(original):
+        def build(self, story, *args, **kwargs):
+            stories.append(list(story))     # build() empties the list
+            return super().build(story, *args, **kwargs)
+    monkeypatch.setattr(result_list, "SimpleDocTemplate", Recorder)
+    result_list.build_result_list(t.id, tmp_path / "r.pdf")
+    assert any(isinstance(x, Paragraph) and "Stechen laut Regelwerk" in x.getPlainText()
+               for x in stories[0])

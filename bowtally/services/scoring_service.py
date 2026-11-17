@@ -82,7 +82,9 @@ def rule_options_to_data(discipline: str, flags: dict, ring_values: list[dict],
                 for k in COUNTER_KEYS if flags.get(f"count_{k}") and COUNTER_DISCIPLINE[k] == discipline]
     return {"tracked_specials": counters + [sp for sp in previous if sp["key"] not in COUNTER_KEYS],
             "rules_json": {**(previous_rules_json or {}), "discipline": discipline,
-                           "tiebreak": "most_top_scores" if flags.get("top_hits") else "total_highest"}}
+                           "tiebreak": "most_top_scores" if flags.get("top_hits") else "total_highest",
+                           "top_hits_first": bool(flags.get("top_hits") and flags.get("top_first")),
+                           "shoot_off": bool(flags.get("shoot_off"))}}
 
 
 def format_zones(zones: list[dict]) -> str:
@@ -120,7 +122,8 @@ def parse_zones(text: str) -> list[dict]:
 
 RULE_EXPORT_HEADERS = ["Bezeichnung", "Beschreibung", "Disziplin", "Schüsse je Ziel", "Nachschuss",
                        "Zonen", "Kills zählen", "Bei Gleichstand zählen Kills", "X-Treffer zählen",
-                       "Bei Gleichstand zählen X-Treffer", "Treffer in der höchsten Wertung"]
+                       "Bei Gleichstand zählen X-Treffer", "Treffer in der höchsten Wertung",
+                       "Treffer in der höchsten Wertung zuerst", "Stechen erforderlich"]
 
 
 def rule_export_row(rule) -> list:
@@ -130,7 +133,9 @@ def rule_export_row(rule) -> list:
     return [rule.name, rule.description or "", dict(DISCIPLINES)[rule_discipline(rule)],
             rule.max_shots_per_target, yes_no(rule.allow_retry_shot), format_zones(rule.ring_values),
             yes_no("kill" in counters), yes_no(counters.get("kill", {}).get("tiebreak")),
-            yes_no("x" in counters), yes_no(counters.get("x", {}).get("tiebreak")), yes_no(top_hits)]
+            yes_no("x" in counters), yes_no(counters.get("x", {}).get("tiebreak")), yes_no(top_hits),
+            yes_no((rule.rules_json or {}).get("top_hits_first")),
+            yes_no((rule.rules_json or {}).get("shoot_off"))]
 
 
 def _validate_rule(data: dict) -> dict:
@@ -220,7 +225,8 @@ def _rule_data_from_record(rec: dict) -> dict | None:
     if not name or not zones:
         return None
     discipline = _parse_discipline(rec.get("discipline"), name)
-    flags = {k: bool(rec.get(k)) for k in ("count_kill", "tie_kill", "count_x", "tie_x")}
+    flags = {k: bool(rec.get(k)) for k in ("count_kill", "tie_kill", "count_x", "tie_x",
+                                            "top_first", "shoot_off")}
     flags["top_hits"] = rec.get("top_hits") is not False        # empty cell = default (on)
     return {"name": name, "description": rec.get("description"), "ring_values": zones,
             "max_shots_per_target": rec.get("max_shots_per_target") or 1,

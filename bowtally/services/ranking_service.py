@@ -27,24 +27,24 @@ class RankRow:
 
 
 def tiebreak_key(row: RankRow, mode: str, point_levels: list[int],
-                 tiebreak_specials: list[str] = ()) -> tuple:
-    """Higher key = better: total, then the rule's tie-break specials (e.g. kills), then - for
-    most_top_scores - hit counts from the top zone down."""
-    key = (row.total,) + tuple(row.specials.get(k, 0) for k in tiebreak_specials)
-    if mode == TIEBREAK_MOST_TOP:
-        key += tuple(row.shot_points.count(v) for v in point_levels)
-    return key
+                 tiebreak_specials: list[str] = (), top_hits_first: bool = False) -> tuple:
+    """Higher key = better: total, then the rule's tie-break specials (e.g. kills) and - for
+    most_top_scores - hit counts from the top zone down (before the specials if top_hits_first)."""
+    specials = tuple(row.specials.get(k, 0) for k in tiebreak_specials)
+    top_hits = tuple(row.shot_points.count(v) for v in point_levels) \
+        if mode == TIEBREAK_MOST_TOP else ()
+    return (row.total,) + (top_hits + specials if top_hits_first else specials + top_hits)
 
 
 def rank_rows(rows: list[RankRow], mode: str, point_levels: list[int],
-              tiebreak_specials: list[str] = ()) -> list[RankRow]:
+              tiebreak_specials: list[str] = (), top_hits_first: bool = False) -> list[RankRow]:
     """Sort descending and assign competition ranks (1, 1, 3). Mutates and returns rows."""
     point_levels = sorted({p for p in point_levels if p > 0}, reverse=True)
-    rows.sort(key=lambda r: (tiebreak_key(r, mode, point_levels, tiebreak_specials),
+    rows.sort(key=lambda r: (tiebreak_key(r, mode, point_levels, tiebreak_specials, top_hits_first),
                              -(r.start_number or 0)), reverse=True)
     prev = None
     for i, r in enumerate(rows, start=1):
-        key = tiebreak_key(r, mode, point_levels, tiebreak_specials)
+        key = tiebreak_key(r, mode, point_levels, tiebreak_specials, top_hits_first)
         r.rank = prev[1] if prev and prev[0] == key else i
         prev = (key, r.rank)
     return rows
@@ -63,6 +63,7 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
     t = get_tournament(tournament_id)
     rule_mode = (t.scoring_rule.rules_json or {}).get("tiebreak") if t.scoring_rule else None
     mode = mode or rule_mode or TIEBREAK_MOST_TOP
+    top_first = bool((t.scoring_rule.rules_json or {}).get("top_hits_first")) if t.scoring_rule else False
     scoring_mode = getattr(t, "scoring_mode", "per_target") or "per_target"
     num_rounds = getattr(t, "num_rounds", 1) or 1
     levels = [z["points"] for z in (t.scoring_rule.ring_values if t.scoring_rule else [])]
@@ -132,6 +133,33 @@ def compute_ranking(tournament_id: int, mode: str | None = None,
             by_class.setdefault(OVERALL if overall else p.bow_class_id, []).append(row)
 
     if overall:
-        return {OVERALL: rank_rows(by_class.get(OVERALL, []), mode, levels, tiebreak_specials)}
-    return {cid: rank_rows(rows, mode, levels, tiebreak_specials)
+        return {OVERALL: rank_rows(by_class.get(OVERALL, []), mode, levels, tiebreak_specials,
+                                   top_first)}
+    return {cid: rank_rows(rows, mode, levels, tiebreak_specials, top_first)
             for cid, rows in by_class.items()}
+
+
+PODIUM_PLACES = 3
+
+
+def podium_ties(tournament_id: int) -> list[tuple[int | None, str, int, list[str]]]:
+    """(class id, class name, rank, names) for ties on places 1-3 if the rule demands a shoot-off."""
+    t = get_tournament(tournament_id)
+    if not t.scoring_rule or not (t.scoring_rule.rules_json or {}).get("shoot_off"):
+        return []
+    class_names = {bc.id: bc.name for bc in t.bow_classes}
+    ties = []
+    for cid, rows in compute_ranking(tournament_id).items():
+        for rank in sorted({r.rank for r in rows if r.rank <= PODIUM_PLACES and r.total > 0}):
+            names = [r.name for r in rows if r.rank == rank]
+            if len(names) > 1:
+                ties.append((cid, class_names.get(cid, "Ohne Klasse"), rank, names))
+    return ties
+
+
+def describe_ties(ties: list) -> str:
+    """'Stechen laut Regelwerk: Recurve Platz 1 (A, B); ...' (empty without ties)."""
+    if not ties:
+        return ""
+    return "Stechen laut Regelwerk: " + "; ".join(
+        f"{name} Platz {rank} ({', '.join(names)})" for _cid, name, rank, names in ties)

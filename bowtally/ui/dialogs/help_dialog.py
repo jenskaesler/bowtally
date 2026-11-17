@@ -365,9 +365,15 @@ Teilnehmer gleichauf, steht „ex aequo“ beim Rang.</p>
       die höhere Anzahl an Kills“ eingeschaltet sind</li>
   <li><b>X-Treffer</b> (nur Scheibe) – ebenso</li>
   <li><b>Treffer in der höchsten Wertung</b> – wenn eingeschaltet, zählt die Anzahl der Treffer ab
-      der höchsten Zone</li>
+      der höchsten Zone. Mit <i>Diese Treffer vor Kills und X-Treffern prüfen</i> rückt dieser
+      Schritt an die erste Stelle (so z.&nbsp;B. bei der DBSV-Außenrunde: erst 10er, dann X;
+      die WA-Außenrunde prüft erst X, dann 10er)</li>
 </ol>
-<p>Bleibt es danach gleich, teilen sich die Teilnehmer den Rang (zwei erste Plätze).
+<p>Bleibt es danach gleich, teilen sich die Teilnehmer den Rang (zwei erste Plätze). Verlangt das
+Regelwerk bei Gleichstand ein <b>Stechen</b> (z.&nbsp;B. IBO, IFAA), schaltest du
+<i>Stechen erforderlich</i> ein: Ergebnisansicht, Ergebnisliste (PDF) und der Wechsel nach
+„Abgeschlossen“ weisen dann auf Gleichstände auf Platz 1–3 hin. Das Stechen selbst wird nicht
+in BowTally erfasst.
 Bei <b>Pro Ziel</b> werden Kills und X-Treffer aus den gewählten Zonen gezählt, bei
 <b>Nur Gesamtpunkte</b> und <b>Rundenwertung</b> trägst du die Anzahl in der Spalte neben den
 Punkten ein (erst die Punkte, dann die Anzahl).</p>
@@ -451,7 +457,8 @@ kannst.</p>
 <h3>Regelwerke exportieren und importieren</h3>
 <p>Der Export (Excel, OpenDocument, CSV) enthält je Regelwerk eine lesbare Zeile mit
 Bezeichnung, Beschreibung, Disziplin, Schüssen je Ziel, Nachschuss, den Zonen und den
-Ja/Nein-Spalten für Kills, X-Treffer und Treffer in der höchsten Wertung. Die Zonen stehen als
+Ja/Nein-Spalten für Kills, X-Treffer, Treffer in der höchsten Wertung (auch „zuerst“) und
+Stechen. Die Zonen stehen als
 Text: <code>Kill-Zone = 11 [Kill]; Körper = 8; Miss = 0 [Miss]</code> (Name = Punkte, der Typ
 in eckigen Klammern ist optional). Dieselbe Tabelle lässt sich wieder importieren; ältere
 Dateien mit JSON-Zonen werden weiterhin gelesen.</p>
