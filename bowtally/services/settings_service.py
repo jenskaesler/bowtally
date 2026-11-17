@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """CRUD for app_settings and club_profile."""
+import logging
 import shutil
 from pathlib import Path
 
@@ -33,6 +34,7 @@ KEY_RESULT_AUTO_RANK = "result_auto_rank"
 KEY_UI_LANGUAGE = "ui_language"
 KEY_TOURNAMENT_RULES_TEXT = "tournament_rules_text"
 KEY_PARTICIPATION_TERMS_TEXT = "participation_terms_text"
+KEY_LOG_LEVEL = "log_level"
 
 # Email template key prefixes — each maps to {key}_subject and {key}_body in app_settings
 KEY_EMAIL_TPL_CONFIRMATION = "email_reg"
@@ -53,7 +55,9 @@ OPTIONS = {
     KEY_UI_LANGUAGE: ["de"],
     KEY_UI_THEME_MODE: ["system", "light", "dark"],
     "waitlist_mode": ["block", "auto"],
+    KEY_LOG_LEVEL: ["info", "warning", "debug"],
 }
+LOG_LEVELS = {"info": logging.INFO, "warning": logging.WARNING, "debug": logging.DEBUG}
 THEME_MODE_LABELS = {"system": "System", "light": "Hell", "dark": "Dunkel"}
 
 DEFAULTS = {key: value for key, value, *_ in DEFAULT_SETTINGS}
@@ -108,6 +112,15 @@ def set_many(values: dict[str, str]) -> None:
 
 def set_value(key: str, value: str) -> None:
     set_many({key: value})
+
+
+def apply_log_level(value: str | None = None) -> None:
+    """Sets the root logger level from the saved setting (or from `value`); unknown = info."""
+    value = value or get(KEY_LOG_LEVEL, DEFAULTS[KEY_LOG_LEVEL])
+    logging.getLogger().setLevel(LOG_LEVELS.get(value, logging.INFO))
+    if value == "debug":    # also reached silently after a restore, so leave a trace in app.log
+        logging.getLogger(__name__).warning(
+            "Debug-Logging ist aktiv: app.log wächst schnell und kann personenbezogene Daten enthalten.")
 
 
 def color_defaults() -> dict[str, str]:

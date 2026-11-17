@@ -9,7 +9,7 @@ from bowtally.database.engine import session_scope
 from bowtally.database.models import (Archer, BackupLog, PhaseTransitionLog, Score,
                                        Tournament, TournamentParticipant)
 
-PAGE_SIZE = 50
+PAGE_SIZE = 100
 
 TARGET_LABELS = {"local": "Lokal", "network": "Netzwerk", "nextcloud": "Nextcloud"}
 

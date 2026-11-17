@@ -112,6 +112,7 @@ def main() -> int:
 
     splash.progress(60, "Benutzeroberfläche wird geladen …")
     from bowtally.services import settings_service as ss
+    ss.apply_log_level()
     from bowtally.ui import theme
     from bowtally.ui.main_window import MainWindow
     theme.apply(app)

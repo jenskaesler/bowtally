@@ -2,7 +2,8 @@
 """Settings dialog: club profile, design (colors), print, export path and behavior."""
 from pathlib import Path
 import json
-from PySide6.QtCore import Qt, QSize, QTimer
+import sys
+from PySide6.QtCore import QProcess, Qt, QSize, QTimer
 from PySide6.QtGui import QColor, QFont, QIcon, QPixmap
 from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox, QDialog,
                                QFileDialog, QFormLayout, QFrame, QGridLayout,
@@ -19,7 +20,7 @@ from bowtally.ui import (burger_button, button, mark_dirty, restore_geom, save_g
                          theme)
 
 CATEGORY_LABELS = {"ui": "Oberfläche", "print": "Druck", "behavior": "Verhalten",
-                   "templates": "Textvorlagen"}
+                   "templates": "Textvorlagen", "advanced": "Protokollierung"}
 HIDDEN_CATEGORIES = {"internal"}
 MULTILINE_CATEGORIES = {"templates"}
 CLUB_LABELS = {
@@ -44,6 +45,7 @@ COMBO_LABELS = {
     ss.KEY_PRINT_ORIENTATION: {"portrait": "Hochformat", "landscape": "Querformat"},
     ss.KEY_UI_LANGUAGE: {"de": "Deutsch"},
     "waitlist_mode": {"block": "Gesperrt (kein Nachrücken)", "auto": "Automatisch (Warteliste)"},
+    ss.KEY_LOG_LEVEL: {"info": "Info", "warning": "Warnung", "debug": "Debug"},
 }
 LABEL_OVERRIDES = {
     ss.KEY_PRINT_SHOW_LOGO: "Vereinslogo einfügen",
@@ -57,6 +59,7 @@ LABEL_OVERRIDES = {
     "announcement_group_hint": "Gruppenhinweis",
     "default_legal_notes": "Wichtige Hinweise",
     "waitlist_mode": "Warteliste bei Vollbelegung",
+    ss.KEY_LOG_LEVEL: "Logging-Modus",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
 NAV_KEYS = ["dashboard", "tournaments", "calendar", "archers",
@@ -164,7 +167,8 @@ class SettingsDialog(QDialog):
                                  ("backup", "Backup"),
                                  ("design", "Design"),
                                  ("ui", "Oberfläche"),
-                                 ("nav", "Navigation")]),
+                                 ("nav", "Navigation"),
+                                 ("advanced", "Erweitert")]),
     ]
 
     def __init__(self, apply_theme, parent=None):
@@ -194,6 +198,7 @@ class SettingsDialog(QDialog):
             ("general", self._general_tab()),
             ("backup",   self._backup_tab()),
             ("nav",      self._nav_tab()),
+            ("advanced", self._advanced_tab()),
         ]
         self._stack = QStackedWidget()
         self._page_index: dict[str, int] = {}
@@ -392,11 +397,17 @@ class SettingsDialog(QDialog):
     def _save_settings(self):
         try:
             state = self._state()
+            log_level = state["values"].get(ss.KEY_LOG_LEVEL, "info")
+            was_debug = self._saved["values"].get(ss.KEY_LOG_LEVEL) == "debug"
+            if log_level == "debug" and not was_debug \
+                    and not self._confirm_debug_mode(self._saved["values"]):
+                return
             # first: refuses an empty backup password before anything is saved (only if auto backup is on)
             self._save_backup_settings(password_required=self._backup_on_close.isChecked())
             ss.set_many(state["values"])
             ss.set_value("nav_order", state["nav"])
             ss.save_club_profile(state["club"])
+            ss.apply_log_level(log_level)
         except Exception as exc:
             show_error(self, exc, "Einstellungen konnten nicht gespeichert werden")
             return
@@ -1031,8 +1042,18 @@ class SettingsDialog(QDialog):
             if not dialog.exec():
                 return
             password = dialog.textValue()
-        from bowtally.ui.components.toast import Toast
-        Toast.show(self, "Backup wiederhergestellt – bitte Anwendung neu starten", Toast.SUCCESS)
+        if ConfirmDialog.ask(self, "Backup wiederhergestellt",
+                             "Die Daten wurden wiederhergestellt. Die App muss neu gestartet "
+                             "werden, damit sie wirksam werden.",
+                             "Jetzt neu starten", destructive=False):
+            self._restart_app()
+
+    @staticmethod
+    def _restart_app():
+        frozen = getattr(sys, "frozen", False)      # installed exe: no "-m" needed
+        args = [] if frozen else ["-m", "bowtally.main"]
+        QProcess.startDetached(sys.executable, args)
+        QApplication.instance().quit()
 
     def _print_tab(self) -> QWidget:
         club = ss.get_club_profile()
@@ -1224,6 +1245,27 @@ class SettingsDialog(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setWidget(inner)
         return scroll
+
+    def _advanced_tab(self) -> QWidget:
+        page = self._category_tab("advanced")
+        hint = QLabel(f"Die Logdatei liegt unter {config.LOG_PATH}", objectName="pageSubtitle")
+        hint.setWordWrap(True)
+        hint.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        page.widget().findChild(QGroupBox).layout().addRow(hint)
+        return page
+
+    def _confirm_debug_mode(self, saved_values: dict) -> bool:
+        """Debug is risky: asks before it is switched on; on refusal the combo goes back."""
+        if ConfirmDialog.ask(
+                self, "Debug-Modus aktivieren?",
+                "Der Debug-Modus schreibt sehr ausführliche Protokolle in die Datei app.log. "
+                "Die Datei wächst schnell und kann personenbezogene Daten und Dateipfade "
+                "enthalten.\n\nAktiviere ihn nur auf Anweisung des Supports.",
+                "Debug aktivieren", destructive=False):
+            return True
+        combo = self.value_widgets[ss.KEY_LOG_LEVEL]
+        combo.setCurrentIndex(max(0, combo.findData(saved_values[ss.KEY_LOG_LEVEL])))
+        return False
 
     def _widget_for(self, st):
         value = st.value or ""

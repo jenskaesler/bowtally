@@ -587,8 +587,9 @@ Turnierdatum, Einschreibung ab, Schießbeginn mit Countdown). Die Karte
 Turniers) und den <b>Warenwert Bestandsinventar</b> (angeforderte Menge × Einzelpreis der
 verwendeten Inventarartikel). Ein Klick auf eine Karte öffnet die passende Ansicht.</p>
 <h3>Logbuch</h3>
-<p>Das <b>Logbuch</b> protokolliert Aktivitäten. Du kannst nach Turnier,
-Zeitraum (Gesamter Zeitraum, Heute, 7 oder 30 Tage) und Text filtern sowie
+<p>Das <b>Logbuch</b> protokolliert Aktivitäten als Tabelle mit einer Zeile je Eintrag
+(Zeit, Typ, Meldung, Kontext). Du kannst nach Turnier,
+Zeitraum (Gesamter Zeitraum, Heute, 7 oder 30 Tage), Typ und Text filtern sowie
 mit <b>Ältere laden …</b> in älteren Einträgen blättern. Geführt werden
 Ergebniseingaben, Phasenwechsel, Backups und Eincheckungen.</p>
 """),
@@ -674,6 +675,13 @@ einer JSON-Datei.</p>
 <p>Unter Einstellungen → System → <b>Navigation</b> lässt sich die Reihenfolge der
 Einträge in der Seitenleiste per Drag-and-Drop anpassen. Die Änderungen
 werden nach einem <b>Neustart</b> der App wirksam.</p>
+<h3>System → Erweitert</h3>
+<p>Der <b>Logging-Modus</b> bestimmt, wie ausführlich BowTally in die Logdatei
+<code>app.log</code> schreibt: <b>Info</b> (Standard), <b>Warnung</b> (nur Warnungen und
+Fehler) oder <b>Debug</b>. Debug schreibt sehr viele Details, kann personenbezogene Daten
+und Dateipfade enthalten und lässt die Datei schnell wachsen; BowTally fragt vor dem
+Aktivieren nach. Nutze Debug nur auf Anweisung des Supports. Die Änderung gilt sofort
+nach dem Speichern.</p>
 """),
     ("E-Mail-Funktionen", """
 <h2>E-Mail-Funktionen</h2>
@@ -758,14 +766,15 @@ Downloads-Ordner).</p>
 </ul>
 <a name="backup-passwort"></a><p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
 jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
-Im Backup sind alle Daten enthalten, auch Inventar (Kategorien, Artikel, Reparaturen,
+Im Backup sind alle Daten enthalten, auch alle Einstellungen (inklusive Logging-Modus), das
+Logbuch, Inventar (Kategorien, Artikel, Reparaturen,
 Parcours-Material), die Bankdaten sowie die Dokumente von Mitgliedern, Schützen und Inventar
 (Ordner <code>member_files</code>, <code>archer_files</code>, <code>inventory_files</code>); sie werden bei
 der Wiederherstellung zurückgespielt. Das automatische Backup beim
 Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
 <h3>Wiederherstellung</h3>
 <p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
-nach Rückfrage ersetzt – das lässt sich nicht rückgängig machen. Danach die App neu starten.
+nach Rückfrage ersetzt – das lässt sich nicht rückgängig machen. Danach klickst du auf <b>Jetzt neu starten</b>, die App startet sich selbst neu.
 </p>
 <p>Vor jeder Datenbank-Migration (z.&nbsp;B. nach einem Update) legt BowTally automatisch eine
 Kopie der Datenbank neben der Datenbankdatei ab (<code>bowtally.db.pre-migration-…</code>).</p>
@@ -906,7 +915,7 @@ System → Backup. Für manuelle Sicherungen: <b>Backup jetzt erstellen</b> (Lok
 Netzwerk oder Nextcloud je nach gewähltem Speicherort).</p>
 <p>Zur Wiederherstellung: <b>Backup wiederherstellen</b> → ZIP-Datei wählen, Passwort eingeben.
 <b>Achtung:</b> Die aktuelle Datenbank wird unwiderruflich ersetzt.
-App danach neu starten.</p>
+Danach mit <b>Jetzt neu starten</b> die App neu starten.</p>
 """),
 ]
 

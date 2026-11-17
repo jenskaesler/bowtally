@@ -180,6 +180,7 @@ DEFAULT_SETTINGS = [
      "Warteliste: auto (automatisch) oder block (sperren)"),
     ("update_check_enabled", "true", "system", "boolean",
      "Automatische Update-Prüfung beim Start"),
+    ("log_level", "info", "advanced", "string", "Logging-Modus der Logdatei: info, warning, debug"),
 ]
 
 # Reference data, inserted by migration 0003 (key, label, sort_order, description)

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Logbuch: chronological list of all app activity with filtering and pagination."""
+"""Logbuch: chronological table of all app activity with filtering and pagination."""
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (QComboBox, QFrame, QHBoxLayout, QLabel, QLineEdit,
-                               QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
+from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHBoxLayout, QHeaderView, QLineEdit,
+                               QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from bowtally.services import logbuch_service as ls
 from bowtally.ui import theme
+from bowtally.ui.components.data_table import ROW_HEIGHT
 from bowtally.ui.components.page_header import PageHeader
 
 # log_type -> (label, bg_color)
@@ -27,48 +29,23 @@ PERIODS = [
 ]
 
 
-class _EntryRow(QFrame):
-    def __init__(self, entry: ls.LogEntry, parent=None):
-        super().__init__(parent)
-        t = theme.current()
-        label, color = TYPE_META.get(entry.log_type, ("Unbekannt", t["text2"]))
+HEADERS = ["Zeit", "Typ", "Meldung", "Kontext"]
 
-        chip = QLabel(f"  {label}  ")
-        chip.setStyleSheet(
-            f"background:{color}; color:#FFFFFF; border-radius:3px;"
-            f"font-size:11px; font-weight:600;"
-        )
-        chip.setFixedHeight(18)
-        chip.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
-        desc = QLabel(entry.description)
-        desc.setStyleSheet("font-weight:500;")
-
-        ts_text = f"{entry.created_at:%d.%m. %H:%M}" if entry.created_at else ""
-        ts_lbl = QLabel(ts_text)
-        ts_lbl.setStyleSheet(f"color:{t['text2']}; font-size:12px;")
-        ts_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        ts_lbl.setMinimumWidth(90)
-
-        ctx = QLabel(entry.context)
-        ctx.setStyleSheet(f"color:{t['text2']}; font-size:12px;")
-
-        top_row = QHBoxLayout()
-        top_row.setContentsMargins(0, 0, 0, 0)
-        top_row.setSpacing(8)
-        top_row.addWidget(chip)
-        top_row.addWidget(desc, 1)
-        top_row.addWidget(ts_lbl)
-
-        inner = QVBoxLayout()
-        inner.setContentsMargins(0, 0, 0, 0)
-        inner.setSpacing(2)
-        inner.addLayout(top_row)
-        inner.addWidget(ctx)
-
-        lay = QHBoxLayout(self)
-        lay.setContentsMargins(12, 8, 12, 8)
-        lay.addLayout(inner)
+def _row_items(entry: ls.LogEntry) -> list[QTableWidgetItem]:
+    label, color = TYPE_META.get(entry.log_type, ("Unbekannt", theme.current()["text2"]))
+    when = f"{entry.created_at:%d.%m.%Y %H:%M}" if entry.created_at else ""
+    items = [QTableWidgetItem(when), QTableWidgetItem(label),
+             QTableWidgetItem(entry.description), QTableWidgetItem(entry.context)]
+    chip = items[1]
+    chip.setBackground(QBrush(QColor(color)))
+    chip.setForeground(QBrush(QColor("#FFFFFF")))
+    chip.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+    chip.setFont(QFont(chip.font().family(), -1, QFont.Weight.DemiBold))
+    items[3].setForeground(QBrush(QColor(theme.current()["text2"])))
+    for item in (items[2], items[3]):
+        item.setToolTip(item.text())
+    return items
 
 
 class LogbuchView(QWidget):
@@ -117,16 +94,23 @@ class LogbuchView(QWidget):
             chips_row.addWidget(btn)
         chips_row.addStretch(1)
 
-        # ---- scroll area for entries ----
-        self._container = QWidget()
-        self._container_lay = QVBoxLayout(self._container)
-        self._container_lay.setContentsMargins(0, 0, 0, 0)
-        self._container_lay.setSpacing(1)
-        self._container_lay.addStretch(1)
-
-        self._scroll = QScrollArea()
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setWidget(self._container)
+        # ---- table of entries ----
+        self._table = t = QTableWidget(0, len(HEADERS))
+        t.setHorizontalHeaderLabels(HEADERS)
+        t.verticalHeader().hide()
+        t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+        t.setShowGrid(False)
+        t.setAlternatingRowColors(True)
+        t.setWordWrap(False)
+        t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        t.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        h = t.horizontalHeader()
+        h.setHighlightSections(False)
+        h.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        h.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        for col, width in ((0, 140), (1, 120), (3, 340)):
+            t.setColumnWidth(col, width)
 
         self._load_more_btn = QPushButton("Ältere laden …")
         self._load_more_btn.clicked.connect(self._load_more)
@@ -145,7 +129,7 @@ class LogbuchView(QWidget):
         ctrl_lay.addLayout(filter_bar)
         ctrl_lay.addLayout(chips_row)
         main.addWidget(controls)
-        main.addWidget(self._scroll, 1)
+        main.addWidget(self._table, 1)
         main.addWidget(self._load_more_btn)
 
         self._offset = 0
@@ -205,9 +189,11 @@ class LogbuchView(QWidget):
             offset=self._offset,
             limit=ls.PAGE_SIZE,
         )
-        for entry in entries:
-            row = _EntryRow(entry)
-            self._container_lay.insertWidget(self._container_lay.count() - 1, row)
+        first = self._table.rowCount()
+        self._table.setRowCount(first + len(entries))
+        for row, entry in enumerate(entries, start=first):
+            for col, item in enumerate(_row_items(entry)):
+                self._table.setItem(row, col, item)
 
         shown = self._offset + len(entries)
         self._load_more_btn.setVisible(shown < self._total)
@@ -217,10 +203,7 @@ class LogbuchView(QWidget):
             f"{self._total} Einträge" if self._total else "Keine Einträge")
 
     def _clear_entries(self):
-        while self._container_lay.count() > 1:
-            item = self._container_lay.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        self._table.setRowCount(0)
 
     # ---------------------------------------------------------------- lifecycle
     def showEvent(self, event):
