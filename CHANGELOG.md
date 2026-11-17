@@ -6,6 +6,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.11.5] – 2026-11-17
+
 ### Hinzugefügt
 
 - **📎 Dokumente und Notizen als eigene Tabs** — Im Schützen-Dialog haben Notizen und Dokumente je
@@ -22,36 +24,15 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   in der Reparatur verlinkt. Reparaturkosten von 0 € sind nicht zulässig.
 - **🛠️ Logging-Modus** — Unter Einstellungen → System → Erweitert stellst du das Detailniveau der
   Logdatei ein: Info (Standard), Warnung oder Debug. Debug muss nach einer Warnmeldung bestätigt
-  werden. Der Modus ist im Backup enthalten und wird beim Start angewendet.
+  werden. Der Modus ist im Backup enthalten und wird beim Start angewendet. **Logfile öffnen**
+  öffnet die Datei `app.log`.
 - **🔄 Neustart nach Wiederherstellung** — Nach einem erfolgreichen Restore startet der Button
   „Jetzt neu starten“ die App mit einem Klick neu.
-
-### Behoben
-
-- **🪟 Kleine Fenster beim Start** — Beim Programmstart blitzten über dem Splash kurz mehrere
-  kleine Fenster auf. Sie entstanden durch Buttons der leeren Listen, die vor dem Einbau ins Layout
-  sichtbar geschaltet wurden.
+- **⬆️ Neue Version prüfen im Info-Dialog** — Neben „Schließen“ sucht der Button „Neue Version
+  prüfen“ wie in den Einstellungen sofort nach einem Update.
 
 ### Geändert
 
-- **🔍 Einheitliche Suchfelder** — Alle Suchfelder sind gleich breit (300 px) und zeigen den
-  gleichen Text „Suche (Strg+F) …“. Was durchsucht wird, steht im Tooltip. Das Logbuch nutzt jetzt
-  das gleiche, breitere Suchfeld mit Lupe und Löschen-Button. In Einstellungen und Hilfe
-  springt Strg+F ins Suchfeld.
-- **❔ Einstellungen mit Hilfe-Links** — Die Hinweistexte bei Bankdaten, E-Mail-Vorlagen
-  (Platzhalter), Textvorlagen, Inventarkategorien und Erweitert sind durch Links zur Hilfe ersetzt.
-  Die Platzhalter stehen vollständig in der Hilfe (Referenz), neu ergänzt ist `{daten}` der
-  Datenauskunft. „Oberfläche“ steht jetzt als Block unter System → Allgemein, unter
-  System → Erweitert öffnet **Logfile öffnen** die Datei `app.log`.
-- **🎯 Parcours-Planung: „Ziele“** — „Neue Scheibe“ heißt jetzt „Neues Ziel“ (Button, Formular,
-  Tab „Ziele“), der Druck „Scheibenplan“ heißt „Zielplan“. Im Formular steht statt des Hinweistexts
-  zur Gruppengröße ein Link zur Hilfe. Die Formulare für Ziele und Material sind größer. In der
-  Teilnehmerliste hat der Burger-Button zum Suchfeld den normalen Abstand.
-- **📜 Logbuch als Tabelle** — Das Logbuch zeigt die Einträge als kompakte Tabelle (Zeit, Typ,
-  Meldung, Kontext) mit einer Zeile je Eintrag, damit mehr auf eine Seite passt (100 je Seite).
-- **⚙️ Einstellungen neu gegliedert** — „Druck“ und „Inventarkategorien“ stehen jetzt unter
-  Turnierverwaltung → Allgemein, „Druck & Listen“ heißt „Textvorlagen“. Design, Oberfläche und
-  Navigation stehen unter „System“.
 - **📦 Inventar neu aufgebaut** — Ein Artikel-Dialog mit den Tabs Stammdaten, Notizen, Dokumente und
   Reparaturkosten ersetzt die bisherigen Listen für Scheiben und 3D-Ziele. Artikel haben
   Kategorie, Größe, Shop-Link, Einzelpreis, Bestand und einen berechneten Gesamtpreis. Die
@@ -62,15 +43,43 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Einmalposten. Das Haupt-Dashboard zeigt den Inventar-Gesamtwert, das Turnierdashboard
   „Kosten Einmalartikel“ und „Warenwert Bestandsinventar“ getrennt. Backup, Restore, Import und
   Export enthalten die neuen Daten.
-- **🎨 Dialoge und Menüs** — Speichern ist blau und wird bei Änderungen rot. Abbrechen und
-  Schließen sehen aus wie die Bearbeiten-Buttons, Preisfelder haben wie die anderen Eingabefelder
-  runde Ecken. Menü-Icons für Bearbeiten (gelb) und Löschen (rot), „Datenauskunft senden“ hat ein
-  Icon. „Als inaktiv markieren“ und „Datenauskunft senden“ stehen in der Mitgliederliste nur noch
-  im Rechtsklick-Menü, im Inventar gibt es dort „Aktivieren/Deaktivieren“. Dialoge mit mehreren
-  Tabs haben einheitlich Abstand zwischen Tab-Leiste und erstem Feld. Der Speichern-Button in den
-  Einstellungen ist blau und wird bei Änderungen rot. Kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die Dropdownboxen. Der
-  Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein Drittel breiter und der
-  Passwortdialog beim Restore zeigt „Abbrechen“.
+- **🎯 Parcours-Planung: „Ziele“** — „Neue Scheibe“ heißt jetzt „Neues Ziel“ (Button, Formular,
+  Tab „Ziele“), der Druck „Scheibenplan“ heißt „Zielplan“. Im Formular steht statt des Hinweistexts
+  zur Gruppengröße ein Link zur Hilfe. Die Formulare für Ziele und Material sind größer. In der
+  Teilnehmerliste hat der Burger-Button zum Suchfeld den normalen Abstand.
+- **📜 Logbuch als Tabelle** — Das Logbuch zeigt die Einträge als kompakte Tabelle (Zeit, Typ,
+  Meldung, Kontext) mit einer Zeile je Eintrag, damit mehr auf eine Seite passt (100 je Seite).
+- **⚙️ Einstellungen neu gegliedert** — „Druck“ und „Inventarkategorien“ stehen unter
+  Turnierverwaltung → Allgemein, „Druck & Listen“ heißt „Textvorlagen“. „Oberfläche“ und
+  „Navigation“ stehen als gleich breite Blöcke unter System → Allgemein.
+- **❔ Einstellungen mit Hilfe-Links** — Die Hinweistexte bei Bankdaten, E-Mail-Vorlagen
+  (Platzhalter), Textvorlagen, Inventarkategorien und Erweitert sind durch Links zur Hilfe ersetzt;
+  bei den Textvorlagen steht der Link oben. Die Platzhalter stehen vollständig in der Hilfe
+  (Referenz), neu ergänzt ist `{daten}` der Datenauskunft.
+- **🔍 Einheitliche Suchfelder** — Alle Suchfelder sind gleich breit (300 px) und zeigen den
+  gleichen Text „Suche (Strg+F) …“. Was durchsucht wird, steht im Tooltip. Das Logbuch nutzt jetzt
+  das gleiche, breitere Suchfeld mit Lupe und Löschen-Button. In Einstellungen und Hilfe
+  springt Strg+F ins Suchfeld.
+- **🎨 Dialoge und Menüs** — Speichern ist blau und wird bei Änderungen rot (auch in den
+  Einstellungen). Abbrechen und Schließen sehen aus wie die Bearbeiten-Buttons, Preisfelder haben
+  wie die anderen Eingabefelder runde Ecken. Menü-Icons für Bearbeiten (gelb) und Löschen (rot),
+  „Datenauskunft senden“ hat ein Icon. „Als inaktiv markieren“ und „Datenauskunft senden“ stehen
+  in der Mitgliederliste nur noch im Rechtsklick-Menü, im Inventar gibt es dort
+  „Aktivieren/Deaktivieren“. Dialoge mit mehreren Tabs haben einheitlich Abstand zwischen
+  Tab-Leiste und erstem Feld. Kurze Felder (Telefon, PLZ, Mitgliedsnummer) sind so breit wie die
+  Dropdownboxen. Der Standard-Stern bei den Regelwerken ist gelb, der Einstellungsdialog ein
+  Drittel breiter und der Passwortdialog beim Restore zeigt „Abbrechen“. Teilnehmer, Check-in,
+  Eingabe und Ergebnisse haben zwischen Steuerleiste und Liste den gleichen Abstand wie die
+  anderen Listen.
+
+### Behoben
+
+- **🪟 Kleine Fenster beim Start** — Beim Programmstart blitzten über dem Splash kurz mehrere
+  kleine Fenster auf. Sie entstanden durch Buttons der leeren Listen, die vor dem Einbau ins Layout
+  sichtbar geschaltet wurden.
+- **📜 Aktuelle Lizenz im Info-Dialog** — Der Info-Dialog zeigte eine veraltete Lizenz-Kopie aus
+  dem Programmpaket. Er liest jetzt die vom Installer abgelegte Lizenz im Installationsordner
+  (`LICENSE.txt` oder `docs\LICENSE.txt`), das Programmpaket enthält die aktuelle `LICENSE`.
 
 ## [2026.11.4] – 2026-11-17
 
@@ -660,7 +669,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   mit Vereinsprofil und Farbschema. SQLite-Datenbank mit Alembic-Migrationen, Build mit
   PyInstaller.
 
-[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.11.4...HEAD
+[Unveröffentlicht]: https://github.com/jenskaesler/bowtally/compare/v2026.11.5...HEAD
+[2026.11.5]: https://github.com/jenskaesler/bowtally/compare/v2026.11.4...v2026.11.5
 [2026.11.4]: https://github.com/jenskaesler/bowtally/compare/v2026.11.3...v2026.11.4
 [2026.11.1]: https://github.com/jenskaesler/bowtally/compare/v2026.10.9...v2026.11.1
 [2026.10.9]: https://github.com/jenskaesler/bowtally/compare/v2026.10.7...v2026.10.9
