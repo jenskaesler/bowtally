@@ -81,7 +81,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Drittel breiter und der Passwortdialog beim Restore zeigt „Abbrechen“. Teilnehmer, Check-in,
   Eingabe und Ergebnisse haben zwischen Steuerleiste und Liste den gleichen Abstand wie die
   anderen Listen. In der Einschreibung haben „Einchecken“ und „Als Walk-in erfassen“ wieder die
-  normale Größe, und in Eingabe und Auswertung grenzen die Filter-Tabs direkt an die Tabelle.
+  normale Größe, und in Eingabe und Auswertung grenzen die Filter-Tabs direkt an die Tabelle. Im
+  Tab Helfer stehen „Exportieren“ und „Helferliste drucken“ oben rechts im Seitenkopf: Suche,
+  Exportieren, Helferliste drucken, Aus Mitgliederkartei, Neuer Helfer.
 
 ### Behoben
 
