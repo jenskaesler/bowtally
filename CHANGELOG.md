@@ -72,6 +72,12 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **❓ Links zur Hilfe** — Statt langer Erklärtexte stehen im Regelwerk-Editor (Gleichstand und
+  Zusatzwertungen) und bei den Backup-Einstellungen (Passwort) Links, die die Hilfe direkt am
+  passenden Abschnitt öffnen. Die Links sind an der Checkbox-Spalte ausgerichtet.
+- **⚙️ Einstellungen** — Der Dialog öffnet größer (1040 × 780, soweit der Bildschirm es zulässt), sodass
+  auch das Backup-Tab ohne Scrollen passt. Eine früher gespeicherte, kleinere Größe wird einmalig ignoriert.
+
 - **🖼️ Vereinslogo im Unterordner „logo“** — Das Logo liegt jetzt wie im Backup in `logo/` im Datenordner
   (Migration verschiebt ein vorhandenes Logo). Beim Wiederherstellen eines Backups zeigt das
   Vereinsprofil auf das wiederhergestellte Logo.
