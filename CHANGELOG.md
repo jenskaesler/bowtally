@@ -114,6 +114,13 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Behoben
 
+- **🎯 Ergebniseingabe** — Bei „Rundenwertung“ und „Nur Gesamtpunkte“ fehlten Suche, Speichern-Button,
+  Gruppen-Dropdown und Klassen-Tabs; die Leiste steht jetzt bei allen Wertungsarten über der Tabelle
+  und filtert auch dort. Die Klassen-Tabs hängen wie in der Auswertung direkt über der Liste und
+  zeigen die vollen Klassennamen; die Tabelle nutzt dieselben Abstände und Ausrichtungen.
+- **👥 Mitglieder-Notizen** — Im Tab „Notizen“ steht das Label über dem Textfeld, das die volle Breite
+  nutzt.
+
 - **📦 Excel „Turnier komplett“** — Das Blatt „Ergebnisse“ enthält jetzt auch bei „Rundenwertung“ und
   „Nur Gesamtpunkte“ die Werte, bei mehreren Runden alle Runden, dazu die Kill-/X-Spalten; die
   „Rangliste“ nennt Kills/X.

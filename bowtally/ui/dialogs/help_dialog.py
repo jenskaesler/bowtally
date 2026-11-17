@@ -342,7 +342,9 @@ Jede Zelle wird sofort gespeichert; <b>Speichern</b> (Strg+S) bestätigt dies nu
 <ul>
   <li><b>Klassen-Tabs</b>, Gruppenfilter (nur sichtbar, wenn Startgruppen existieren) und Suche
       nach Name oder Startnummer</li>
-  <li><b>Nur unvollständige</b> zeigt nur Teilnehmer mit fehlenden Zielergebnissen</li>
+  <li><b>Nur unvollständige</b> zeigt nur Teilnehmer mit fehlenden Ergebnissen. Dieser Filter, die
+      Suche, das Gruppen-Dropdown, die Klassen-Tabs und <b>Speichern</b> stehen bei allen
+      Wertungsarten zur Verfügung</li>
   <li>Rechtsklick auf eine Spaltenüberschrift setzt die Scheibe für alle sichtbaren
       Teilnehmer auf eine Zone (mit Rückfrage)</li>
   <li>Bei mehreren Runden wählst du die Runde über Tabs über der Tabelle</li>
