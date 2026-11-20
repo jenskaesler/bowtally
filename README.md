@@ -65,7 +65,7 @@ flowchart LR
 - 🏁 **Einschreibe-Ansicht** – Suche nach Name oder Startnummer (mit den Buttons rechts in der Zeile von Zähler und Auslastungsbalken), Einchecken per Enter, Walk-in-Erfassung, Einschreibeliste drucken.
 - ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert. Runden- und Gesamteingabe nehmen nur Zahlen an.
 - 🎯 **Auslosung** – (nur wenn im Turnier-Assistenten „Teilnehmer per Auslosung einteilen“ gewählt wurde) automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
-- 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang.
+- 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang. Die Startgruppen berechnet der Turnier-Assistent aus maximaler Teilnehmerzahl und der Einstellung „Teilnehmer pro Gruppe“.
 - 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop, Material aus dem Inventar mit angeforderter Menge und Einmalposten; PDF-Druck Aufbauplan und Zielplan.
 - 📋 **Wertungszettel-Vorlagen** – konfigurierbare Spalten per Drag-and-Drop-Editor; vier eingebaute Vorlagen: 3D-Standard, Feld-Standard, Halle 10-Ring, Blasrohr-Standard.
 

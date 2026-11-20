@@ -178,6 +178,8 @@ DEFAULT_SETTINGS = [
     # behavior
     ("waitlist_mode", "auto", "behavior", "string",
      "Warteliste: auto (automatisch) oder block (sperren)"),
+    ("participants_per_group", "5", "behavior", "integer",
+     "Teilnehmer pro Gruppe (Startgruppen = max. Teilnehmerzahl / Teilnehmer pro Gruppe)"),
     ("update_check_enabled", "true", "system", "boolean",
      "Automatische Update-Prüfung beim Start"),
     ("log_level", "info", "advanced", "string", "Logging-Modus der Logdatei: info, warning, debug"),

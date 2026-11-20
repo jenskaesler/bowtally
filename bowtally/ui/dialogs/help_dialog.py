@@ -165,12 +165,19 @@ Vereinsprofil Name oder Ort hinterlegt sind.</p>
 <h3>2 Konfiguration</h3>
 <p><b>Wertungsmodus</b>: <i>Zielwertung</i> (Punkte je Ziel und Schuss),
 <i>Rundenwertung</i> (Punkte je Runde) oder <i>Gesamtwertung</i> (nur Gesamtpunkte).</p>
+<p><b>Maximale Teilnehmerzahl</b> (<code>0</code> = keine Begrenzung); darunter zeigt die
+<b>Auslastung</b>, wie viele Plätze bereits belegt sind.</p>
 <p><b>Auslosung oder Startgruppen:</b> Mit <i>Teilnehmer per Auslosung
 einteilen</i> werden die Gruppen später per Auslosung vergeben (das Feld
-Startgruppen ist dann gesperrt und der Tab <i>Zeitplan</i> entfällt). Ohne
-Auslosung trägst du unter <b>Startgruppen</b> die Gruppen ein (z. B.
-<code>A, B, C, D</code>; bei neuen Turnieren sind die Gruppen 1 bis 10 vorbelegt); neue Teilnehmer werden reihum darauf verteilt und im
-Tab <i>Zeitplan</i> bekommen die Gruppen Startzeiten.</p>
+Startgruppen ist dann ausgeblendet und der Tab <i>Zeitplan</i> entfällt). Ohne
+Auslosung füllt BowTally <b>Startgruppen</b> automatisch: maximale Teilnehmerzahl
+geteilt durch <i>Teilnehmer pro Gruppe</i> (Einstellungen → Turnierverwaltung →
+Allgemein), aufgerundet – z. B. 120 Teilnehmer bei 5 pro Gruppe ergibt die Gruppen
+1 bis 24. Ohne Begrenzung sind die Gruppen 1 bis 10 vorbelegt. Das Feld bleibt
+änderbar (z. B. <code>A, B, C, D</code>); eine eigene Eingabe wird nicht mehr
+automatisch überschrieben, bestehende Turniere behalten ihre Gruppen. Neue Teilnehmer
+werden reihum auf die Gruppen verteilt und im Tab <i>Zeitplan</i> bekommen die
+Gruppen Startzeiten.</p>
 <p><b>Rundenkonfiguration:</b> Jede Runde hat Bezeichnung, Regelwerk (oder
 „Turnier-Standard“), Ziele, Pfeile und Entfernung (Standard, bekannt,
 unbekannt). Mit <b>+ Runde</b> fügst du Runden hinzu, der Papierkorb entfernt
@@ -184,11 +191,9 @@ Vereinsprofil eine Parcours-Beschreibung hinterlegt, wird sie automatisch in
 (nur benutzerdefinierte Klassen) helfen bei der Auswahl. Mindestens eine
 Klasse ist nötig.</p>
 <h3>4 Fristen und Zeiten</h3>
-<p>Anmeldefrist, maximale Teilnehmerzahl (<code>0</code> = keine Begrenzung),
-Einschreibung ab und Schießbeginn. Bei <b>Einschießen erlaubt</b> erscheint
+<p>Anmeldefrist, Einschreibung ab und Schießbeginn. Bei <b>Einschießen erlaubt</b> erscheint
 das Feld <b>Einschießbereich</b>; es ist dann Pflicht, sonst kommst du nicht
-weiter. Der Bereich erscheint in der Ausschreibung. Die Auslastung zeigt, wie
-viele Plätze bereits belegt sind.</p>
+weiter. Der Bereich erscheint in der Ausschreibung.</p>
 <h3>5 Startgebühren</h3>
 <p>Neue Turniere starten mit den Gebührenvorlagen; Bezeichnung und Betrag sind
 direkt änderbar, mit <b>Zeile hinzufügen</b> kommen weitere dazu. Ohne Gebühr
@@ -660,7 +665,9 @@ können diese Daten per Klick auf <b>Übernehmen</b> als Turnierkontakt übernom
 Im Verwendungszweck können Platzhalter genutzt werden: <code>{name}</code> (Vor- und
 Nachname des Schützen) und <code>{bow_class}</code> (Bogenklasse), siehe „Referenz“.</p>
 <a name="allgemein"></a><h3>Turnierverwaltung → Allgemein</h3>
-<p><i>Automatisch neu berechnen</i> (Rang) und <i>Warteliste bei Vollbelegung</i>. Die
+<p><i>Automatisch neu berechnen</i> (Rang), <i>Warteliste bei Vollbelegung</i> und
+<i>Teilnehmer pro Gruppe</i> (Standard 5; daraus berechnet der Turnier-Assistent die
+Startgruppen). Die
 Gleichstandsregeln stellst du je Regelwerk ein. Im Block <b>Druck</b> stellst du
 Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
 und Einzelwertung je Scheibe auf Ausdrucken ein. Im Block <b>Inventarkategorien</b>

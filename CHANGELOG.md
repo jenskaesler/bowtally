@@ -37,8 +37,15 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **🏷️ Wertungsmodi umbenannt** — Im Turnier-Assistenten heißen die Wertungsmodi jetzt
   „Zielwertung“ (bisher „Pro Ziel“), „Rundenwertung“ und „Gesamtwertung“ (bisher
   „Nur Gesamtpunkte“).
-- **🔢 Startgruppen vorbelegt** — Bei neuen Turnieren sind die Startgruppen 1 bis 10 eingetragen;
-  bestehende Turniere behalten ihre Gruppen.
+- **🔢 Startgruppen automatisch** — Die Startgruppen ergeben sich aus maximaler Teilnehmerzahl
+  geteilt durch die neue Einstellung *Teilnehmer pro Gruppe* (Turnierverwaltung → Allgemein →
+  Verhalten, Standard 5), aufgerundet: 120 Teilnehmer bei 5 pro Gruppe ergeben die Gruppen
+  1 bis 24. Ohne Begrenzung sind 1 bis 10 vorbelegt. Das Feld bleibt änderbar, eigene Eingaben
+  werden nicht überschrieben, bestehende Turniere behalten ihre Gruppen. Ist die Auslosung
+  angehakt, ist das Feld ausgeblendet.
+- **📊 Teilnehmerzahl im Tab Konfiguration** — Maximale Teilnehmerzahl und Auslastung stehen im
+  Turnier-Assistenten jetzt im Tab 2 „Konfiguration“ unter dem Wertungsmodus statt im Tab
+  „Fristen und Zeiten“.
 - **✅ Einschreibung kompakter** — Suchfeld, „Einchecken“ und „Als Walk-in erfassen“ stehen
   rechtsbündig in derselben Zeile wie Zähler und Kapazitätsbalken.
 

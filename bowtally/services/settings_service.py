@@ -11,6 +11,7 @@ from bowtally.database.engine import session_scope
 from bowtally.database.models import AppSetting, ClubProfile
 from bowtally.database.seed import DEFAULT_SETTINGS
 
+KEY_PARTICIPANTS_PER_GROUP = "participants_per_group"
 KEY_COLOR_PRIMARY = "color_primary"
 KEY_COLOR_SECONDARY = "color_secondary"
 KEY_COLOR_ACCENT = "color_accent"
@@ -95,6 +96,15 @@ def get(key: str, default: str | None = None) -> str | None:
     with session_scope() as s:
         st = s.get(AppSetting, key)
         return st.value if st is not None and st.value is not None else default
+
+
+def participants_per_group() -> int:
+    """Group size for the automatic start groups of a tournament (at least 1)."""
+    try:
+        return max(1, int(get(KEY_PARTICIPANTS_PER_GROUP, DEFAULTS.get(
+            KEY_PARTICIPANTS_PER_GROUP, "5")) or 5))
+    except ValueError:
+        return 5
 
 
 def get_bool(key: str) -> bool:

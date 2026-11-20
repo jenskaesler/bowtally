@@ -314,14 +314,26 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 1 config
     def _page_config(self) -> QWizardPage:
-        # new tournaments start with groups 1 to 10; existing ones keep their groups
-        default_groups = "" if self.tournament is not None else DEFAULT_START_GROUPS
-        self.groups = QLineEdit(self._t("start_groups", default_groups) or default_groups)
+        self.max_participants = QSpinBox()
+        self.max_participants.setRange(0, 9999)
+        self.max_participants.setValue(self._t("max_participants", 0))
+        self.max_participants.setFixedWidth(WIZARD_COMBO_W)
+        self.capacity = CapacityBar()
+        self.capacity.setFixedWidth(WIZARD_COMBO_W + 120)
+
+        # start groups: filled automatically from max participants / participants per group
+        # (setting), stay editable; an own entry is not overwritten any more
+        stored = self._t("start_groups", "")
+        auto = self._auto_groups()
+        self.groups = QLineEdit(stored if (self.tournament is not None or stored) else auto)
         self.groups.setPlaceholderText("z. B. A, B, C, D")
+        # existing tournaments keep their groups (also none) until the user changes them
+        self._groups_manual = (self.tournament is not None or bool(stored)) and stored != auto
+        self.groups.textEdited.connect(lambda _t: setattr(self, "_groups_manual", True))
+        self._groups_hint = QLabel(objectName="pageSubtitle")
         self._draw_cb = QCheckBox("Teilnehmer per Auslosung einteilen")
         self._draw_cb.setChecked(bool(self._t("use_draw", False)))
-        self.groups.setReadOnly(self._draw_cb.isChecked())
-        self._draw_cb.toggled.connect(self.groups.setReadOnly)
+        self.max_participants.valueChanged.connect(self._on_max_participants)
 
         self.scoring_mode = QComboBox()
         self.scoring_mode.setFixedWidth(WIZARD_COMBO_W)
@@ -365,15 +377,54 @@ class TournamentWizard(QWizard):
         self._init_round_table()
 
         page = _Page(1, "Konfiguration",
-                     "Rundenkonfiguration, Wertungsmodus und Startgruppen. "
+                     "Wertungsmodus, Teilnehmerzahl, Startgruppen und Rundenkonfiguration. "
                      "Jede Runde hat ein eigenes Regelwerk und eigene Scheibenanzahl.")
         form = _form()
         form.addRow(_lbl("Wertungsmodus"), self.scoring_mode)
+        form.addRow(_lbl("Maximale Teilnehmerzahl"), self.max_participants)
+        self._max_hint = QLabel("0 = keine Begrenzung", objectName="pageSubtitle")
+        form.addRow("", self._max_hint)
+        form.addRow(_lbl("Auslastung"), self.capacity)
         form.addRow(_lbl(""), self._draw_cb)
         form.addRow(_lbl("Startgruppen"), self.groups)
+        form.addRow("", self._groups_hint)
+        self._config_form = form
+        self._draw_cb.toggled.connect(self._update_groups_visibility)
         page.body.addLayout(form)
         page.body.addWidget(self._round_group, 1)
+        self._update_capacity()
+        self._update_groups_visibility()
         return page
+
+    def _group_count(self) -> int | None:
+        mx = self.max_participants.value() if hasattr(self, "max_participants")             else (self._t("max_participants", 0) or 0)
+        return -(-mx // ss.participants_per_group()) if mx else None     # rounded up
+
+    def _auto_groups(self) -> str:
+        """1..n with n = max participants / participants per group; 1..10 without a maximum."""
+        n = self._group_count()
+        return ", ".join(str(i) for i in range(1, n + 1)) if n else DEFAULT_START_GROUPS
+
+    def _on_max_participants(self, _value):
+        self._update_capacity()
+        if not self._groups_manual and not self._draw_cb.isChecked():
+            self.groups.setText(self._auto_groups())
+        self._update_groups_hint()
+
+    def _update_groups_visibility(self, *_):
+        draw = self._draw_cb.isChecked()
+        if not draw and not self._groups_manual:
+            self.groups.setText(self._auto_groups())
+        self._config_form.setRowVisible(self.groups, not draw)
+        self._config_form.setRowVisible(self._groups_hint, not draw)
+        self._update_groups_hint()
+
+    def _update_groups_hint(self):
+        n, per = self._group_count(), ss.participants_per_group()
+        self._groups_hint.setText(
+            (f"Automatisch: {self.max_participants.value()} Teilnehmer / {per} pro Gruppe = "
+             f"{n} Gruppen" if n else "Ohne Begrenzung: Gruppen 1 bis 10")
+            + " · änderbar; Teilnehmer pro Gruppe unter Einstellungen → Turnierverwaltung")
 
     def _init_round_table(self):
         """Populate round table on page creation from existing rounds or defaults."""
@@ -498,23 +549,18 @@ class TournamentWizard(QWizard):
         deadline = self._t("registration_deadline")
         self.deadline.setDate(QDate(deadline) if deadline else
                               self.date.date().addDays(-DEFAULT_DEADLINE_DAYS))
-        self.max_participants = QSpinBox()
-        self.max_participants.setRange(0, 9999)
-        self.max_participants.setValue(self._t("max_participants", 0))
         self.checkin_time = TimeField(allow_empty=False)
         self.checkin_time.setTime(self._t("checkin_start_time", "09:00") or "09:00")
         self.shooting_time = TimeField(allow_empty=False)
         self.shooting_time.setTime(self._t("shooting_start_time", "10:00") or "10:00")
-        for w in (self.deadline, self.checkin_time, self.shooting_time, self.max_participants):
+        for w in (self.deadline, self.checkin_time, self.shooting_time):
             w.setFixedWidth(WIZARD_COMBO_W)
         self.practice = QCheckBox("Einschießen erlaubt")
         self.practice.setChecked(self._t("practice_allowed", False))
         self.practice_location = QLineEdit(self._t("practice_location", ""))
         self.practice_location.setPlaceholderText("z. B. dem Einschießplatz am Vereinsheim")
-        self.capacity = CapacityBar()
-        self.max_participants.valueChanged.connect(self._update_capacity)
-        page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden, wie viele Plätze "
-                     "gibt es und wann geht es am Turniertag los?")
+        page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden und wann geht es "
+                     "am Turniertag los?")
         page.validatePage = self._validate_practice
         form = _form()
         form.addRow(_lbl("Anmeldefrist"), self.deadline)
@@ -522,18 +568,10 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Schießbeginn"), self.shooting_time)
         form.addRow("", self.practice)
         form.addRow(_lbl("Einschießbereich"), self.practice_location)
-        form.addRow(_lbl("Maximale Teilnehmerzahl"), self.max_participants)
-        form.addRow("", QLabel("0 = keine Begrenzung", objectName="pageSubtitle"))
         self.practice.toggled.connect(lambda on: form.setRowVisible(self.practice_location, on))
         form.setRowVisible(self.practice_location, self.practice.isChecked())
-        cap_box = QGroupBox("Auslastung")
-        cap_lay = QVBoxLayout(cap_box)
-        cap_lay.setContentsMargins(8, 8, 8, 8)
-        cap_lay.addWidget(self.capacity)
         page.body.addLayout(form)
-        page.body.addWidget(cap_box)
         page.body.addStretch()
-        self._update_capacity()
         return page
 
     def _validate_practice(self) -> bool:

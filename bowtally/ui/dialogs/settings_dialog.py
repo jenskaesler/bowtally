@@ -61,6 +61,7 @@ LABEL_OVERRIDES = {
     "announcement_group_hint": "Gruppenhinweis",
     "default_legal_notes": "Wichtige Hinweise",
     "waitlist_mode": "Warteliste bei Vollbelegung",
+    ss.KEY_PARTICIPANTS_PER_GROUP: "Teilnehmer pro Gruppe",
     ss.KEY_LOG_LEVEL: "Logging-Modus",
 }
 HIDDEN_KEYS = {"print_announcement_logo_footer"}
@@ -1279,6 +1280,10 @@ class SettingsDialog(QDialog):
         elif st.value_type == "integer":
             w = QSpinBox()
             w.setRange(-1_000_000, 1_000_000)
+            if st.key == ss.KEY_PARTICIPANTS_PER_GROUP:
+                w.setRange(1, 999)
+                w.setToolTip("Im Turnier-Assistenten: Startgruppen = maximale Teilnehmerzahl "
+                             "geteilt durch diesen Wert (aufgerundet)")
             w.setValue(int(value or 0))
             w.setFixedWidth(SETTINGS_COMBO_W)
         elif st.category in MULTILINE_CATEGORIES:
