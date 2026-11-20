@@ -227,7 +227,11 @@ class TimeField(QLineEdit):
         QTimer.singleShot(0, self._cursor_to_start_if_blank)
 
 
-CURRENCY_MASK = "9999,99 €;_"
+MIN_EURO_DIGITS = 2      # standard mask __,__ €; it grows while more euro digits are typed
+
+
+def currency_mask(euro_digits: int) -> str:
+    return "9" * euro_digits + ",99 €;_"
 
 
 def format_currency(value: float) -> str:
@@ -236,7 +240,8 @@ def format_currency(value: float) -> str:
 
 class CurrencyField(QLineEdit):
     """Amount in euro: a blank field and the field while editing show the pre-formatted mask
-    ____,__ € (typing "," jumps to the cents), otherwise the formatted amount, e.g. "20,00 €".
+    __,__ €. Typing a third (fourth) euro digit widens it to ___,__ € (____,__ €); "," or "."
+    jumps to the cents. Otherwise the formatted amount is shown, e.g. "20,00 €".
     A blank field reads as None with allow_empty, else as 0."""
     valueChanged = Signal(float)
 
@@ -247,6 +252,9 @@ class CurrencyField(QLineEdit):
         self.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.setMinimumWidth(120)
         self._value: float | None = None
+        self._max_digits = max(MIN_EURO_DIGITS, len(str(int(maximum))))
+        self._slots = MIN_EURO_DIGITS          # euro digits of the current mask
+        self._comma_typed = False
         self._show_formatted()
         self.textChanged.connect(self._on_text)
 
@@ -264,7 +272,7 @@ class CurrencyField(QLineEdit):
         """Not editing: a blank field shows the mask, an amount the formatted text."""
         self.blockSignals(True)
         if self._value is None:
-            self.setInputMask(CURRENCY_MASK)
+            self._set_mask(MIN_EURO_DIGITS)
             self.clear()
         else:
             self.setInputMask("")
@@ -274,13 +282,47 @@ class CurrencyField(QLineEdit):
     def _show_mask(self):
         """Editing: the mask with the current amount (euros left-aligned, cents after ',')."""
         self.blockSignals(True)
-        self.setInputMask(CURRENCY_MASK)
+        self._comma_typed = False
         if self._value is None:
+            self._set_mask(MIN_EURO_DIGITS)
             self.clear()
         else:
             euros, cents = f"{self._value:.2f}".split(".")
+            self._set_mask(len(euros))
             self.setText(f"{euros},{cents}")
+            self._comma_typed = True            # an existing amount: digits stay where they are
         self.blockSignals(False)
+
+    def _set_mask(self, euro_digits: int):
+        self._slots = max(MIN_EURO_DIGITS, min(euro_digits, self._max_digits))
+        self.setInputMask(currency_mask(self._slots))
+
+    def _parts(self) -> tuple[str, str]:
+        euros, _, cents = self.text().replace("€", "").replace(" ", "").partition(",")
+        return euros.replace("_", ""), cents.replace("_", "")
+
+    def keyPressEvent(self, event):
+        if self.inputMask():
+            text = event.text()
+            if text in (",", "."):
+                self._comma_typed = True
+                self.setCursorPosition(self._slots + 1)
+                return
+            if text.isascii() and text.isdigit() and self._widen(text):
+                return
+        super().keyPressEvent(event)
+
+    def _widen(self, digit: str) -> bool:
+        """A further euro digit while the euro part is full: one more slot in front of ','."""
+        euros, cents = self._parts()
+        pos = self.cursorPosition()
+        if (self._comma_typed or cents or len(euros) < self._slots
+                or self._slots >= self._max_digits or pos not in (self._slots, self._slots + 1)):
+            return False
+        self._set_mask(self._slots + 1)
+        self.setText(f"{euros}{digit},")
+        self.setCursorPosition(self._slots + 1)     # behind ',': a further digit widens again
+        return True
 
     def _on_text(self, _text):
         v = self._parse()

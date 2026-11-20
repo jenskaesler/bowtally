@@ -76,17 +76,17 @@ flowchart LR
 - 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
 - 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand) als PDF.
 - 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
-- 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung „Pro Ziel“, „Rundenwertung“ oder „Nur Gesamtpunkte“ (bei den beiden letzten mit Spalte für Kills/X neben den Punkten).
+- 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung „Zielwertung“, „Rundenwertung“ oder „Gesamtwertung“ (bei den beiden letzten mit Spalte für Kills/X neben den Punkten).
 
 ### Stammdaten
 
-- 🏹 **Schützen** – Passnummer, Suche, aktiv/inaktiv; Notizen und Dokumente in eigenen Tabs; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
+- 🏹 **Schützen** – Passnummer, Suche, aktiv/inaktiv; Notizen und Dokumente in eigenen Tabs; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung; jeder Schütze nur einmal je Turnier (Prüfung über Datensatz und Name).
 - 📏 **Regelwerke** – 9 eingebaute Regelwerke mit Gleichstandsregeln nach WA, IBO, IFAA und DBSV (3D Hunter, IBO 3D Standard/12-Ring, WA 3D, DBSV Waldrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m) plus eigene durch Klonen; Kills/X, Disziplin, Gleichstand und Stechen je Regelwerk einstellbar, Regelwerke lesbar exportier-/importierbar.
 - 👥 **Mitglieder** – Mitgliederkartei mit Mitgliedsnummer, Adresse, Einwilligung (Datum erscheint beim Ankreuzen), Notizen und Dokumente in eigenen Tabs, Bankverbindung (IBAN-Prüfziffer, SEPA-Mandat) und Helferhistorie (manuelle Einsätze lassen sich mit einem bestehenden Turnier verknüpfen); Datenauskunft per E-Mail mit maskierter IBAN; Excel-Export/-Import ohne Bankdaten.
 - 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; gesperrt, sobald die Ergebnisliste erstellt ist; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
 - 📦 **Inventar und Logbuch** – Ausrüstung (Ziele, Tische, Pavillons …) mit Kategorien, Preisen, Dokumenten und Reparaturkosten (mit verlinkter Rechnung) verwalten, Artikel aktiv/inaktiv, Parcoursplan mit Bestandsprüfung; Logbuch als Tabelle aller Aktivitäten, eine Zeile je Eintrag (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
-- ⌨️ **Vorformatierte Eingabefelder** – Datum `__.__.____` (mit Kalender), Uhrzeit `__:__` und Beträge `____,__ €` werden direkt im Feld getippt.
+- ⌨️ **Vorformatierte Eingabefelder** – Datum `__.__.____` (mit Kalender), Uhrzeit `__:__` und Beträge `__,__ €` (wächst bei größeren Beträgen bis `____,__ €`) werden direkt im Feld getippt.
 
 ### Einstellungen
 

@@ -163,13 +163,13 @@ Veranstalter und Ort aus dem Vereinsprofil ein; bereits geänderte Felder
 werden erst nach Rückfrage überschrieben. Der Button erscheint nur, wenn im
 Vereinsprofil Name oder Ort hinterlegt sind.</p>
 <h3>2 Konfiguration</h3>
-<p><b>Wertungsmodus</b>: <i>Pro Ziel</i> (Punkte je Ziel und Schuss),
-<i>Rundenwertung</i> (Punkte je Runde) oder <i>Nur Gesamtpunkte</i>.</p>
+<p><b>Wertungsmodus</b>: <i>Zielwertung</i> (Punkte je Ziel und Schuss),
+<i>Rundenwertung</i> (Punkte je Runde) oder <i>Gesamtwertung</i> (nur Gesamtpunkte).</p>
 <p><b>Auslosung oder Startgruppen:</b> Mit <i>Teilnehmer per Auslosung
 einteilen</i> werden die Gruppen später per Auslosung vergeben (das Feld
 Startgruppen ist dann gesperrt und der Tab <i>Zeitplan</i> entfällt). Ohne
 Auslosung trägst du unter <b>Startgruppen</b> die Gruppen ein (z. B.
-<code>A, B, C, D</code>); neue Teilnehmer werden reihum darauf verteilt und im
+<code>A, B, C, D</code>; bei neuen Turnieren sind die Gruppen 1 bis 10 vorbelegt); neue Teilnehmer werden reihum darauf verteilt und im
 Tab <i>Zeitplan</i> bekommen die Gruppen Startzeiten.</p>
 <p><b>Rundenkonfiguration:</b> Jede Runde hat Bezeichnung, Regelwerk (oder
 „Turnier-Standard“), Ziele, Pfeile und Entfernung (Standard, bekannt,
@@ -226,11 +226,13 @@ generieren.</p>
 <p>Im Modul <b>Schützen</b> verwaltest du die Stammdaten aller Vereinsmitglieder.
 Über <b>Importieren</b> lassen sich Schützenlisten als CSV oder Excel einlesen –
 BowTally erkennt gängige Spaltenbezeichnungen automatisch. Zu jedem Schützen
-gehört eine optionale <b>Passnummer</b>; beim Import werden Schützen mit gleicher
-Passnummer als Dubletten erkannt.</p>
+gehört eine optionale <b>Passnummer</b>. Beim Import gilt ein Schütze als bereits
+vorhanden, wenn Passnummer <i>und</i> Name übereinstimmen – oder, ohne Passnummer,
+der Name (bei bekanntem Geburtsdatum auch dieses).</p>
 <p>Datums-, Uhrzeit- und Betragsfelder sind vorformatiert (<code>__.__.____</code>,
-<code>__:__</code>, <code>____,__ €</code>): Einfach ins Feld klicken und die Ziffern
-tippen – bei Beträgen springt ein Komma zu den Cent. Den Kalender öffnet das Symbol
+<code>__:__</code>, <code>__,__ €</code>): Einfach ins Feld klicken und die Ziffern
+tippen. Bei Beträgen wächst die Maske mit, wenn du mehr als zwei Stellen vor dem Komma
+tippst (bis <code>____,__ €</code>); ein Komma oder Punkt springt zu den Cent. Den Kalender öffnet das Symbol
 rechts im Datumsfeld oder F4.</p>
 <p>Schützen können als <b>inaktiv</b> markiert werden und werden dann aus
 Auswahllisten ausgeblendet. Die Checkbox <i>Inaktive Schützen anzeigen</i>
@@ -264,6 +266,12 @@ abgewählt):</p>
 Bogenklassen im folgenden Dialog individuell anpassen. <b>Neuer Schütze</b>
 (links daneben) legt einen Schützen in den Stammdaten an und weist ihn
 gleichzeitig dem geöffneten Turnier zu.</p>
+<p>Jede Person kann nur einmal am Turnier teilnehmen. BowTally prüft das beim
+Zuweisen, beim Import, bei Walk-ins und bei <b>Neuer Schütze</b> über den
+Schützen-Datensatz und zusätzlich über den Namen (Groß-/Kleinschreibung egal; zwei
+Personen mit gleichem Namen werden nur durch unterschiedliche Geburtsdaten
+unterschieden). Doppelte werden übersprungen und gemeldet; bei <b>Neuer Schütze</b>
+kannst du den gerade angelegten doppelten Stammdatensatz direkt wieder löschen.</p>
 <h3>Anmeldestatus</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
   <tr><td><b>Gemeldet</b></td><td>Anmeldung eingegangen, noch nicht bestätigt</td></tr>
@@ -371,7 +379,7 @@ Jede Zelle wird sofort gespeichert; <b>Speichern</b> (Strg+S) bestätigt dies nu
   <li>Bei mehreren Runden wählst du die Runde über Tabs über der Tabelle</li>
   <li>Zählt das Regelwerk Kills oder X-Treffer, erscheinen zusätzliche Spalten</li>
 </ul>
-<p>Bei den Wertungsmodi <i>Rundenwertung</i> und <i>Nur Gesamtpunkte</i> trägst du stattdessen
+<p>Bei den Wertungsmodi <i>Rundenwertung</i> und <i>Gesamtwertung</i> trägst du stattdessen
 die Punkte je Runde bzw. die Gesamtpunkte in einer einfachen Tabelle ein. Dort
 werden nur Zahlen angenommen.</p>
 <p>Ist die Auswertung geschlossen (Ergebnisliste erstellt) oder das Turnier abgeschlossen, ist
@@ -401,8 +409,8 @@ du in der <b>Auswertung</b> über <b>Stechen eintragen</b> ein (Punkte je Teilne
 steht vorn; gleiche Werte bleiben gleichauf, z.&nbsp;B. wenn das Stechen weitergeht). Das geht,
 bis die Ergebnisliste erstellt ist. Eingetragene Werte erscheinen als Spalte <b>Stechen</b> in der
 Ergebnisansicht, in den Exporten und in der Ergebnisliste.
-Bei <b>Pro Ziel</b> werden Kills und X-Treffer aus den gewählten Zonen gezählt, bei
-<b>Nur Gesamtpunkte</b> und <b>Rundenwertung</b> trägst du die Anzahl in der Spalte neben den
+Bei <b>Zielwertung</b> werden Kills und X-Treffer aus den gewählten Zonen gezählt, bei
+<b>Gesamtwertung</b> und <b>Rundenwertung</b> trägst du die Anzahl in der Spalte neben den
 Punkten ein (erst die Punkte, dann die Anzahl).</p>
 <h3>Exportieren</h3>
 <p>Ranglisten lassen sich als Excel, OpenDocument oder CSV sowie als PDF exportieren, siehe

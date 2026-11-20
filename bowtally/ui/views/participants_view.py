@@ -774,11 +774,17 @@ class ParticipantsView(QWidget):
                     by_archer = {p.archer_id: p.id
                                  for p in ts.get_tournament(t.id).participants}
                     for aid, cid in choices.items():
-                        ts.update_participant(by_archer[aid], {"bow_class_id": cid})
+                        if aid in by_archer:        # skipped duplicates have no participant
+                            ts.update_participant(by_archer[aid], {"bow_class_id": cid})
         except Exception as exc:
             show_error(self, exc)
             return
-        Toast.show(self, f"{added} Teilnehmer zugewiesen", Toast.SUCCESS)
+        skipped = len(ids) - added
+        if skipped:
+            Toast.show(self, f"{added} Teilnehmer zugewiesen, {skipped} übersprungen – bereits "
+                             "im Turnier (gleicher Schütze oder gleicher Name)", Toast.WARNING)
+        else:
+            Toast.show(self, f"{added} Teilnehmer zugewiesen", Toast.SUCCESS)
         self._reload()
 
     def new_archer(self):
@@ -791,6 +797,20 @@ class ParticipantsView(QWidget):
         if not dlg.exec() or not dlg.saved_id:
             return
         archer = md.get_archer(dlg.saved_id)
+        dup = ts.find_duplicate_participant(ts.get_tournament(t.id), archer.id, archer.first_name,
+                                            archer.last_name, archer.birth_date)
+        if dup is not None:
+            name = f"{dup.archer.first_name} {dup.archer.last_name}"
+            if ConfirmDialog.ask(
+                    self, "Bereits Teilnehmer",
+                    f"{name} ist bereits Teilnehmer dieses Turniers (Startnummer "
+                    f"{dup.start_number or '–'}). Der Schütze wird nicht noch einmal zugewiesen.\n\n"
+                    "Den eben angelegten Stammdatensatz wieder löschen?",
+                    "Löschen", destructive=True):
+                md.delete_archer(archer.id)
+                Toast.show(self, "Doppelter Stammdatensatz gelöscht", Toast.INFO)
+            self._reload()
+            return
         class_id = None
         if archer.default_bow_class_id not in {bc.id for bc in t.bow_classes}:
             cdlg = ClassAssignDialog([archer], t.bow_classes, self)
@@ -836,8 +856,11 @@ class ParticipantsView(QWidget):
         except Exception as exc:
             show_error(self, exc, "Import fehlgeschlagen")
             return
+        dup = r.get("duplicates", 0)
         Toast.show(self, f"{r['added']} Teilnehmer hinzugefügt ({r['created']} Schützen neu "
-                         f"angelegt, {r['updated']} aktualisiert)", Toast.SUCCESS)
+                         f"angelegt, {r['updated']} aktualisiert)"
+                         + (f", {dup} bereits im Turnier übersprungen" if dup else ""),
+                   Toast.WARNING if dup else Toast.SUCCESS)
         self._reload()
 
     def _run_draw(self):

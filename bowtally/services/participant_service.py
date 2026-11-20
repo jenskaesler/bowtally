@@ -11,7 +11,7 @@ from bowtally.database.models import (PAYMENT_STATUSES, REGISTRATION_STATUSES, A
 from bowtally.services import ValidationError
 from bowtally.services.master_data_service import _clean_archer
 from bowtally.services.tournament_service import (CapacityInfo, _add, _check_editable,
-                                                  capacity_info)
+                                                  capacity_info, find_duplicate_participant)
 
 REGISTRATION_LABELS = {
     "registered": "Gemeldet", "confirmed": "Bestätigt", "checked_in": "Eingecheckt",
@@ -153,6 +153,11 @@ def register_walk_in(tournament_id: int, archer_data: dict, bow_class_id: int,
     with session_scope() as s:
         t = s.get(Tournament, tournament_id)
         _check_editable(t)
+        dup = find_duplicate_participant(t, None, archer_data["first_name"],
+                                         archer_data["last_name"], archer_data.get("birth_date"))
+        if dup is not None:
+            raise ValidationError(f"{dup.archer.first_name} {dup.archer.last_name} ist bereits "
+                                  "Teilnehmer dieses Turniers.")
         archer = find_archer(s, archer_data.get("pass_number"), archer_data["first_name"],
                              archer_data["last_name"])
         if archer is None:

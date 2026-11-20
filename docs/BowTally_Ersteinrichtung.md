@@ -46,9 +46,9 @@ Gehe zu **Stammdaten → Schützen** und lege die Schützen an, die regelmäßig
 - Verein
 - Standard-Bogenklasse (kann beim Anmelden überschrieben werden)
 - E-Mail-Adresse (optional, für Bestätigungen)
-- Passnummer (optional; beim Import werden Schützen mit gleicher Passnummer als Dubletten erkannt)
+- Passnummer (optional; beim Import erkennt BowTally vorhandene Schützen an Passnummer und Name, ohne Passnummer am Namen)
 
-Datums-, Uhrzeit- und Betragsfelder sind vorformatiert (`__.__.____`, `__:__`, `____,__ €`) – einfach ins Feld klicken und die Ziffern tippen.
+Datums-, Uhrzeit- und Betragsfelder sind vorformatiert (`__.__.____`, `__:__`, `__,__ €`) – einfach ins Feld klicken und die Ziffern tippen. Bei Beträgen mit mehr als zwei Stellen vor dem Komma wächst die Maske automatisch mit.
 
 > **Tipp:** Schützen lassen sich auch direkt im Turnier über **Neuer Schütze** (Tab Teilnehmer) anlegen und gleich zuweisen. Der Schützen-Stamm muss nicht vorab vollständig sein.
 

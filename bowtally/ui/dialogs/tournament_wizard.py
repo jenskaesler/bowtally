@@ -26,6 +26,7 @@ from bowtally.ui.components.toast import Toast
 DEFAULT_TARGETS = 28
 DEFAULT_DEADLINE_DAYS = 14
 WIZARD_LABEL_W = 200   # fixed label column so all pages align
+DEFAULT_START_GROUPS = ", ".join(str(i) for i in range(1, 11))
 WIZARD_COMBO_W = 220   # fixed width for combos / date / time / spin
 STEPS = ["Grunddaten", "Konfiguration", "Bogenklassen", "Fristen und Zeiten",
          "Startgebühren", "Kontakt und Bank", "Hinweise und Texte", "Zusammenfassung"]
@@ -313,7 +314,9 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 1 config
     def _page_config(self) -> QWizardPage:
-        self.groups = QLineEdit(self._t("start_groups", ""))
+        # new tournaments start with groups 1 to 10; existing ones keep their groups
+        default_groups = "" if self.tournament is not None else DEFAULT_START_GROUPS
+        self.groups = QLineEdit(self._t("start_groups", default_groups) or default_groups)
         self.groups.setPlaceholderText("z. B. A, B, C, D")
         self._draw_cb = QCheckBox("Teilnehmer per Auslosung einteilen")
         self._draw_cb.setChecked(bool(self._t("use_draw", False)))
@@ -323,9 +326,9 @@ class TournamentWizard(QWizard):
         self.scoring_mode = QComboBox()
         self.scoring_mode.setFixedWidth(WIZARD_COMBO_W)
         for val, lbl in [
-            ("per_target", "Pro Ziel"),
+            ("per_target", "Zielwertung"),
             ("per_round", "Rundenwertung"),
-            ("total_only", "Nur Gesamtpunkte"),
+            ("total_only", "Gesamtwertung"),
         ]:
             self.scoring_mode.addItem(lbl, val)  # noqa: just loop body
         cur = self._t("scoring_mode", "per_target")

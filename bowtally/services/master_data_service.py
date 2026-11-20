@@ -205,9 +205,13 @@ def get_notifiable_archers() -> list[Archer]:
 
 def find_archer(s, pass_number: str | None, first_name: str, last_name: str,
                 birth_date: date | None = None) -> Archer | None:
-    """Duplicate lookup: pass number wins, else name (+ birth date when given)."""
+    """Duplicate lookup: the pass number (optional) finds an archer only together with the same
+    name; otherwise the name (+ birth date when given on both sides) decides."""
     if pass_number:
-        hit = s.scalar(select(Archer).where(Archer.pass_number == pass_number))
+        hit = s.scalar(select(Archer).where(
+            Archer.pass_number == pass_number,
+            func.lower(Archer.first_name) == first_name.lower(),
+            func.lower(Archer.last_name) == last_name.lower()))
         if hit is not None:
             return hit
     q = select(Archer).where(func.lower(Archer.first_name) == first_name.lower(),

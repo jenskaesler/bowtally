@@ -29,7 +29,7 @@ def _locked(t) -> tuple[bool, str]:
 
 
 class AmountField(CurrencyField):
-    """Euro amount (mask ____,__ €); blank counts as 0."""
+    """Euro amount (mask __,__ €, grows to ____,__ €); blank counts as 0."""
 
     def __init__(self):
         super().__init__(allow_empty=False)
