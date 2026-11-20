@@ -45,6 +45,11 @@ _CONTEXT_ICONS = {
     "E-Mail: Anmeldebestätigung senden": "mail",
     "E-Mail: Zahlungserinnerung senden": "mail",
     "E-Mail: Startunterlagen senden": "mail",
+    "WhatsApp: Anmeldebestätigung senden": "chat",
+    "WhatsApp: Zahlungserinnerung senden": "chat",
+    "WhatsApp: Startunterlagen senden": "chat",
+    "WhatsApp: Bestätigung senden": "chat",
+    "WhatsApp: Datenauskunft senden": "chat",
 }
 
 # new = blue (theme primary), edit = yellow, delete = red (theme accent); other icons keep the default color

@@ -10,7 +10,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDoubleS
 from bowtally.io.importer import MEMBER_IMPORT_FIELDS
 from bowtally.services import member_service as ms
 from bowtally.services import tournament_service as ts
-from bowtally.services.settings_service import KEY_EMAIL_TPL_DATA_REQUEST
+from bowtally.services.settings_service import (KEY_EMAIL_TPL_DATA_REQUEST,
+                                                KEY_WHATSAPP_TPL_DATA_REQUEST)
 from bowtally.services import ValidationError
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
@@ -26,6 +27,7 @@ from bowtally.ui.dialogs.export_helper import export_button
 from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.utils.mailto import open_mailto
+from bowtally.ui.utils.whatsapp import normalize_phone, open_whatsapp
 from bowtally.ui.views import ListView
 
 HEADERS = ["Mitgliedsnummer", "Name", "Ort", "E-Mail", "Status", "Turnierhelfer"]
@@ -363,6 +365,9 @@ class MembersView(ListView):
         entries = [("Bearbeiten", self.edit_item)]
         if m.email:
             entries.append(("Datenauskunft senden", lambda: self._send_data_request(row_id)))
+        if normalize_phone(m.phone):
+            entries.append(("WhatsApp: Datenauskunft senden",
+                            lambda: self._send_data_request_whatsapp(row_id)))
         entries.append(("Als inaktiv markieren" if m.active else "Wieder aktivieren",
                         lambda: self._set_active(row_id, not m.active)))
         return entries + [None, ("Löschen", self.delete_selected)]
@@ -431,6 +436,13 @@ class MembersView(ListView):
             "name": f"{m.first_name} {m.last_name}", "first_name": m.first_name,
             "last_name": m.last_name, "daten": ms.data_summary(member_id),
         }, self, as_draft=True)
+
+    def _send_data_request_whatsapp(self, member_id: int):
+        m = self._rows[member_id]
+        open_whatsapp(KEY_WHATSAPP_TPL_DATA_REQUEST, m.phone, {
+            "name": f"{m.first_name} {m.last_name}", "first_name": m.first_name,
+            "last_name": m.last_name, "daten": ms.data_summary(member_id),
+        }, self)
 
     # ---------------------------------------------------------------- import / export
     def _import(self):

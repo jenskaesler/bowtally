@@ -13,6 +13,7 @@ from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 from bowtally.ui import burger_button, busy, button, restore_geom, save_geom, show_error, theme
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
+from bowtally.ui.utils.whatsapp import normalize_phone, send_whatsapp
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
@@ -36,6 +37,24 @@ CLOSED_HINT = "Das Turnier ist abgeschlossen, Änderungen sind gesperrt."
 
 def money(amount: float | None) -> str:
     return "–" if amount is None else f"{amount:.2f} €".replace(".", ",")
+
+
+def participant_ctx(p, t, **extra) -> dict:
+    """Placeholders of the participant templates (e-mail and WhatsApp)."""
+    return {
+        "name": f"{p.archer.first_name} {p.archer.last_name}",
+        "verein": p.archer.club or "",
+        "klasse": p.bow_class.name if p.bow_class else "",
+        "turniername": t.name,
+        "datum": f"{t.date:%d.%m.%Y}",
+        **extra,
+        **tournament_ctx(t, p),
+    }
+
+
+def whatsapp_recipients(parts, t, **extra) -> list:
+    return [(f"{p.archer.last_name}, {p.archer.first_name}", p.archer.phone,
+             participant_ctx(p, t, **extra)) for p in parts]
 
 
 def full_hint(cap) -> str:
@@ -163,22 +182,26 @@ class _WaitlistNotifyDialog(QDialog):
         self.lst = QListWidget()
         for p in waitlisted:
             has_email = bool(p.archer.email)
-            text = (f"{p.archer.last_name}, {p.archer.first_name}"
-                    + (f"   {p.archer.email}" if has_email else "   (keine E-Mail)"))
-            item = QListWidgetItem(text)
+            has_phone = bool(normalize_phone(p.archer.phone))
+            contact = "   ".join(filter(None, [p.archer.email, p.archer.phone if has_phone
+                                               else None])) or "(keine E-Mail, kein Telefon)"
+            item = QListWidgetItem(f"{p.archer.last_name}, {p.archer.first_name}   {contact}")
             item.setData(Qt.ItemDataRole.UserRole, p)
-            if has_email:
+            if has_email or has_phone:
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(Qt.CheckState.Checked)
             else:
                 item.setFlags(Qt.ItemFlag.NoItemFlags)
-                item.setToolTip("Keine E-Mail-Adresse hinterlegt")
+                item.setToolTip("Keine E-Mail-Adresse und keine gültige Telefonnummer hinterlegt")
             self.lst.addItem(item)
         self.lst.itemChanged.connect(self._update_btn)
         self.btn = button("E-Mail senden (0)", self._send, "primary")
+        self.btn_wa = button("WhatsApp senden (0)", self._send_whatsapp,
+                             tooltip="Chats nacheinander öffnen (nur mit gültiger Telefonnummer)")
         row = QHBoxLayout()
         row.addStretch()
         row.addWidget(button("Schließen", self.reject))
+        row.addWidget(self.btn_wa)
         row.addWidget(self.btn)
         lay = QVBoxLayout(self)
         lay.addWidget(info)
@@ -186,13 +209,25 @@ class _WaitlistNotifyDialog(QDialog):
         lay.addLayout(row)
         self._update_btn()
 
+    def _checked(self) -> list:
+        return [self.lst.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.lst.count())
+                if self.lst.item(i).checkState() == Qt.CheckState.Checked]
+
     def _update_btn(self, *_):
-        n = sum(
-            1 for i in range(self.lst.count())
-            if self.lst.item(i).checkState() == Qt.CheckState.Checked
-        )
+        checked = self._checked()
+        n = sum(1 for p in checked if p.archer.email)
+        n_wa = sum(1 for p in checked if normalize_phone(p.archer.phone))
         self.btn.setText(f"E-Mail senden ({n})")
         self.btn.setEnabled(n > 0)
+        self.btn_wa.setText(f"WhatsApp senden ({n_wa})")
+        self.btn_wa.setEnabled(n_wa > 0)
+
+    def _send_whatsapp(self):
+        recipients = [p for p in self._checked() if normalize_phone(p.archer.phone)]
+        send_whatsapp(self, ss.KEY_WHATSAPP_TPL_WAITLIST,
+                      whatsapp_recipients(recipients, self._tournament,
+                                          freigewordene_plaetze=str(self._freed)),
+                      "Warteliste per WhatsApp benachrichtigen")
 
     def _send(self):
         t = self._tournament
@@ -201,6 +236,8 @@ class _WaitlistNotifyDialog(QDialog):
             if item.checkState() != Qt.CheckState.Checked:
                 continue
             p = item.data(Qt.ItemDataRole.UserRole)
+            if not p.archer.email:               # checked for WhatsApp only
+                continue
             open_mailto(ss.KEY_EMAIL_TPL_WAITLIST, p.archer.email, {
                 "name": f"{p.archer.first_name} {p.archer.last_name}",
                 "verein": p.archer.club or "",
@@ -570,6 +607,16 @@ class ParticipantsView(QWidget):
             ("E-Mail: Startunterlagen senden",
              lambda: self._send_email(ss.KEY_EMAIL_TPL_DOCS), email_ok),
         ]
+        wa_ok = not locked and any(normalize_phone(p.archer.phone) for p in sel)
+        entries += [
+            None,
+            ("WhatsApp: Anmeldebestätigung senden",
+             lambda: self._send_whatsapp(ss.KEY_WHATSAPP_TPL_CONFIRMATION), wa_ok),
+            ("WhatsApp: Zahlungserinnerung senden",
+             lambda: self._send_whatsapp(ss.KEY_WHATSAPP_TPL_PAYMENT), wa_ok),
+            ("WhatsApp: Startunterlagen senden",
+             lambda: self._send_whatsapp(ss.KEY_WHATSAPP_TPL_DOCS), wa_ok),
+        ]
         menu(self, entries).exec(pos)
 
     def confirm_selected(self):
@@ -741,6 +788,14 @@ class ParticipantsView(QWidget):
                 "datum": f"{t.date:%d.%m.%Y}",
                 **tournament_ctx(t, p),
             }, self)
+
+    def _send_whatsapp(self, template_key: str):
+        """One participant: open the chat; several: one after another in a dialog."""
+        sel = self._selected()
+        if not sel:
+            Toast.show(self, "Keine Empfänger ausgewählt.", Toast.WARNING)
+            return
+        send_whatsapp(self, template_key, whatsapp_recipients(sel, self.tournament))
 
     # ------------------------------------------------------------ add / import
     def pick_archers(self):

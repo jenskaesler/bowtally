@@ -165,7 +165,8 @@ class SettingsDialog(QDialog):
                                  ("bank", "Bankdaten")]),
         ("TURNIERVERWALTUNG",  [("behavior", "Allgemein"),
                                  ("print", "Textvorlagen"),
-                                 ("email", "E-Mail-Vorlagen")]),
+                                 ("email", "E-Mail-Vorlagen"),
+                                 ("whatsapp", "WhatsApp-Vorlagen")]),
         ("SYSTEM",             [("general", "Allgemein"),
                                  ("backup", "Backup"),
                                  ("design", "Design"),
@@ -195,6 +196,7 @@ class SettingsDialog(QDialog):
                                             extra=self._inventory_categories_box())),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
+            ("whatsapp", self._whatsapp_tab()),
             ("general", self._category_tab("ui", extra=self._general_tab())),
             ("backup",   self._backup_tab()),
             ("advanced", self._advanced_tab()),
@@ -1211,6 +1213,40 @@ class SettingsDialog(QDialog):
             self.value_widgets[subj_key] = subj
             self.value_widgets[body_key] = body
             form.addRow(self._flbl("Betreff"), subj)
+            form.addRow(self._flbl("Text"), _with_grip(body))
+            lay.addWidget(box)
+        lay.addStretch()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(inner)
+        return scroll
+
+    def _whatsapp_tab(self) -> QWidget:
+        """Like the e-mail tab, but one text per template (WhatsApp has no subject)."""
+        values = {st.key: st.value or "" for st in self.settings}
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
+        lay.setSpacing(10)
+        note = QLabel("WhatsApp öffnet einen Chat mit vorausgefülltem Text (wa.me); gesendet "
+                      "wird erst in WhatsApp. Anhänge sind nicht möglich – Ergebnisversand und "
+                      "Turnier-Ankündigung gibt es deshalb nur per E-Mail. Es gelten die "
+                      "Platzhalter der E-Mail-Vorlagen.", objectName="pageSubtitle")
+        note.setWordWrap(True)
+        lay.addWidget(note)
+        lay.addWidget(help_link("Referenz", "platzhalter-email", "Platzhalter in der Hilfe"))
+        for title, key in (
+            ("Anmeldebestätigung", ss.KEY_WHATSAPP_TPL_CONFIRMATION),
+            ("Zahlungserinnerung", ss.KEY_WHATSAPP_TPL_PAYMENT),
+            ("Startunterlagen", ss.KEY_WHATSAPP_TPL_DOCS),
+            ("Wartelisten-Nachrücker", ss.KEY_WHATSAPP_TPL_WAITLIST),
+            ("Helfer-Bestätigung", ss.KEY_WHATSAPP_TPL_HELPER),
+            ("Datenauskunft (Mitglieder)", ss.KEY_WHATSAPP_TPL_DATA_REQUEST),
+        ):
+            box = QGroupBox(title)
+            form = self._form(box)
+            body = QPlainTextEdit(values.get(key, ""))
+            body.setMinimumHeight(90)
+            self.value_widgets[key] = body
             form.addRow(self._flbl("Text"), _with_grip(body))
             lay.addWidget(box)
         lay.addStretch()

@@ -292,3 +292,35 @@ def test_archer_pass_number_round_trip_and_old_member_number(tmp_path, monkeypat
     backup_service._restore_impl(exported)          # the new format restores unchanged
     with sqlite3.connect(db_path) as con:
         assert dict(con.execute("SELECT id, pass_number FROM archers")) == {1: "M-7", 2: "P-1"}
+
+
+def test_new_settings_round_trip_and_defaults_for_older_backups(tmp_path, monkeypatch):
+    """WhatsApp templates and participants per group are in the backup; an older backup without
+    them gets the defaults instead of empty values."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from bowtally.services import settings_service as ss
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+    older = {"meta": {"format_version": "4"}, "data": {"app_settings": [
+        {"key": "waitlist_mode", "value": "block", "category": "behavior", "value_type": "string"}]}}
+    backup_service._restore_impl(older)
+    with sqlite3.connect(db_path) as con:
+        values = dict(con.execute("SELECT key, value FROM app_settings"))
+    assert values["waitlist_mode"] == "block"
+    assert values[ss.KEY_PARTICIPANTS_PER_GROUP] == "5"
+    assert "{first_name}" in values[ss.KEY_WHATSAPP_TPL_HELPER]
+
+    with sqlite3.connect(db_path) as con:
+        con.execute("UPDATE app_settings SET value = '8' WHERE key = ?", (ss.KEY_PARTICIPANTS_PER_GROUP,))
+        con.execute("UPDATE app_settings SET value = 'Hi {name}' WHERE key = ?",
+                    (ss.KEY_WHATSAPP_TPL_DOCS,))
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}")
+    with Session(engine) as session:
+        exported = backup_service.create_backup(session, "test")
+    engine.dispose()
+    backup_service._restore_impl(exported)
+    with sqlite3.connect(db_path) as con:
+        values = dict(con.execute("SELECT key, value FROM app_settings"))
+    assert values[ss.KEY_PARTICIPANTS_PER_GROUP] == "8"
+    assert values[ss.KEY_WHATSAPP_TPL_DOCS] == "Hi {name}"

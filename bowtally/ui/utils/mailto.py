@@ -81,6 +81,28 @@ def _html_body(body: str, font: str) -> str:
     return f'<div style="{family}font-size:{MAIL_FONT_SIZE_PT}pt">{inner}</div>'
 
 
+def template_context(context: dict, with_logo: bool = True) -> "_SafeDict":
+    """Placeholders available in every message template (club profile + `context`).
+    Shared by the e-mail and the WhatsApp templates; `logo` only for e-mail (HTML)."""
+    profile = ss.get_club_profile()
+    contact = " ".join(filter(None, [profile.get("first_board_fname"),
+                                     profile.get("first_board_lname")]))
+    full_name = context.get("name") or " ".join(
+        filter(None, [context.get("first_name"), context.get("last_name")]))
+    base = {
+        "name": full_name,
+        "first_name": context.get("first_name", ""),
+        "last_name": context.get("last_name", ""),
+        "vereinsname": profile.get("club_name") or "",
+        "kontakt_name": contact,
+        "kontakt_email": profile.get("email") or "",
+        "kontakt_telefon": profile.get("phone") or "",
+    }
+    if with_logo:
+        base["logo"] = _logo_data_uri(profile.get("logo_path"))
+    return _SafeDict({**base, **context})
+
+
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
                 parent=None, attachment: Path | None = None, bcc: str | None = None,
                 as_draft: bool = False) -> None:
@@ -105,22 +127,7 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
                    "Bitte unter Einstellungen > E-Mail-Vorlagen prüfen.",
                    Toast.WARNING)
         return
-    profile = ss.get_club_profile()
-    contact = " ".join(filter(None, [profile.get("first_board_fname"),
-                                     profile.get("first_board_lname")]))
-    full_name = context.get("name") or " ".join(
-        filter(None, [context.get("first_name"), context.get("last_name")]))
-    ctx = _SafeDict({
-        "name": full_name,
-        "first_name": context.get("first_name", ""),
-        "last_name": context.get("last_name", ""),
-        "vereinsname": profile.get("club_name") or "",
-        "kontakt_name": contact,
-        "kontakt_email": profile.get("email") or "",
-        "kontakt_telefon": profile.get("phone") or "",
-        "logo": _logo_data_uri(profile.get("logo_path")),
-        **context,
-    })
+    ctx = template_context(context)
     subj = (subj_raw or "").format_map(ctx)
     body = (body_raw or "").format_map(ctx)
     if attachment or as_draft:

@@ -46,6 +46,13 @@ KEY_EMAIL_TPL_WAITLIST = "email_waitlist"
 KEY_EMAIL_TPL_HELPER = "email_helper"
 KEY_EMAIL_TPL_DATA_REQUEST = "email_data_request"
 KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE = "email_tpl_tournament_announce"
+# WhatsApp templates (click-to-chat wa.me): only a body, full settings key
+KEY_WHATSAPP_TPL_CONFIRMATION = "whatsapp_reg_body"
+KEY_WHATSAPP_TPL_PAYMENT = "whatsapp_payment_body"
+KEY_WHATSAPP_TPL_DOCS = "whatsapp_docs_body"
+KEY_WHATSAPP_TPL_WAITLIST = "whatsapp_waitlist_body"
+KEY_WHATSAPP_TPL_HELPER = "whatsapp_helper_body"
+KEY_WHATSAPP_TPL_DATA_REQUEST = "whatsapp_data_request_body"
 
 COLOR_PREFIX = "color_"
 

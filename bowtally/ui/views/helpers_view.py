@@ -5,9 +5,10 @@ from PySide6.QtWidgets import (QCheckBox, QDialog, QHBoxLayout, QLineEdit, QList
                                QListWidgetItem, QVBoxLayout)
 
 from bowtally.services import helper_service as hs
-from bowtally.services.settings_service import KEY_EMAIL_TPL_HELPER
+from bowtally.services.settings_service import KEY_EMAIL_TPL_HELPER, KEY_WHATSAPP_TPL_HELPER
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.utils.mailto import open_mailto, tournament_ctx
+from bowtally.ui.utils.whatsapp import normalize_phone, open_whatsapp
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
@@ -218,19 +219,21 @@ class HelpersView(ListView):
         th = self._rows.get(row_id)
         if th is None:
             return []
+        _name, phone, email = hs.display_contact(th)
+        contact = []                        # sending stays possible after the results list
+        if email:
+            contact.append(("Bestätigung senden", lambda: self._mailto(row_id)))
+        if normalize_phone(phone):
+            contact.append(("WhatsApp: Bestätigung senden", lambda: self._whatsapp(row_id)))
         if self._locked:
-            return [("Bestätigung senden", lambda: self._mailto(row_id))]                 if hs.display_contact(th)[2] else []
-        entries = [("Bearbeiten", self.edit_item)]
-        if hs.display_contact(th)[2]:
-            entries.append(("Bestätigung senden", lambda: self._mailto(row_id)))
+            return contact
         new_confirmed = not th.confirmed
-        entries += [
+        return [("Bearbeiten", self.edit_item)] + contact + [
             ("Als bestätigt markieren" if new_confirmed else "Bestätigung zurücksetzen",
              lambda: self._toggle_confirmed(row_id, new_confirmed)),
             None,
             ("Entfernen", self.delete_selected),
         ]
-        return entries
 
     # ---------------------------------------------------------------- new / edit
     def new_item(self):
@@ -318,8 +321,24 @@ class HelpersView(ListView):
         t = context.tournament()
         if th is None or t is None:
             return
+        open_mailto(KEY_EMAIL_TPL_HELPER, hs.display_contact(th)[2],
+                    self._helper_ctx(th, t), self)
+
+    def _whatsapp(self, assignment_id: int):
+        th = self._rows.get(assignment_id)
+        t = context.tournament()
+        if th is None or t is None:
+            return
         person = th.member or th
-        open_mailto(KEY_EMAIL_TPL_HELPER, hs.display_contact(th)[2], {
+        open_whatsapp(KEY_WHATSAPP_TPL_HELPER, hs.display_contact(th)[1], {
+            **self._helper_ctx(th, t),
+            "first_name": person.first_name or "", "last_name": person.last_name or "",
+        }, self)
+
+    @staticmethod
+    def _helper_ctx(th, t) -> dict:
+        person = th.member or th
+        return {
             "name": f"{person.first_name} {person.last_name}",
             "turniername": t.name,
             "datum": f"{t.date:%d.%m.%Y}",
@@ -327,7 +346,7 @@ class HelpersView(ListView):
             "von": th.time_from or "",
             "bis": th.time_to or "",
             **tournament_ctx(t),
-        }, self)
+        }
 
     def _export_sheets(self, filtered: bool):
         ids = self.table.visible_ids() if filtered else list(self._rows)

@@ -160,6 +160,41 @@ DEFAULT_SETTINGS = [
      "Melde dich dazu einfach bei uns.\n\n"
      "Mit sportlichen Grüßen\n{kontakt_name}\n{vereinsname}",
      "email", "string", "E-Mail-Vorlage: Text Datenauskunft"),
+    # WhatsApp templates (wa.me click-to-chat): short texts, no subject, no attachment;
+    # same placeholders as the e-mail templates except {logo}
+    ("whatsapp_reg_body",
+     "Hallo {first_name}, deine Anmeldung zum {turniername} am {datum} in {ort} ist "
+     "bestätigt. Klasse: {klasse}, Startgruppe: {startgruppe}, Startnummer: {startnummer}. "
+     "Wir freuen uns auf dich! Viele Grüße, {kontakt_name} ({vereinsname})",
+     "whatsapp", "string", "WhatsApp-Vorlage: Anmeldebestätigung"),
+    ("whatsapp_payment_body",
+     "Hallo {first_name}, für deine Anmeldung zum {turniername} am {datum} ist das Startgeld "
+     "noch nicht bei uns eingegangen. Kontoinhaber: {bank_account_holder}, IBAN: {iban}, "
+     "Verwendungszweck: {verwendungszweck}. Vielen Dank! Viele Grüße, {kontakt_name} "
+     "({vereinsname})",
+     "whatsapp", "string", "WhatsApp-Vorlage: Zahlungserinnerung"),
+    ("whatsapp_docs_body",
+     "Hallo {first_name}, die Infos für den {turniername} am {datum}: Treffpunkt {ort}, "
+     "Einschreibung ab {checkin_start_time} Uhr, Schießbeginn {shooting_start_time} Uhr. "
+     "Klasse: {klasse}, Startgruppe: {startgruppe}, Startzeit: {startzeit}. Bis bald! "
+     "Viele Grüße, {kontakt_name} ({vereinsname})",
+     "whatsapp", "string", "WhatsApp-Vorlage: Startunterlagen"),
+    ("whatsapp_waitlist_body",
+     "Hallo {first_name}, für den {turniername} am {datum} ist ein Platz frei geworden und du "
+     "kannst von der Warteliste nachrücken (Klasse: {klasse}). Gib uns bitte kurz Bescheid, "
+     "ob du teilnimmst. Viele Grüße, {kontakt_name} ({vereinsname})",
+     "whatsapp", "string", "WhatsApp-Vorlage: Wartelisten-Nachrücker"),
+    ("whatsapp_helper_body",
+     "Hallo {first_name}, vielen Dank, dass du uns beim {turniername} am {datum} in {ort} "
+     "hilfst. Aufgabe: {aufgabe}, von {von} bis {bis} Uhr. Bitte melde dich vor Beginn bei "
+     "{kontakt_name} ({kontakt_telefon}). Viele Grüße, {vereinsname}",
+     "whatsapp", "string", "WhatsApp-Vorlage: Helfer-Bestätigung"),
+    ("whatsapp_data_request_body",
+     "Hallo {first_name}, auf deine Anfrage hier die Auskunft, welche Daten {vereinsname} über "
+     "dich gespeichert hat (Art. 15 DSGVO):\n\n{daten}\n\nDie IBAN ist bis auf die letzten "
+     "vier Stellen unkenntlich gemacht. Du kannst jederzeit Berichtigung oder Löschung "
+     "verlangen. Viele Grüße, {kontakt_name}",
+     "whatsapp", "string", "WhatsApp-Vorlage: Datenauskunft (Mitglieder)"),
     ("email_tpl_tournament_announce_subject",
      "Turnierankündigung: {turniername} am {datum}", "email", "string",
      "E-Mail-Vorlage: Betreff Turnierankündigung"),

@@ -161,13 +161,14 @@ eine Fortschrittsleiste den aktuellen Schritt; die Zusammenfassung enthält
 Beschreibung. Der Button <b>Vereinsdaten übernehmen</b> in der Fußzeile trägt
 Veranstalter und Ort aus dem Vereinsprofil ein; bereits geänderte Felder
 werden erst nach Rückfrage überschrieben. Der Button erscheint nur, wenn im
-Vereinsprofil Name oder Ort hinterlegt sind.</p>
+Vereinsprofil Name oder Ort hinterlegt sind. Die Bestätigung „Vereinsdaten übernommen.“
+erscheint oben rechts, damit sie die Schaltflächen der Fußzeile nicht verdeckt.</p>
 <h3>2 Konfiguration</h3>
 <p><b>Wertungsmodus</b>: <i>Zielwertung</i> (Punkte je Ziel und Schuss),
 <i>Rundenwertung</i> (Punkte je Runde) oder <i>Gesamtwertung</i> (nur Gesamtpunkte).</p>
 <p><b>Maximale Teilnehmerzahl</b> (<code>0</code> = keine Begrenzung); darunter zeigt die
 <b>Auslastung</b>, wie viele Plätze bereits belegt sind.</p>
-<p><b>Auslosung oder Startgruppen:</b> Mit <i>Teilnehmer per Auslosung
+<a name="startgruppen"></a><p><b>Auslosung oder Startgruppen:</b> Mit <i>Teilnehmer per Auslosung
 einteilen</i> werden die Gruppen später per Auslosung vergeben (das Feld
 Startgruppen ist dann ausgeblendet und der Tab <i>Zeitplan</i> entfällt). Ohne
 Auslosung füllt BowTally <b>Startgruppen</b> automatisch: maximale Teilnehmerzahl
@@ -187,9 +188,13 @@ Standard markierte Regelwerk (★ in der Regelwerke-Liste) vorgewählt. Ist im
 Vereinsprofil eine Parcours-Beschreibung hinterlegt, wird sie automatisch in
 „Hinweise zum Parcours“ übernommen, solange das Turnier dort noch nichts stehen hat.</p>
 <h3>3 Bogenklassen</h3>
-<p>Klassen per Klick an- und abwählen; <b>Alle</b>, <b>Keine</b> und <b>Eigene</b>
-(nur benutzerdefinierte Klassen) helfen bei der Auswahl. Mindestens eine
-Klasse ist nötig.</p>
+<p>Klassen per Klick an- und abwählen. Zuerst stehen die Standard-Klassen, danach die
+eigenen, jeweils alphabetisch zeilenweise von links nach rechts. Mit
+<b>Nur eigene Klassen anzeigen</b> (standardmäßig angehakt, sobald es eigene Klassen gibt)
+werden die Standard-Klassen ausgeblendet; eine bereits gewählte ausgeblendete Klasse bleibt
+gewählt, ein Hinweis rechts nennt ihre Anzahl. <b>Alle</b> und <b>Keine</b> wirken auf die
+angezeigten Klassen, <b>Eigene</b> wählt nur die benutzerdefinierten. Mindestens eine Klasse
+ist nötig.</p>
 <h3>4 Fristen und Zeiten</h3>
 <p>Anmeldefrist, Einschreibung ab und Schießbeginn. Bei <b>Einschießen erlaubt</b> erscheint
 das Feld <b>Einschießbereich</b>; es ist dann Pflicht, sonst kommst du nicht
@@ -683,6 +688,10 @@ Datenauskunft und Turnier-Ankündigung). Platzhalter wie <code>{name}</code> ode
 <code>{turniername}</code> schreibst du in geschweiften Klammern; welche in welcher Vorlage
 verfügbar sind, steht in der „Referenz“ unter <i>E-Mail-Vorlagen</i>. Mehr zum Versand siehe
 „E-Mail-Funktionen“.</p>
+<h3>Turnierverwaltung → WhatsApp-Vorlagen</h3>
+<p>Je ein Text für die sechs WhatsApp-Vorlagen (Anmeldebestätigung, Zahlungserinnerung,
+Startunterlagen, Wartelisten-Nachrücker, Helfer-Bestätigung, Datenauskunft). Es gibt keinen
+Betreff; die Platzhalter sind dieselben wie bei den E-Mail-Vorlagen. Mehr siehe „WhatsApp“.</p>
 <h3>System → Allgemein</h3>
 <p><b>Update-Prüfung</b> (Beim Start nach Updates suchen, <b>Jetzt prüfen</b>) und
 der <b>Standard-Exportpfad</b> für erzeugte Dateien (leer = Downloads-Ordner),
@@ -768,6 +777,48 @@ daher einen <b>.eml-Entwurf</b> (als „unversendet“ markiert) mit dem PDF und
 Standard-Mailprogramm. Das Mailprogramm muss <code>.eml</code>-Dateien als bearbeitbaren Entwurf
 öffnen können. Mails ohne Anhang werden als normaler <code>mailto:</code>-Link geöffnet.</p>
 """),
+    ("WhatsApp", """
+<h2>WhatsApp</h2>
+<p>Neben der E-Mail kann BowTally einen <b>WhatsApp-Chat mit vorausgefülltem Text</b> öffnen
+(Click-to-Chat über <code>wa.me</code>). BowTally sendet dabei nichts: Der Link öffnet WhatsApp
+Desktop bzw. WhatsApp Web, dort prüfst und sendest du die Nachricht selbst.</p>
+<h3>Wo gibt es WhatsApp?</h3>
+<ul>
+  <li><b>Teilnehmer</b> (Rechtsklick): <i>WhatsApp: Anmeldebestätigung / Zahlungserinnerung /
+      Startunterlagen senden</i></li>
+  <li><b>Warteliste</b>: im Dialog <b>Benachrichtigen</b> der Button <b>WhatsApp senden (n)</b></li>
+  <li><b>Helfer</b> (Rechtsklick): <i>WhatsApp: Bestätigung senden</i></li>
+  <li><b>Mitglieder</b> (Rechtsklick): <i>WhatsApp: Datenauskunft senden</i></li>
+</ul>
+<p>Die Einträge erscheinen bzw. sind aktiv, wenn eine gültige Telefonnummer hinterlegt ist.
+Ergebnisversand und Turnier-Ankündigung gibt es nur per E-Mail, weil WhatsApp-Links keine
+Anhänge (PDF) übertragen können.</p>
+<h3>Telefonnummern</h3>
+<p>BowTally wandelt die Nummer lokal in das internationale Format um: Leerzeichen, Klammern,
+Binde- und Schrägstriche fallen weg, eine führende <code>0</code> wird zu <code>+49</code>,
+<code>00</code> zu <code>+</code>, <code>+49 (0) …</code> wird zu <code>+49 …</code>.
+Beispiele: <code>0171 1234567</code> und <code>+49 171 1234567</code> ergeben
+<code>+491711234567</code>. Nummern mit Buchstaben, zu kurze Nummern oder Nummern ohne
+Vorwahl (weder <code>0</code> noch <code>+</code>) gelten als ungültig; BowTally meldet das.</p>
+<h3>Mehrere Empfänger</h3>
+<p>WhatsApp zeigt immer nur einen Chat – jeder neue Link würde den vorigen ersetzen. Bei mehreren
+Empfängern öffnet BowTally deshalb einen Dialog, in dem du die Empfänger nacheinander
+abarbeitest: <b>WhatsApp öffnen</b>, in WhatsApp senden, <b>Als gesendet markieren</b>,
+<b>Nächster Empfänger</b>. Der Status je Zeile ist <i>Offen</i>, <i>Geöffnet</i>,
+<i>Bestätigt</i> oder <i>Übersprungen</i> (auch für Empfänger ohne gültige Nummer). BowTally
+schaltet nie selbst weiter, und <i>Bestätigt</i> setzt nur deine Markierung – ein geöffneter
+Chat heißt nicht, dass die Nachricht gesendet wurde. Der Status wird nicht gespeichert.</p>
+<h3>Vorlagen</h3>
+<p>Die Texte pflegst du unter Einstellungen → Turnierverwaltung → <b>WhatsApp-Vorlagen</b>
+(nur Text, kein Betreff). Es gelten die Platzhalter der E-Mail-Vorlagen außer
+<code>{logo}</code> (siehe „Referenz“). Ist eine Vorlage leer oder fehlerhaft, erscheint ein
+Hinweis; Platzhalter ohne Wert bleiben im Text stehen und werden gemeldet.</p>
+<h3>Datenschutz</h3>
+<p>Anders als <code>mailto:</code> ist <code>wa.me</code> ein Link auf eine Domain von Meta.
+Name, Rufnummer und Nachrichtentext gehen dabei im Rahmen des von dir ausgelösten Browser- bzw.
+App-Aufrufs an WhatsApp – nicht durch BowTally selbst. Das gilt besonders für die
+<b>Datenauskunft</b>, die persönliche Daten enthält.</p>
+"""),
     ("Import & Export", """
 <h2>Import &amp; Export</h2>
 <h3>Import</h3>
@@ -813,11 +864,13 @@ Downloads-Ordner).</p>
 </ul>
 <a name="backup-passwort"></a><p>Backups sind ZIP-Dateien und <b>passwortgeschützt</b>: Das Passwort ist Pflicht, wird bei
 jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
-Im Backup sind alle Daten enthalten, auch alle Einstellungen (inklusive Logging-Modus), das
+Im Backup sind alle Daten enthalten, auch alle Einstellungen (inklusive Logging-Modus,
+E-Mail- und WhatsApp-Vorlagen sowie <i>Teilnehmer pro Gruppe</i>), das
 Logbuch, Inventar (Kategorien, Artikel, Reparaturen,
 Parcours-Material), die Bankdaten sowie die Dokumente von Mitgliedern, Schützen und Inventar
 (Ordner <code>member_files</code>, <code>archer_files</code>, <code>inventory_files</code>); sie werden bei
-der Wiederherstellung zurückgespielt. Das automatische Backup beim
+der Wiederherstellung zurückgespielt. Fehlen in einem älteren Backup neuere
+Einstellungen, erhalten sie ihre Standardwerte. Das automatische Backup beim
 Beenden nutzt den eingestellten Speicherort. Jedes Backup erscheint im Logbuch.</p>
 <h3>Wiederherstellung</h3>
 <p><b>Backup wiederherstellen</b> → ZIP-Datei wählen und das Backup-Passwort eingeben. <b>Achtung:</b> Die aktuelle Datenbank wird
@@ -899,7 +952,9 @@ Schreibe sie immer in geschweiften Klammern: <code>{platzhalter}</code></p>
   <tr><td><code>{bow_class}</code></td><td>Bogenklasse des Schützen</td></tr>
 </table>
 <p><i>Beispiel:</i> <code>3D Turnier 2027, {name}, {bow_class}</code></p>
-<a name="platzhalter-email"></a><p><b>E-Mail-Vorlagen</b> – verfügbare Platzhalter:</p>
+<a name="platzhalter-email"></a><p><b>E-Mail- und WhatsApp-Vorlagen</b> – verfügbare Platzhalter (in WhatsApp-Vorlagen alle
+außer <code>{logo}</code>; in der Helfer-Vorlage zusätzlich <code>{aufgabe}</code>,
+<code>{von}</code> und <code>{bis}</code>):</p>
 <p><i>Immer verfügbar:</i></p>
 <table border="0" cellspacing="0" cellpadding="4" style="border-collapse:collapse;">
   <tr><td><code>{name}</code></td><td>Vor- und Nachname des Teilnehmers / Helfers</td></tr>

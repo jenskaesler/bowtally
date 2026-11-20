@@ -8,6 +8,17 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Hinzugefügt
 
+- **💬 WhatsApp-Kontakt** — An sechs Stellen öffnet BowTally neben der E-Mail auch einen
+  WhatsApp-Chat mit vorausgefülltem Text (Click-to-Chat `wa.me`, keine Business-API, keine neue
+  Abhängigkeit): Anmeldebestätigung, Zahlungserinnerung und Startunterlagen (Teilnehmer,
+  Rechtsklick), Wartelisten-Benachrichtigung, Helfer-Bestätigung und Datenauskunft (Mitglieder).
+  Telefonnummern werden lokal ins internationale Format gebracht (z. B. `0171 1234567` →
+  `+491711234567`); ungültige oder fehlende Nummern werden gemeldet. Mehrere Empfänger arbeitest
+  du in einem Dialog nacheinander ab (Status Offen / Geöffnet / Bestätigt / Übersprungen, kein
+  automatisches Weiterschalten). Die sechs Texte pflegst du unter Einstellungen →
+  Turnierverwaltung → **WhatsApp-Vorlagen**. Ergebnisversand und Turnier-Ankündigung bleiben
+  reine E-Mail-Funktionen, weil WhatsApp-Links keine Anhänge übertragen.
+
 - **➕ Neuer Schütze direkt im Turnier** — Im Tab Teilnehmer legt der Button **Neuer Schütze**
   (links neben „Schütze zuweisen“) einen Schützen in den Stammdaten an und weist ihn gleichzeitig
   dem geöffneten Turnier zu.
@@ -42,7 +53,14 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   Verhalten, Standard 5), aufgerundet: 120 Teilnehmer bei 5 pro Gruppe ergeben die Gruppen
   1 bis 24. Ohne Begrenzung sind 1 bis 10 vorbelegt. Das Feld bleibt änderbar, eigene Eingaben
   werden nicht überschrieben, bestehende Turniere behalten ihre Gruppen. Ist die Auslosung
-  angehakt, ist das Feld ausgeblendet.
+  angehakt, ist das Feld ausgeblendet. Unter dem Feld führt ein Link zur Erklärung in der Hilfe.
+- **🏹 Bogenklassen im Turnier-Assistenten** — Standard-Klassen stehen zuerst, danach die
+  eigenen, jeweils alphabetisch von links nach rechts. Die neue Option „Nur eigene Klassen
+  anzeigen“ (angehakt, sobald es eigene Klassen gibt) blendet die Standard-Klassen aus.
+- **💬 Meldung oben rechts** — Im Turnier-Assistenten erscheint „Vereinsdaten übernommen.“ oben
+  rechts statt unten rechts, wo sie die Schaltflächen der Fußzeile verdeckte.
+- **📝 Einschießbereich zweizeilig** — Das Feld im Tab „Fristen und Zeiten“ ist jetzt ein
+  zweizeiliges Textfeld.
 - **📊 Teilnehmerzahl im Tab Konfiguration** — Maximale Teilnehmerzahl und Auslastung stehen im
   Turnier-Assistenten jetzt im Tab 2 „Konfiguration“ unter dem Wertungsmodus statt im Tab
   „Fristen und Zeiten“.

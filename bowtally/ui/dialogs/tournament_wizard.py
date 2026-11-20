@@ -20,6 +20,7 @@ from bowtally.services import tournament_service as ts
 from bowtally.ui import button, repolish, restore_geom, save_geom, show_error, theme
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
+from bowtally.ui.components.help_link import help_link
 from bowtally.ui.components.form_field import CurrencyField, DateField, TimeField
 from bowtally.ui.components.toast import Toast
 
@@ -274,37 +275,80 @@ class TournamentWizard(QWizard):
         page = _Page(2, "Bogenklassen", "Welche Klassen werden gewertet? "
                      "Zum An- und Abwählen einfach anklicken. Standardmäßig keine vorausgewählt.",
                      lambda: any(c.isChecked() for c in self.class_chips.values()))
+        # standard classes first, then the own ones; each alphabetically, left to right
+        self._ordered_classes = sorted(self.classes, key=lambda bc: (not bc.is_builtin,
+                                                                     bc.name.casefold()))
         inner = QWidget()
-        grid = QGridLayout(inner)
-        grid.setSpacing(8)
-        for i, bc in enumerate(self.classes):
+        self._class_grid = QGridLayout(inner)
+        self._class_grid.setSpacing(8)
+        for bc in self._ordered_classes:
             chip = QPushButton(f"{bc.name}  ({bc.abbreviation})" if bc.abbreviation else bc.name,
                                objectName="chip", checkable=True)
             chip.setChecked(bc.id in selected if selected is not None else False)
             chip.setToolTip(bc.description or bc.name)
             chip.toggled.connect(page.completeChanged)
+            chip.toggled.connect(self._update_hidden_classes_hint)
             self.class_chips[bc.id] = chip
-            grid.addWidget(chip, i // CHIP_COLUMNS, i % CHIP_COLUMNS)
-        grid.setRowStretch(len(self.classes) // CHIP_COLUMNS + 1, 1)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(inner)
+
+        has_custom = any(not bc.is_builtin for bc in self.classes)
+        self._only_custom_cb = QCheckBox("Nur eigene Klassen anzeigen")
+        self._only_custom_cb.setChecked(has_custom)      # without own classes nothing to show
+        self._only_custom_cb.setEnabled(has_custom)
+        self._only_custom_cb.setToolTip(
+            "Standard-Bogenklassen ausblenden" if has_custom
+            else "Es gibt noch keine eigenen Bogenklassen")
+        self._only_custom_cb.toggled.connect(self._layout_class_chips)
+        self._hidden_classes_hint = QLabel(objectName="pageSubtitle")
         tools = QHBoxLayout()
         tools.addWidget(button("Alle", lambda: self._set_all_classes(True),
-                               tooltip="Alle Klassen auswählen"))
+                               tooltip="Alle angezeigten Klassen auswählen"))
         tools.addWidget(button("Keine", lambda: self._set_all_classes(False),
-                               tooltip="Auswahl aufheben"))
+                               tooltip="Auswahl der angezeigten Klassen aufheben"))
         tools.addWidget(button("Eigene", self._set_custom_classes,
                                tooltip="Nur benutzerdefinierte Klassen auswählen"))
+        tools.addSpacing(12)
+        tools.addWidget(self._only_custom_cb)
         tools.addStretch()
+        tools.addWidget(self._hidden_classes_hint)
         page.body.addLayout(tools)
         page.body.addWidget(scroll, 1)
+        self._layout_class_chips()
         return page
 
-    def _set_all_classes(self, checked: bool):
+    def _visible_class_ids(self) -> list[int]:
+        only_custom = self._only_custom_cb.isChecked()
+        return [bc.id for bc in self._ordered_classes if not (only_custom and bc.is_builtin)]
+
+    def _layout_class_chips(self, *_):
+        """Place the shown chips row by row (left to right); hidden ones keep their selection."""
+        grid = self._class_grid
         for chip in self.class_chips.values():
-            chip.setChecked(checked)
+            grid.removeWidget(chip)
+            chip.hide()
+        visible = self._visible_class_ids()
+        for i, cid in enumerate(visible):
+            grid.addWidget(self.class_chips[cid], i // CHIP_COLUMNS, i % CHIP_COLUMNS)
+            self.class_chips[cid].show()
+        for row in range(grid.rowCount()):
+            grid.setRowStretch(row, 0)
+        grid.setRowStretch(len(visible) // CHIP_COLUMNS + 1, 1)
+        self._update_hidden_classes_hint()
+
+    def _update_hidden_classes_hint(self, *_):
+        visible = set(self._visible_class_ids())
+        hidden = sum(chip.isChecked() for cid, chip in self.class_chips.items()
+                     if cid not in visible)
+        self._hidden_classes_hint.setText(
+            f"{hidden} ausgewählte Standard-Klasse{'n' if hidden != 1 else ''} ausgeblendet"
+            if hidden else "")
+
+    def _set_all_classes(self, checked: bool):
+        for cid in self._visible_class_ids():
+            self.class_chips[cid].setChecked(checked)
 
     def _set_custom_classes(self):
         custom_ids = {bc.id for bc in self.classes if not bc.is_builtin}
@@ -330,7 +374,8 @@ class TournamentWizard(QWizard):
         # existing tournaments keep their groups (also none) until the user changes them
         self._groups_manual = (self.tournament is not None or bool(stored)) and stored != auto
         self.groups.textEdited.connect(lambda _t: setattr(self, "_groups_manual", True))
-        self._groups_hint = QLabel(objectName="pageSubtitle")
+        self._groups_hint = help_link("Turnier-Assistent", "startgruppen",
+                                      "Wie werden die Startgruppen vorbelegt?")
         self._draw_cb = QCheckBox("Teilnehmer per Auslosung einteilen")
         self._draw_cb.setChecked(bool(self._t("use_draw", False)))
         self.max_participants.valueChanged.connect(self._on_max_participants)
@@ -409,7 +454,6 @@ class TournamentWizard(QWizard):
         self._update_capacity()
         if not self._groups_manual and not self._draw_cb.isChecked():
             self.groups.setText(self._auto_groups())
-        self._update_groups_hint()
 
     def _update_groups_visibility(self, *_):
         draw = self._draw_cb.isChecked()
@@ -417,14 +461,6 @@ class TournamentWizard(QWizard):
             self.groups.setText(self._auto_groups())
         self._config_form.setRowVisible(self.groups, not draw)
         self._config_form.setRowVisible(self._groups_hint, not draw)
-        self._update_groups_hint()
-
-    def _update_groups_hint(self):
-        n, per = self._group_count(), ss.participants_per_group()
-        self._groups_hint.setText(
-            (f"Automatisch: {self.max_participants.value()} Teilnehmer / {per} pro Gruppe = "
-             f"{n} Gruppen" if n else "Ohne Begrenzung: Gruppen 1 bis 10")
-            + " · änderbar; Teilnehmer pro Gruppe unter Einstellungen → Turnierverwaltung")
 
     def _init_round_table(self):
         """Populate round table on page creation from existing rounds or defaults."""
@@ -557,8 +593,12 @@ class TournamentWizard(QWizard):
             w.setFixedWidth(WIZARD_COMBO_W)
         self.practice = QCheckBox("Einschießen erlaubt")
         self.practice.setChecked(self._t("practice_allowed", False))
-        self.practice_location = QLineEdit(self._t("practice_location", ""))
+        self.practice_location = QPlainTextEdit(self._t("practice_location", ""))
         self.practice_location.setPlaceholderText("z. B. dem Einschießplatz am Vereinsheim")
+        self.practice_location.setTabChangesFocus(True)
+        # two lines high (line spacing x 2 + padding and border of the input style)
+        self.practice_location.setFixedHeight(
+            self.practice_location.fontMetrics().lineSpacing() * 2 + 22)
         page = _Page(3, "Fristen und Zeiten", "Bis wann kann man sich anmelden und wann geht es "
                      "am Turniertag los?")
         page.validatePage = self._validate_practice
@@ -575,7 +615,7 @@ class TournamentWizard(QWizard):
         return page
 
     def _validate_practice(self) -> bool:
-        if self.practice.isChecked() and not self.practice_location.text().strip():
+        if self.practice.isChecked() and not self.practice_location.toPlainText().strip():
             Toast.show(self, "Bitte den Einschießbereich angeben.", Toast.WARNING)
             self.practice_location.setFocus()
             return False
@@ -691,7 +731,7 @@ class TournamentWizard(QWizard):
         if city:
             self.location.setText(city)
         self._basics_dirty.clear()
-        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
+        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO, top=True)
 
     def _fill_contact(self, club: dict, role_data: dict):
         contact_name_val = ""
@@ -722,7 +762,7 @@ class TournamentWizard(QWizard):
             if val:
                 edit.setText(val)
         self._contact_dirty.clear()
-        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
+        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO, top=True)
 
     # ------------------------------------------------------------ 8 texts
     def _page_texts(self) -> QWizardPage:
@@ -821,7 +861,7 @@ class TournamentWizard(QWizard):
                 ("Max. Teilnehmer", self.max_participants.value() or "unbegrenzt"),
                 ("Einschreibung / Start", f"{self.checkin_time.time().toString('HH:mm')} / "
                                           f"{self.shooting_time.time().toString('HH:mm')} Uhr"),
-                ("Einschießen", (self.practice_location.text() or "ja")
+                ("Einschießen", (self.practice_location.toPlainText().strip() or "ja")
                  if self.practice.isChecked() else "nein")]),
             (4, "Startgebühren", [(f["name"], money(f["amount"])) for f in fees]),
             (5, "Kontakt und Bank", [("Kontakt", " · ".join(filter(None, (
@@ -888,7 +928,7 @@ class TournamentWizard(QWizard):
                 "checkin_start_time": self.checkin_time.time().toString("HH:mm"),
                 "shooting_start_time": self.shooting_time.time().toString("HH:mm"),
                 "practice_allowed": self.practice.isChecked(),
-                "practice_location": self.practice_location.text()
+                "practice_location": self.practice_location.toPlainText().strip()
                 if self.practice.isChecked() else None,
                 "contact_name": self.contact_name.text(),
                 "contact_phone": self.contact_phone.text(),

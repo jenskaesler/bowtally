@@ -47,7 +47,7 @@ flowchart LR
 
 - 🔄 **Acht Phasen** – geführter Ablauf: Entwurf → Ausschreibung → Vorbereitung → Anmeldung → Einschreibung → Schießen → Auswertung → Abgeschlossen. Vor jedem Wechsel prüft BowTally Voraussetzungen: Blocker sperren den Wechsel, Warnungen können bewusst übergangen werden. Jeder Wechsel wird protokolliert.
 - 📋 **Leitfaden** – Erklärung, Aufgaben mit Direktlinks, Statusampeln und abhakbare Checkliste je Phase.
-- 🧙 **Turnier-Assistent** – acht Schritte: Grunddaten (mit internen Notizen), Konfiguration (Regelwerk und Runden), Bogenklassen, Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Hinweise und Texte, Zusammenfassung.
+- 🧙 **Turnier-Assistent** – acht Schritte: Grunddaten (mit internen Notizen), Konfiguration (Wertungsmodus, maximale Teilnehmerzahl mit Auslastung, Startgruppen, Regelwerk und Runden), Bogenklassen (Standard-Klassen zuerst, dann eigene, alphabetisch; Option „Nur eigene Klassen anzeigen“), Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Hinweise und Texte, Zusammenfassung.
 - 📋 **Turnier kopieren** – bestehendes Turnier als Vorlage nutzen; Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
 - 📝 **Notizen** – freies Textfeld je Turnier (interne Notizen aus dem Assistenten landen hier); erscheint nie in der Ausschreibung, wird auf dem Dashboard und im abgeschlossenen Leitfaden angezeigt und im Turnier-Export mitgeliefert.
 - 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export.
@@ -57,6 +57,7 @@ flowchart LR
 - 📄 **Ausschreibungs-PDF** – Termin, Ablauf, Klassen, Startgeld, Bankverbindung und Kontakt aus den Turnierdaten; BowTally zeigt an, wenn die Ausschreibung nach Änderungen veraltet ist. Nach dem Erzeugen öffnet sich ein E-Mail-Entwurf mit dem PDF im Anhang. Allgemeine Turnierregeln und Teilnahmebedingungen (global unter Regelwerke → Turnierregeln gepflegt) werden als Zusatzseite angehängt.
 - 💶 **Startgebühren** – je Turnier, vorbelegt aus Vorlagen; Einnahmenübersicht mit erwarteten, eingegangenen und ausstehenden Beträgen.
 - ✉️ **E-Mail-Vorlagen** – Ausschreibung, Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Helfer-Bestätigung, Datenauskunft, Ergebnisversand; Platzhalter und Vereinslogo in der Signatur, Schriftart aus den Einstellungen. Schützen können einzeln für den Ergebnisversand per E-Mail vorgemerkt werden.
+- 💬 **WhatsApp** – Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Warteliste, Helfer-Bestätigung und Datenauskunft auch als WhatsApp-Chat mit vorausgefülltem Text (Click-to-Chat `wa.me`, eigene Vorlagen); Nummern werden lokal ins internationale Format gebracht, mehrere Empfänger nacheinander in einem Dialog. Ohne Anhänge, daher Ergebnisversand und Ankündigung nur per E-Mail.
 - ✅ **Anmelde- und Zahlungsstatus** – je Teilnehmer; Schnellaktionen per Rechtsklick und Aktionsleiste. **Neuer Schütze** legt einen Schützen direkt aus dem Turnier in den Stammdaten an und weist ihn gleich zu.
 - 🔢 **Maximale Teilnehmerzahl** – Auslastungsbalken; bei voller Belegung sind Zuweisen und Import gesperrt, Walk-ins bleiben möglich.
 
@@ -93,7 +94,7 @@ flowchart LR
 - 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
 - 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
 - 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar (Open Sans, Inter und Source Sans 3 werden mitgeliefert, dazu Segoe UI; gilt auch für PDFs). Lizenzen der Schriften: `docs/THIRD-PARTY-NOTICES.md`.
-- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Einstellungen mit Logging-Modus, Logbuch, Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
+- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Einstellungen mit Logging-Modus, E-Mail- und WhatsApp-Vorlagen, Logbuch, Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
 - 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
 - 🪵 **Erweitert** – Logging-Modus der Logdatei `app.log` (Info, Warnung, Debug; Standard Info, Debug nur nach Warnhinweis), Button „Logfile öffnen“.
 - ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
