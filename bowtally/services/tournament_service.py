@@ -950,7 +950,7 @@ def _resolve_import(s, t: Tournament, records: list[dict], strategy: str):
         start_group = rec.pop("start_group", None) or None
         rec = _clean_archer(rec)
         archer = None if strategy == "new" else find_archer(
-            s, rec.get("member_number"), rec["first_name"], rec["last_name"],
+            s, rec.get("pass_number"), rec["first_name"], rec["last_name"],
             rec.get("birth_date"))
         cid = classes.get(str(bc_name).strip().lower()) if bc_name else None
         yield rec, archer, cid, start_number, start_group

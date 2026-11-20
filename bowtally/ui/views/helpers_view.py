@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Helpers of one tournament: members from the member register or manually entered persons."""
-from PySide6.QtCore import Qt, QTime
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox, QDialog, QHBoxLayout, QLineEdit, QListWidget,
-                               QListWidgetItem, QTimeEdit, QVBoxLayout)
+                               QListWidgetItem, QVBoxLayout)
 
 from bowtally.services import helper_service as hs
 from bowtally.services.settings_service import KEY_EMAIL_TPL_HELPER
@@ -12,7 +12,7 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import email_validator
+from bowtally.ui.components.form_field import TimeField, email_validator
 from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
@@ -21,6 +21,10 @@ from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
 HEADERS = ["Name", "Aufgabe", "Von", "Bis", "Bestätigt", "Telefon", "E-Mail"]
+LOCKED_HINT = ("Die Ergebnisliste ist erstellt oder das Turnier abgeschlossen – "
+               "Helfer können nicht mehr geändert werden.")
+NEW_TIP = "Neuen Helfer nur für dieses Turnier anlegen (Strg+N)"
+PICK_TIP = "Helfer aus der Mitgliederkartei zuweisen"
 
 
 class _MemberPicker(QDialog):
@@ -108,11 +112,7 @@ class HelperDialog(RecordDialog):
         self.form.add("email", "E-Mail", QLineEdit(), validator=email_validator)
 
         def _time_edit():
-            w = QTimeEdit()
-            w.setDisplayFormat("HH:mm")
-            w.setSpecialValueText("–")
-            w.setTime(QTime(0, 0))
-            return w
+            return TimeField()
         self.form.add("task", "Aufgabe", QLineEdit(),
                       hint="z. B. Parcours-Aufbau, Einschreibung, Ergebnisse")
         self.form.add("time_from", "Zeit von", _time_edit())
@@ -143,6 +143,8 @@ class HelpersView(ListView):
                            "Neuer Helfer")
         super().__init__("Helfer", HEADERS, empty, search_placeholder="Name oder Aufgabe …")
         empty.actionTriggered.connect(self.new_item)
+        self._empty = empty
+        self._locked = False
 
         # order in the header, left to right: search, export, print, from members, new helper
         self.header.add(export_button(self, "helfer", self._export_sheets,
@@ -150,10 +152,11 @@ class HelpersView(ListView):
                                       if self.table.is_filtered() else None))
         self.header.add(button("Helferliste drucken", self._print_list,
                               tooltip="Helferliste als PDF erstellen"))
-        self.header.add(button("Aus Mitgliederkartei", self._pick_from_members,
-                               tooltip="Helfer aus der Mitgliederkartei zuweisen"))
-        self.header.add(button("Neuer Helfer", self.new_item, "primary",
-                               "Neuen Helfer nur für dieses Turnier anlegen (Strg+N)"))
+        self.btn_pick = button("Aus Mitgliederkartei", self._pick_from_members,
+                               tooltip=PICK_TIP)
+        self.btn_new = button("Neuer Helfer", self.new_item, "primary", NEW_TIP)
+        self.header.add(self.btn_pick)
+        self.header.add(self.btn_new)
         self.table.activated.connect(self.edit_item)
         self._rows: dict[int, object] = {}
 
@@ -165,7 +168,19 @@ class HelpersView(ListView):
         self.refresh()
 
     # ---------------------------------------------------------------- data
+    def _apply_lock(self):
+        """Helpers are frozen once the results list was created (like the score entry)."""
+        from bowtally.services import tournament_service as ts
+        t = context.tournament() if self._tid is not None else None
+        self._locked = t is not None and ts.scoring_locked(t)
+        for btn, tip in ((self.btn_new, NEW_TIP), (self.btn_pick, PICK_TIP)):
+            btn.setEnabled(not self._locked)
+            btn.setToolTip(LOCKED_HINT if self._locked else tip)
+        self._empty.cta.setEnabled(not self._locked)
+        self._empty.cta.setToolTip(LOCKED_HINT if self._locked else NEW_TIP)
+
     def refresh(self):
+        self._apply_lock()
         tid = self._tid
         if tid is None:
             rows = []
@@ -191,15 +206,20 @@ class HelpersView(ListView):
         if n == 0:
             self.action_bar.set_actions("", [])
             return
+        locked = self._locked
         self.action_bar.set_actions(self.selection_info(n, "Helfer", "Helfer"), [
-            Action("Bearbeiten", self.edit_item, tooltip="Helfereinsatz bearbeiten"),
+            Action("Bearbeiten", self.edit_item, enabled=not locked,
+                   tooltip=LOCKED_HINT if locked else "Helfereinsatz bearbeiten"),
             Action(f"{n} Helfer entfernen" if n > 1 else "Entfernen",
-                   self.delete_selected, "danger")])
+                   self.delete_selected, "danger", enabled=not locked,
+                   tooltip=LOCKED_HINT if locked else "")])
 
     def context_entries(self, row_id):
         th = self._rows.get(row_id)
         if th is None:
             return []
+        if self._locked:
+            return [("Bestätigung senden", lambda: self._mailto(row_id))]                 if hs.display_contact(th)[2] else []
         entries = [("Bearbeiten", self.edit_item)]
         if hs.display_contact(th)[2]:
             entries.append(("Bestätigung senden", lambda: self._mailto(row_id)))
@@ -214,9 +234,13 @@ class HelpersView(ListView):
 
     # ---------------------------------------------------------------- new / edit
     def new_item(self):
+        if self._locked:
+            return
         self._open_dialog(None)
 
     def edit_item(self, *_):
+        if self._locked:
+            return
         sel_ids = self.table.selected_ids()
         record = self._rows.get(sel_ids[0]) if sel_ids else None
         if record is not None:
@@ -232,7 +256,7 @@ class HelpersView(ListView):
     # ---------------------------------------------------------------- actions
     def delete_selected(self):
         ids = self.table.selected_ids()
-        if not ids:
+        if not ids or self._locked:
             return
         names = ", ".join(hs.display_contact(self._rows[i])[0] for i in ids if i in self._rows)
         if not ConfirmDialog.ask(self, "Helfer entfernen?",
@@ -259,7 +283,7 @@ class HelpersView(ListView):
 
     def _pick_from_members(self):
         tid = self._tid
-        if tid is None:
+        if tid is None or self._locked:
             return
         dlg = _MemberPicker(tid, self)
         if dlg.exec() != QDialog.DialogCode.Accepted or not dlg.selected_ids():

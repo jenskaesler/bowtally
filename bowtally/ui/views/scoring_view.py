@@ -129,14 +129,31 @@ class ScoreDelegate(QStyledItemDelegate):
         return super().eventFilter(obj, event)
 
 
+class _DigitEdit(QLineEdit):
+    """Line edit that swallows every printable key that is not a digit (also on paste)."""
+
+    def keyPressEvent(self, event):
+        text = event.text()
+        if text and text.isprintable() and not (text.isascii() and text.isdigit()):
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
 class _NumberDelegate(QStyledItemDelegate):
     """Digits only: round and total points are whole, non-negative numbers."""
 
     def createEditor(self, parent, option, index):
-        editor = QLineEdit(parent)
-        editor.setValidator(QRegularExpressionValidator(QRegularExpression(r"\d{0,6}"), editor))
+        editor = _DigitEdit(parent)
+        editor.setValidator(QRegularExpressionValidator(QRegularExpression(r"[0-9]{0,6}"), editor))
         editor.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         return editor
+
+    def setModelData(self, editor, model, index):
+        text = editor.text().strip()
+        if text and not (text.isascii() and text.isdigit()):
+            return                              # keep the stored value
+        model.setData(index, text)
 
 
 def _frozen_view(model) -> QTableView:
@@ -613,6 +630,10 @@ class ScoringView(QWidget):
         pid, rnd, *special = data
         text = item.text().strip()
         table = self._simple_table
+        if text and not (text.isascii() and text.isdigit()):
+            Toast.show(self, "Bitte nur Zahlen eingeben", Toast.WARNING)
+            QTimer.singleShot(0, lambda: self.set_tournament(self.tournament))  # show stored values
+            return
         try:
             if special:
                 sc.set_special(pid, rnd, special[0], int(text) if text else None)

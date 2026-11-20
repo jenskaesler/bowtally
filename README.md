@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![Language](https://img.shields.io/badge/Language-Python%203.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-NC--Distribution%20Copyleft%202.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2026.11.5-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2026.11.6-blue)](CHANGELOG.md)
 
 ---
 
@@ -57,13 +57,13 @@ flowchart LR
 - 📄 **Ausschreibungs-PDF** – Termin, Ablauf, Klassen, Startgeld, Bankverbindung und Kontakt aus den Turnierdaten; BowTally zeigt an, wenn die Ausschreibung nach Änderungen veraltet ist. Nach dem Erzeugen öffnet sich ein E-Mail-Entwurf mit dem PDF im Anhang. Allgemeine Turnierregeln und Teilnahmebedingungen (global unter Regelwerke → Turnierregeln gepflegt) werden als Zusatzseite angehängt.
 - 💶 **Startgebühren** – je Turnier, vorbelegt aus Vorlagen; Einnahmenübersicht mit erwarteten, eingegangenen und ausstehenden Beträgen.
 - ✉️ **E-Mail-Vorlagen** – Ausschreibung, Anmeldebestätigung, Zahlungserinnerung, Startunterlagen, Helfer-Bestätigung, Datenauskunft, Ergebnisversand; Platzhalter und Vereinslogo in der Signatur, Schriftart aus den Einstellungen. Schützen können einzeln für den Ergebnisversand per E-Mail vorgemerkt werden.
-- ✅ **Anmelde- und Zahlungsstatus** – je Teilnehmer; Schnellaktionen per Rechtsklick und Aktionsleiste.
+- ✅ **Anmelde- und Zahlungsstatus** – je Teilnehmer; Schnellaktionen per Rechtsklick und Aktionsleiste. **Neuer Schütze** legt einen Schützen direkt aus dem Turnier in den Stammdaten an und weist ihn gleich zu.
 - 🔢 **Maximale Teilnehmerzahl** – Auslastungsbalken; bei voller Belegung sind Zuweisen und Import gesperrt, Walk-ins bleiben möglich.
 
 ### Turniertag
 
-- 🏁 **Einschreibe-Ansicht** – Suche nach Name oder Startnummer, Einchecken per Enter, Walk-in-Erfassung, Einschreibeliste drucken.
-- ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert.
+- 🏁 **Einschreibe-Ansicht** – Suche nach Name oder Startnummer (mit den Buttons rechts in der Zeile von Zähler und Auslastungsbalken), Einchecken per Enter, Walk-in-Erfassung, Einschreibeliste drucken.
+- ⌨️ **Ergebniseingabe per Tastatur** – Enter/↓/↑ wechselt Teilnehmer, Tab die Scheibe; Name und Summe bleiben beim Scrollen sichtbar; jede Eingabe wird sofort gespeichert. Runden- und Gesamteingabe nehmen nur Zahlen an.
 - 🎯 **Auslosung** – (nur wenn im Turnier-Assistenten „Teilnehmer per Auslosung einteilen“ gewählt wurde) automatische Gruppeneinteilung mit Startnummer und Startscheibe, optional getrennt nach Bogenklasse; direkt danach Wertungszettel drucken.
 - 🗓️ **Zeitplan** – Startgruppen mit Startzeit und Dauer, PDF-Druck Zeitplan-Aushang.
 - 📐 **Parcours-Planung** – alle Scheiben/Ziele mit Distanz, Pfeilstopp, Geländetyp, Reihenfolge per Drag-and-Drop, Material aus dem Inventar mit angeforderter Menge und Einmalposten; PDF-Druck Aufbauplan und Zielplan.
@@ -72,7 +72,7 @@ flowchart LR
 ### Auswertung
 
 - 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand; Gleichstandsregeln je Regelwerk (Kills, X-Treffer, Treffer in der höchsten Wertung), Hinweis und Ergebniseingabe für ein nötiges Stechen (Spalte „Stechen“ in Liste, Export und PDF).
-- 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse; mit dem Erstellen wird die Ergebniseingabe gesperrt. Versand per E-Mail mit PDF im Anhang an die vorgemerkten Schützen.
+- 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse; mit dem Erstellen werden Ergebniseingabe und Helfer gesperrt. Versand per E-Mail mit PDF im Anhang an die vorgemerkten Schützen.
 - 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
 - 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand) als PDF.
 - 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
@@ -80,12 +80,13 @@ flowchart LR
 
 ### Stammdaten
 
-- 🏹 **Schützen** – Suche, aktiv/inaktiv; Notizen und Dokumente in eigenen Tabs; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
+- 🏹 **Schützen** – Passnummer, Suche, aktiv/inaktiv; Notizen und Dokumente in eigenen Tabs; Import CSV/XLSX/ODS mit Spalten-Zuordnung, Vorschau, Validierung und Duplikatbehandlung.
 - 📏 **Regelwerke** – 9 eingebaute Regelwerke mit Gleichstandsregeln nach WA, IBO, IFAA und DBSV (3D Hunter, IBO 3D Standard/12-Ring, WA 3D, DBSV Waldrunde, IFAA Feld bekannt/unbekannt, WA Halle 18 m/25 m) plus eigene durch Klonen; Kills/X, Disziplin, Gleichstand und Stechen je Regelwerk einstellbar, Regelwerke lesbar exportier-/importierbar.
 - 👥 **Mitglieder** – Mitgliederkartei mit Mitgliedsnummer, Adresse, Einwilligung (Datum erscheint beim Ankreuzen), Notizen und Dokumente in eigenen Tabs, Bankverbindung (IBAN-Prüfziffer, SEPA-Mandat) und Helferhistorie (manuelle Einsätze lassen sich mit einem bestehenden Turnier verknüpfen); Datenauskunft per E-Mail mit maskierter IBAN; Excel-Export/-Import ohne Bankdaten.
-- 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
+- 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; gesperrt, sobald die Ergebnisliste erstellt ist; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
 - 📦 **Inventar und Logbuch** – Ausrüstung (Ziele, Tische, Pavillons …) mit Kategorien, Preisen, Dokumenten und Reparaturkosten (mit verlinkter Rechnung) verwalten, Artikel aktiv/inaktiv, Parcoursplan mit Bestandsprüfung; Logbuch als Tabelle aller Aktivitäten, eine Zeile je Eintrag (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
+- ⌨️ **Vorformatierte Eingabefelder** – Datum `__.__.____` (mit Kalender), Uhrzeit `__:__` und Beträge `____,__ €` werden direkt im Feld getippt.
 
 ### Einstellungen
 
@@ -248,7 +249,7 @@ Das Skript baut mit PyInstaller und danach den Installer mit NSIS und schreibt `
 Nur den Installer neu bauen:
 
 ```bat
-makensis /DVERSION=2026.11.5 build\setup.nsi
+makensis /DVERSION=2026.11.6 build\setup.nsi
 ```
 
 ### Release

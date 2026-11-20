@@ -176,9 +176,9 @@ Tab <i>Zeitplan</i> bekommen die Gruppen Startzeiten.</p>
 unbekannt). Mit <b>+ Runde</b> fügst du Runden hinzu, der Papierkorb entfernt
 sie (mindestens eine bleibt). Die erste Runde bestimmt Regelwerk,
 Scheibenzahl und Pfeile des Turniers. Bei neuen Turnieren ist das als
-Standard markierte Regelwerk (★ in der Regelwerke-Liste) vorgewählt. Der
-Button <b>Parcours-Beschreibung übernehmen</b> trägt die im Vereinsprofil
-hinterlegte Beschreibung in „Hinweise zum Parcours“ ein.</p>
+Standard markierte Regelwerk (★ in der Regelwerke-Liste) vorgewählt. Ist im
+Vereinsprofil eine Parcours-Beschreibung hinterlegt, wird sie automatisch in
+„Hinweise zum Parcours“ übernommen, solange das Turnier dort noch nichts stehen hat.</p>
 <h3>3 Bogenklassen</h3>
 <p>Klassen per Klick an- und abwählen; <b>Alle</b>, <b>Keine</b> und <b>Eigene</b>
 (nur benutzerdefinierte Klassen) helfen bei der Auswahl. Mindestens eine
@@ -225,7 +225,13 @@ generieren.</p>
 <h3>Schützen-Stammdaten</h3>
 <p>Im Modul <b>Schützen</b> verwaltest du die Stammdaten aller Vereinsmitglieder.
 Über <b>Importieren</b> lassen sich Schützenlisten als CSV oder Excel einlesen –
-BowTally erkennt gängige Spaltenbezeichnungen automatisch.</p>
+BowTally erkennt gängige Spaltenbezeichnungen automatisch. Zu jedem Schützen
+gehört eine optionale <b>Passnummer</b>; beim Import werden Schützen mit gleicher
+Passnummer als Dubletten erkannt.</p>
+<p>Datums-, Uhrzeit- und Betragsfelder sind vorformatiert (<code>__.__.____</code>,
+<code>__:__</code>, <code>____,__ €</code>): Einfach ins Feld klicken und die Ziffern
+tippen – bei Beträgen springt ein Komma zu den Cent. Den Kalender öffnet das Symbol
+rechts im Datumsfeld oder F4.</p>
 <p>Schützen können als <b>inaktiv</b> markiert werden und werden dann aus
 Auswahllisten ausgeblendet. Die Checkbox <i>Inaktive Schützen anzeigen</i>
 blendet sie wieder ein. Schützen mit Turnierteilnahme lassen sich nicht löschen;
@@ -255,7 +261,9 @@ abgewählt):</p>
 <h3>Teilnehmer-Anmeldung</h3>
 <p>Im Turnier unter <b>Teilnehmer</b> weist du Schützen über
 <b>Schütze zuweisen</b> dem Turnier zu. Bei mehreren Schützen kannst du die
-Bogenklassen im folgenden Dialog individuell anpassen.</p>
+Bogenklassen im folgenden Dialog individuell anpassen. <b>Neuer Schütze</b>
+(links daneben) legt einen Schützen in den Stammdaten an und weist ihn
+gleichzeitig dem geöffneten Turnier zu.</p>
 <h3>Anmeldestatus</h3>
 <table border="0" cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
   <tr><td><b>Gemeldet</b></td><td>Anmeldung eingegangen, noch nicht bestätigt</td></tr>
@@ -295,7 +303,8 @@ rückgängig.</p>
 <i>Schießen</i> aktiv. Gib Name oder Startnummer ein und drücke <b>Enter</b> –
 der Teilnehmer wird eingecheckt. Der Button wechselt zu <b>Auschecken</b>,
 wenn der Teilnehmer bereits eingecheckt ist (Status danach „Bestätigt“). Oben
-stehen <i>Eingecheckt / Erwartet</i> und die Auslastung. Ist die Startgebühr
+stehen <i>Eingecheckt / Erwartet</i> und die Auslastung, rechts in derselben Zeile
+Suchfeld, <b>Einchecken</b> und <b>Als Walk-in erfassen</b>. Ist die Startgebühr
 nicht als eingegangen markiert, erscheint die Warnung „Startgebühr nicht als
 eingegangen markiert“.</p>
 <h3>Walk-in</h3>
@@ -363,7 +372,8 @@ Jede Zelle wird sofort gespeichert; <b>Speichern</b> (Strg+S) bestätigt dies nu
   <li>Zählt das Regelwerk Kills oder X-Treffer, erscheinen zusätzliche Spalten</li>
 </ul>
 <p>Bei den Wertungsmodi <i>Rundenwertung</i> und <i>Nur Gesamtpunkte</i> trägst du stattdessen
-die Punkte je Runde bzw. die Gesamtpunkte in einer einfachen Tabelle ein.</p>
+die Punkte je Runde bzw. die Gesamtpunkte in einer einfachen Tabelle ein. Dort
+werden nur Zahlen angenommen.</p>
 <p>Ist die Auswertung geschlossen (Ergebnisliste erstellt) oder das Turnier abgeschlossen, ist
 die Eingabe gesperrt.</p>
 <h3>Rang berechnen</h3>
@@ -405,7 +415,8 @@ jeweiligen Ansichten (siehe „Import &amp; Export“).</p>
 <p><b>Ergebnisliste erstellen</b> erzeugt das druckfertige PDF. Beim ersten Mal
 fragt BowTally: „Die Auswertung wird nun geschlossen. Dieser Schritt kann
 nicht rückgängig gemacht werden.“ Nach der Bestätigung ist die
-<b>Ergebniseingabe unwiderruflich schreibgeschützt</b>. Danach kannst du die
+<b>Ergebniseingabe unwiderruflich schreibgeschützt</b>, ebenso die Helfer des
+Turniers. Danach kannst du die
 Ergebnisliste beliebig oft neu erstellen.</p>
 <h3>Aktionen nach dem Erstellen</h3>
 <p>Diese Buttons sind erst aktiv, nachdem die Ergebnisliste erstellt wurde
@@ -531,6 +542,9 @@ E-Mail, nur mit E-Mail-Adresse), <b>Als bestätigt markieren</b>,
 <b>Bestätigung zurücksetzen</b> und <b>Entfernen</b>.
 <b>Helferliste drucken</b> erstellt eine PDF-Liste, <b>Exportieren</b> eine
 Tabelle (CSV, Excel, OpenDocument) – ohne Bankdaten.</p>
+<p>Sobald die <b>Ergebnisliste erstellt</b> oder das Turnier abgeschlossen ist, sind
+die Helfer gesperrt: Anlegen, Zuweisen, Bearbeiten und Entfernen sind nicht mehr
+möglich; Drucken, Exportieren und Bestätigung senden bleiben verfügbar.</p>
 <h3>Helferhistorie</h3>
 <p>Beim Abschluss des Turniers (Phase <i>Abgeschlossen</i>) wird für jedes
 Mitglied unter den Helfern automatisch ein Eintrag in dessen Helferhistorie

@@ -115,7 +115,7 @@ class Archer(Base):
     last_name: Mapped[str] = mapped_column(Text, nullable=False)
     birth_date: Mapped[date | None] = mapped_column(Date)
     club: Mapped[str | None] = mapped_column(Text)
-    member_number: Mapped[str | None] = mapped_column(Text)
+    pass_number: Mapped[str | None] = mapped_column(Text)
     email: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(Text)
     default_bow_class_id: Mapped[int | None] = mapped_column(ForeignKey("bow_classes.id"))

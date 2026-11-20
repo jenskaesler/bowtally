@@ -5,10 +5,10 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Callable
 
-from PySide6.QtCore import QPoint, QTime, Qt, Signal
+from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QIcon
 from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHeaderView, QStackedLayout,
-                               QStyledItemDelegate, QTableWidget, QTableWidgetItem, QTimeEdit,
+                               QStyledItemDelegate, QTableWidget, QTableWidgetItem,
                                QWidget)
 
 from bowtally.ui import theme as _theme
@@ -109,28 +109,21 @@ class ComboDelegate(QStyledItemDelegate):
 
 
 class TimeDelegate(QStyledItemDelegate):
-    """Inline HH:mm time picker; empty string / None stored as NULL."""
+    """Inline time entry in the mask __:__; a blank time is stored as NULL."""
 
     def createEditor(self, parent, option, index):
-        te = QTimeEdit(parent)
-        te.setDisplayFormat("HH:mm")
-        te.setSpecialValueText("--:--")
-        return te
+        from bowtally.ui.components.form_field import TimeField
+        return TimeField(parent)
 
-    def setEditorData(self, editor: QTimeEdit, index):
-        raw = index.data(Qt.ItemDataRole.DisplayRole) or ""
-        t = QTime.fromString(raw, "HH:mm")
-        editor.setTime(t if t.isValid() else editor.minimumTime())
+    def setEditorData(self, editor, index):
+        editor.set_field_value(index.data(Qt.ItemDataRole.DisplayRole) or None)
 
-    def setModelData(self, editor: QTimeEdit, model, index):
-        t = editor.time()
-        if t == editor.minimumTime():
-            model.setData(index, None, VALUE_ROLE)
-            model.setData(index, "", Qt.ItemDataRole.DisplayRole)
-        else:
-            s = t.toString("HH:mm")
-            model.setData(index, s, VALUE_ROLE)
-            model.setData(index, s, Qt.ItemDataRole.DisplayRole)
+    def setModelData(self, editor, model, index):
+        if editor.input_error():
+            return                              # incomplete time: keep the stored value
+        s = editor.field_value()
+        model.setData(index, s, VALUE_ROLE)
+        model.setData(index, s or "", Qt.ItemDataRole.DisplayRole)
 
 
 class DataTable(QWidget):

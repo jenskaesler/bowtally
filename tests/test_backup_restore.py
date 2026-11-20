@@ -265,3 +265,30 @@ def test_restore_maps_builtin_rules_by_name_and_keeps_removed_ones_as_own_rules(
         default = con.execute("SELECT r.name FROM app_settings s JOIN scoring_rules r "
                               "ON r.id = s.value WHERE s.key = 'default_scoring_rule_id'").fetchone()
         assert default == ("3D Standard 3-Pfeil",)
+
+
+def test_archer_pass_number_round_trip_and_old_member_number(tmp_path, monkeypatch):
+    """Backups carry the pass number; an archer member number of older backups becomes the
+    pass number (the column itself is gone)."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    db_path = tmp_path / "bowtally.db"
+    monkeypatch.setattr(config, "DB_PATH", db_path)
+    backup = {"meta": {"format_version": "4"}, "data": {"archers": [
+        {"id": 1, "first_name": "Robin", "last_name": "Hood", "member_number": "M-7"},
+        {"id": 2, "first_name": "Maid", "last_name": "Marian", "pass_number": "P-1",
+         "member_number": "M-8"}]}}
+
+    backup_service._restore_impl(backup)
+
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}")
+    with Session(engine) as session:
+        exported = backup_service.create_backup(session, "test")
+    engine.dispose()
+    archers = {a["id"]: a for a in exported["data"]["archers"]}
+    assert archers[1]["pass_number"] == "M-7" and archers[2]["pass_number"] == "P-1"
+    assert all("member_number" not in a for a in archers.values())
+
+    backup_service._restore_impl(exported)          # the new format restores unchanged
+    with sqlite3.connect(db_path) as con:
+        assert dict(con.execute("SELECT id, pass_number FROM archers")) == {1: "M-7", 2: "P-1"}

@@ -386,6 +386,8 @@ def _import_data(conn, inspector, data: dict) -> None:
                 row = {**row, "scoring_rule_id": rule_ids[row["scoring_rule_id"]]}
             if table == "app_settings" and row.get("key") == "default_scoring_rule_id":
                 row = {**row, "value": str(rule_ids.get(int(row["value"] or 0), row["value"]))}
+            if table == "archers" and row.get("member_number") and not row.get("pass_number"):
+                row = {**row, "pass_number": row["member_number"]}   # older backups
             filtered = {k: v for k, v in row.items() if k in schema_cols}
             if not filtered:
                 continue
