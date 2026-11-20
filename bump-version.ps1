@@ -32,12 +32,26 @@ $VersionFile = Join-Path $ScriptDir "bowtally\__version__.py"
 $NsiFile     = Join-Path $ScriptDir "build\setup.nsi"
 $ReadmeMd    = Join-Path $ScriptDir "README.md"
 
+# Alle Dateien als UTF-8 lesen und schreiben (Windows PowerShell 5.1 nutzt sonst die
+# ANSI-Codepage und beschaedigt Umlaute und Emojis). Ein vorhandenes BOM bleibt erhalten.
+function Read-Utf8File {
+    param([string]$Path)
+    return [System.IO.File]::ReadAllText($Path, (New-Object System.Text.UTF8Encoding($false)))
+}
+
+function Write-Utf8File {
+    param([string]$Path, [string]$Text)
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    [System.IO.File]::WriteAllText($Path, $Text, (New-Object System.Text.UTF8Encoding($hasBom)))
+}
+
 function Get-CurrentVersion {
     param([string]$FilePath)
     if (-not (Test-Path $FilePath)) {
         throw "__version__.py nicht gefunden: " + $FilePath
     }
-    $content = Get-Content $FilePath -Raw
+    $content = Read-Utf8File $FilePath
     if ($content -match '__version__\s*=\s*"([^"]+)"') {
         return $Matches[1]
     }
@@ -87,7 +101,7 @@ function Suggest-NextVersions {
 
 function Update-VersionFile {
     param([string]$Path, [string]$OldVer, [string]$NewVer)
-    $content = Get-Content $Path -Raw
+    $content = Read-Utf8File $Path
     $pattern = '__version__\s*=\s*"' + [regex]::Escape($OldVer) + '"'
     $replace = '__version__ = "' + $NewVer + '"'
     if ($content -notmatch $pattern) {
@@ -95,35 +109,35 @@ function Update-VersionFile {
         return
     }
     $updated = $content -replace $pattern, $replace
-    Set-Content $Path -Value $updated -NoNewline
+    Write-Utf8File -Path $Path -Text $updated
     Write-Host "  [OK] bowtally\__version__.py"
 }
 
 function Update-NsiFile {
     param([string]$Path, [string]$OldVer, [string]$NewVer)
     if (-not (Test-Path $Path)) { return }
-    $content = Get-Content $Path -Raw
+    $content = Read-Utf8File $Path
     $pattern = '(!define VERSION\s+")' + [regex]::Escape($OldVer) + '"'
     if ($content -notmatch $pattern) {
         Write-Host "  [--] build\setup.nsi: kein passendes VERSION-Define, uebersprungen."
         return
     }
     $updated = $content -replace $pattern, ('${1}' + $NewVer + '"')
-    Set-Content $Path -Value $updated -NoNewline
+    Write-Utf8File -Path $Path -Text $updated
     Write-Host "  [OK] build\setup.nsi"
 }
 
 function Update-Readme {
     param([string]$Path, [string]$OldVer, [string]$NewVer)
     if (-not (Test-Path $Path)) { return }
-    $content = Get-Content $Path -Raw
+    $content = Read-Utf8File $Path
     $escaped = [regex]::Escape($OldVer)
     if ($content -notmatch $escaped) {
         Write-Host "  [--] README.md: Version nicht gefunden, uebersprungen."
         return
     }
     $updated = $content -replace $escaped, $NewVer
-    Set-Content $Path -Value $updated -NoNewline
+    Write-Utf8File -Path $Path -Text $updated
     Write-Host "  [OK] README.md"
 }
 
@@ -200,11 +214,11 @@ Write-Host ""
 Write-Host "Folgende Dateien werden geaendert:"
 Write-Host "  - bowtally\__version__.py"
 if (Test-Path $NsiFile) {
-    $nsiContent = Get-Content $NsiFile -Raw
+    $nsiContent = Read-Utf8File $NsiFile
     if ($nsiContent -match ([regex]::Escape($currentVer))) { Write-Host "  - build\setup.nsi" }
 }
 if (Test-Path $ReadmeMd) {
-    $readmeContent = Get-Content $ReadmeMd -Raw
+    $readmeContent = Read-Utf8File $ReadmeMd
     if ($readmeContent -match ([regex]::Escape($currentVer))) { Write-Host "  - README.md" }
 }
 Write-Host ""
