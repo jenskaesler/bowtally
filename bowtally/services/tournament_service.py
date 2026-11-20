@@ -853,10 +853,34 @@ def _pick_class(t: Tournament, archer: Archer, wanted: int | None) -> int | None
     return ids[0] if ids else None
 
 
+def _same_person(archer: Archer, first_name: str, last_name: str, birth_date=None) -> bool:
+    """Same name (case-insensitive); different birth dates (both known) are different persons."""
+    if (archer.first_name or "").strip().lower() != (first_name or "").strip().lower() or             (archer.last_name or "").strip().lower() != (last_name or "").strip().lower():
+        return False
+    return not (birth_date and archer.birth_date and archer.birth_date != birth_date)
+
+
+def find_duplicate_participant(t: Tournament, archer_id: int | None = None, first_name: str = "",
+                               last_name: str = "", birth_date=None):
+    """The participant that already stands for this archer: same archer id (database) or same
+    person by name. The pass number is optional and therefore not used here."""
+    for p in t.participants:
+        if archer_id is not None and p.archer_id == archer_id:
+            return p
+        if first_name and last_name and p.archer is not None and                 _same_person(p.archer, first_name, last_name, birth_date):
+            return p
+    return None
+
+
+def _is_duplicate(t: Tournament, archer: Archer) -> bool:
+    return find_duplicate_participant(t, archer.id, archer.first_name, archer.last_name,
+                                      archer.birth_date) is not None
+
+
 def _add(s, t: Tournament, archer: Archer, bow_class_id: int | None = None,
          start_number: int | None = None, start_group: str | None = None,
          _cap_bypass: bool = False, **extra) -> TournamentParticipant | None:
-    if any(p.archer_id == archer.id for p in t.participants):
+    if _is_duplicate(t, archer):
         return None
     if not _cap_bypass:
         _check_capacity(t, 1)
@@ -880,7 +904,14 @@ def add_participants(tournament_id: int, archer_ids: list[int]) -> int:
     with session_scope() as s:
         t = s.get(Tournament, tournament_id)
         _check_editable(t)
-        new = [a for a in archer_ids if all(p.archer_id != a for p in t.participants)]
+        new, seen = [], []
+        for aid in dict.fromkeys(archer_ids):           # keeps the order, drops repeated ids
+            archer = s.get(Archer, aid)
+            if archer is None or _is_duplicate(t, archer) or                     any(_same_person(o, archer.first_name, archer.last_name, archer.birth_date)
+                        for o in seen):
+                continue
+            new.append(aid)
+            seen.append(archer)
         if not waitlist_auto:
             _check_capacity(t, len(new))
         for aid in new:
@@ -950,7 +981,7 @@ def _resolve_import(s, t: Tournament, records: list[dict], strategy: str):
         start_group = rec.pop("start_group", None) or None
         rec = _clean_archer(rec)
         archer = None if strategy == "new" else find_archer(
-            s, rec.get("member_number"), rec["first_name"], rec["last_name"],
+            s, rec.get("pass_number"), rec["first_name"], rec["last_name"],
             rec.get("birth_date"))
         cid = classes.get(str(bc_name).strip().lower()) if bc_name else None
         yield rec, archer, cid, start_number, start_group
@@ -963,9 +994,13 @@ def import_capacity_error(tournament_id: int, records: list[dict], strategy: str
         cap = _capacity(t)
         if cap.max is None:
             return None
-        present = {p.archer_id for p in t.participants}
-        adding = sum(1 for _r, archer, *_ in _resolve_import(s, t, records, strategy)
-                     if archer is None or archer.id not in present)
+        adding, seen = 0, []
+        for rec, archer, *_ in _resolve_import(s, t, records, strategy):
+            key = (rec["first_name"], rec["last_name"], rec.get("birth_date"))
+            if (archer is not None and _is_duplicate(t, archer)) or                     find_duplicate_participant(t, None, *key) is not None or key in seen:
+                continue
+            seen.append(key)
+            adding += 1
         s.rollback()
     if adding > (cap.free_slots or 0):
         return (f"Nur noch {cap.free_slots} Plätze verfügbar, Import würde {adding} "
@@ -981,12 +1016,18 @@ def import_participants(tournament_id: int, records: list[dict], strategy: str) 
     error = import_capacity_error(tournament_id, records, strategy)
     if error:
         raise ValidationError(error)
-    result = {"created": 0, "updated": 0, "skipped": 0, "added": 0}
+    result = {"created": 0, "updated": 0, "skipped": 0, "added": 0, "duplicates": 0}
     with session_scope() as s:
         t = s.get(Tournament, tournament_id)
         _check_editable(t)
         for rec, archer, cid, start_number, start_group in list(
                 _resolve_import(s, t, records, strategy)):
+            # already in the tournament (same archer or same name, also twice in the file):
+            # nothing is created or added, so no duplicate master record either
+            if (archer is not None and _is_duplicate(t, archer)) or find_duplicate_participant(
+                    t, None, rec["first_name"], rec["last_name"], rec.get("birth_date")):
+                result["duplicates"] += 1
+                continue
             if archer is None:
                 archer = Archer(**rec)
                 s.add(archer)

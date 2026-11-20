@@ -5,15 +5,17 @@ FormField = input widget / optional hint / one-line error message.
 Form groups fields in a QFormLayout (label left, widget right).
 """
 import re
-from datetime import date
+import datetime as dt
 from typing import Callable
 
 from PySide6.QtCore import QDate, QEvent, Qt, QTime, QTimer, Signal
-from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox,
-                               QFormLayout, QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QSizePolicy,
-                               QSpinBox, QTextEdit, QTimeEdit, QVBoxLayout, QWidget)
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (QAbstractSpinBox, QCalendarWidget, QCheckBox, QComboBox,
+                               QDoubleSpinBox, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+                               QPlainTextEdit, QSizePolicy, QSpinBox, QTextEdit, QTimeEdit,
+                               QVBoxLayout, QWidget)
 
-from bowtally.ui import repolish
+from bowtally.ui import repolish, theme
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -23,31 +25,356 @@ def email_validator(value) -> str | None:
         "Bitte eine gültige E-Mail-Adresse eingeben (z. B. name@verein.de)"
 
 
-class DateField(QDateEdit):
-    """Optional date in DD.MM.YYYY; the minimum date stands for 'no date'."""
+DATE_FMT = "dd.MM.yyyy"
+
+
+class DateField(QLineEdit):
+    """Date in DD.MM.YYYY, typed directly into the pre-formatted mask __.__.____ or picked from
+    the calendar (button at the right). With allow_empty the field may stay blank (no date)."""
     EMPTY = QDate(1900, 1, 1)
+    dateChanged = Signal(QDate)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, allow_empty: bool = True):
         super().__init__(parent)
-        self.setDisplayFormat("dd.MM.yyyy")
-        self.setCalendarPopup(True)
-        self.setMinimumDate(self.EMPTY)
-        self.setSpecialValueText("–")
-        self.setDate(self.EMPTY)
-        self.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.allow_empty = allow_empty
+        self.setInputMask("99.99.9999;_")
+        self.setMinimumWidth(130)
+        self._last = self.EMPTY                 # last complete, valid date (for dateChanged)
+        self._popup = None
+        self._cal_action = self.addAction(QIcon(), QLineEdit.ActionPosition.TrailingPosition)
+        self._cal_action.setToolTip("Kalender öffnen")
+        self._cal_action.triggered.connect(self.show_calendar)
+        theme.notifier.changed.connect(self._update_icon)
+        self._update_icon()
+        self.textChanged.connect(self._on_text)
+        self.editingFinished.connect(self._on_finished)
 
-    def field_value(self) -> date | None:
-        return None if self.date() == self.EMPTY else self.date().toPython()
+    def _update_icon(self):
+        self._cal_action.setIcon(QIcon(theme.pixmap("calendar", theme.current()["text2"], 16)))
+
+    # ---- value
+    def _digits(self) -> str:
+        return "".join(ch for ch in self.text() if ch.isdigit())
+
+    def is_blank(self) -> bool:
+        return not self._digits()
+
+    def _parsed(self) -> QDate | None:
+        """The typed date, or None when the input is incomplete or no real date."""
+        d = QDate.fromString(self.text(), DATE_FMT)
+        return d if d.isValid() and len(self._digits()) == 8 else None
+
+    def input_error(self) -> str | None:
+        if self.is_blank() or self._parsed() is not None:
+            return None
+        return "Bitte ein gültiges Datum im Format TT.MM.JJJJ eingeben"
+
+    def date(self) -> QDate:
+        d = self._parsed()
+        if d is not None:
+            return d
+        return self._last if not self.allow_empty or not self.is_blank() else self.EMPTY
+
+    def setDate(self, d) -> None:
+        d = QDate(d) if d is not None and not isinstance(d, QDate) else d
+        if d is None or not d.isValid() or (d == self.EMPTY and self.allow_empty):
+            self.clear()
+        else:
+            self.setText(d.toString(DATE_FMT))
+
+    def field_value(self) -> dt.date | None:
+        d = self._parsed()
+        return None if d is None or d == self.EMPTY else d.toPython()
 
     def set_field_value(self, value) -> None:
-        self.setDate(QDate(value) if value else self.EMPTY)
+        self.setDate(QDate(value) if value else None)
+
+    def _on_text(self, _text):
+        d = self._parsed()
+        if d is None and self.is_blank() and self.allow_empty:
+            d = self.EMPTY
+        if d is not None and d != self._last:
+            self._last = d
+            self.dateChanged.emit(d)
+
+    def _on_finished(self):
+        # a required date must not stay incomplete: fall back to the last valid date
+        if not self.allow_empty and self._parsed() is None and self._last != self.EMPTY:
+            self.setDate(self._last)
+
+    # ---- direct input: clicking into an empty field starts at the first digit
+    def _cursor_to_start_if_blank(self):
+        if self.is_blank():
+            self.setCursorPosition(0)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        if self.date() == self.EMPTY:   # empty: open the calendar near today, not in 1900
+        self._cursor_to_start_if_blank()
+
+    def focusInEvent(self, event):
+        super().focusInEvent(event)
+        QTimer.singleShot(0, self._cursor_to_start_if_blank)
+
+    # ---- calendar
+    def show_calendar(self):
+        if not self.isEnabled() or self.isReadOnly():
+            return
+        cal = QCalendarWidget()
+        cal.setWindowFlags(Qt.WindowType.Popup)
+        cal.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        cal.setGridVisible(False)
+        cal.setFirstDayOfWeek(Qt.DayOfWeek.Monday)
+        current = self._parsed()
+        if current is not None:
+            cal.setSelectedDate(current)
+        else:
             today = QDate.currentDate()
-            QTimer.singleShot(0, lambda: self.calendarWidget().setCurrentPage(
-                today.year(), today.month()))
+            cal.setSelectedDate(today)
+            cal.setCurrentPage(today.year(), today.month())
+        cal.clicked.connect(lambda d: self._pick(cal, d))
+        cal.activated.connect(lambda d: self._pick(cal, d))
+        cal.adjustSize()
+        pos = self.mapToGlobal(self.rect().bottomLeft())
+        screen = self.screen().availableGeometry() if self.screen() else None
+        if screen is not None:
+            if pos.x() + cal.width() > screen.right():
+                pos.setX(max(screen.left(), screen.right() - cal.width()))
+            if pos.y() + cal.height() > screen.bottom():
+                pos.setY(self.mapToGlobal(self.rect().topLeft()).y() - cal.height())
+        cal.move(pos)
+        cal.show()
+        self._popup = cal
+
+    def _pick(self, cal, d: QDate):
+        self.setDate(d)
+        cal.close()
+        self._popup = None
+        self.setFocus(Qt.FocusReason.PopupFocusReason)
+        self.editingFinished.emit()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_F4 or (event.key() == Qt.Key.Key_Down
+                                            and event.modifiers() & Qt.KeyboardModifier.AltModifier):
+            self.show_calendar()
+            return
+        super().keyPressEvent(event)
+
+
+class TimeField(QLineEdit):
+    """Time in HH:MM, typed directly into the pre-formatted mask __:__.
+    field_value() is "HH:mm" or None (blank)."""
+
+    def __init__(self, parent=None, allow_empty: bool = True):
+        super().__init__(parent)
+        self.allow_empty = allow_empty
+        self.setInputMask("99:99;_")
+        self.setMinimumWidth(90)
+        self._last = QTime()                    # last complete, valid time
+        self.editingFinished.connect(self._on_finished)
+
+    def _digits(self) -> str:
+        return "".join(ch for ch in self.text() if ch.isdigit())
+
+    def is_blank(self) -> bool:
+        return not self._digits()
+
+    def _parsed(self) -> QTime | None:
+        t = QTime.fromString(self.text(), "HH:mm")
+        return t if t.isValid() and len(self._digits()) == 4 else None
+
+    def input_error(self) -> str | None:
+        if self.is_blank() or self._parsed() is not None:
+            return None
+        return "Bitte eine gültige Uhrzeit im Format HH:MM eingeben"
+
+    def time(self) -> QTime:
+        t = self._parsed()
+        return t if t is not None else self._last
+
+    def setTime(self, t) -> None:
+        if isinstance(t, str):
+            t = QTime.fromString(t, "HH:mm")
+        if t is None or not t.isValid():
+            self.clear()
+        else:
+            self._last = t
+            self.setText(t.toString("HH:mm"))
+
+    def field_value(self) -> str | None:
+        t = self._parsed()
+        return None if t is None else t.toString("HH:mm")
+
+    def set_field_value(self, value) -> None:
+        self.setTime(str(value) if value else None)
+
+    def _on_finished(self):
+        t = self._parsed()
+        if t is not None:
+            self._last = t
+        elif not self.allow_empty and self._last.isValid():
+            self.setTime(self._last)            # a required time must not stay incomplete
+
+    def _cursor_to_start_if_blank(self):
+        if self.is_blank():
+            self.setCursorPosition(0)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self._cursor_to_start_if_blank()
+
+    def focusInEvent(self, event):
+        super().focusInEvent(event)
+        QTimer.singleShot(0, self._cursor_to_start_if_blank)
+
+
+MIN_EURO_DIGITS = 2      # standard mask __,__ €; it grows while more euro digits are typed
+
+
+def currency_mask(euro_digits: int) -> str:
+    return "9" * euro_digits + ",99 €;_"
+
+
+def format_currency(value: float) -> str:
+    return f"{value:.2f} €".replace(".", ",")
+
+
+class CurrencyField(QLineEdit):
+    """Amount in euro: a blank field and the field while editing show the pre-formatted mask
+    __,__ €. Typing a third (fourth) euro digit widens it to ___,__ € (____,__ €); "," or "."
+    jumps to the cents. Otherwise the formatted amount is shown, e.g. "20,00 €".
+    A blank field reads as None with allow_empty, else as 0."""
+    valueChanged = Signal(float)
+
+    def __init__(self, parent=None, allow_empty: bool = False, maximum: float = 9999.99):
+        super().__init__(parent)
+        self.allow_empty = allow_empty
+        self.maximum = maximum
+        self.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.setMinimumWidth(120)
+        self._value: float | None = None
+        self._max_digits = max(MIN_EURO_DIGITS, len(str(int(maximum))))
+        self._slots = MIN_EURO_DIGITS          # euro digits of the current mask
+        self._comma_typed = False
+        self._show_formatted()
+        self.textChanged.connect(self._on_text)
+
+    # ---- parsing / formatting
+    def _parse(self) -> float | None:
+        raw = self.text().replace("€", "").replace("_", "").replace(" ", "").replace(".", "")
+        if not raw.replace(",", ""):
+            return None
+        euros, _, cents = raw.partition(",")
+        if not (euros or "0").isdigit() or (cents and not cents.isdigit()):
+            return None
+        return min(float(f"{euros or 0}.{(cents + '00')[:2]}"), self.maximum)
+
+    def _show_formatted(self):
+        """Not editing: a blank field shows the mask, an amount the formatted text."""
+        self.blockSignals(True)
+        if self._value is None:
+            self._set_mask(MIN_EURO_DIGITS)
+            self.clear()
+        else:
+            self.setInputMask("")
+            self.setText(format_currency(self._value))
+        self.blockSignals(False)
+
+    def _show_mask(self):
+        """Editing: the mask with the current amount (euros left-aligned, cents after ',')."""
+        self.blockSignals(True)
+        self._comma_typed = False
+        if self._value is None:
+            self._set_mask(MIN_EURO_DIGITS)
+            self.clear()
+        else:
+            euros, cents = f"{self._value:.2f}".split(".")
+            self._set_mask(len(euros))
+            self.setText(f"{euros},{cents}")
+            self._comma_typed = True            # an existing amount: digits stay where they are
+        self.blockSignals(False)
+
+    def _set_mask(self, euro_digits: int):
+        self._slots = max(MIN_EURO_DIGITS, min(euro_digits, self._max_digits))
+        self.setInputMask(currency_mask(self._slots))
+
+    def _parts(self) -> tuple[str, str]:
+        euros, _, cents = self.text().replace("€", "").replace(" ", "").partition(",")
+        return euros.replace("_", ""), cents.replace("_", "")
+
+    def keyPressEvent(self, event):
+        if self.inputMask():
+            text = event.text()
+            if text in (",", "."):
+                self._comma_typed = True
+                self.setCursorPosition(self._slots + 1)
+                return
+            if text.isascii() and text.isdigit() and self._widen(text):
+                return
+        super().keyPressEvent(event)
+
+    def _widen(self, digit: str) -> bool:
+        """A further euro digit while the euro part is full: one more slot in front of ','."""
+        euros, cents = self._parts()
+        pos = self.cursorPosition()
+        if (self._comma_typed or cents or len(euros) < self._slots
+                or self._slots >= self._max_digits or pos not in (self._slots, self._slots + 1)):
+            return False
+        self._set_mask(self._slots + 1)
+        self.setText(f"{euros}{digit},")
+        self.setCursorPosition(self._slots + 1)     # behind ',': a further digit widens again
+        return True
+
+    def _on_text(self, _text):
+        v = self._parse()
+        if v != self._value:
+            self._value = v
+            self.valueChanged.emit(self.value())
+
+    # ---- value API (compatible with QDoubleSpinBox where it is used)
+    def value(self) -> float:
+        return self._value or 0.0
+
+    def setValue(self, value) -> None:
+        v = None if value in (None, "") else float(value)
+        if v is not None:
+            v = max(0.0, min(v, self.maximum))
+        changed = v != self._value
+        self._value = v
+        if self.hasFocus():
+            self._show_mask()
+        else:
+            self._show_formatted()
+        if changed:
+            self.textChanged.emit(self.text())      # form change tracking
+            self.valueChanged.emit(self.value())
+
+    def field_value(self) -> float | None:
+        if self._value is None:
+            return None if self.allow_empty else 0.0
+        return self._value
+
+    def set_field_value(self, value) -> None:
+        self.setValue(None if value in (None, "") else value)
+
+    # ---- editing
+    def focusInEvent(self, event):
+        if not self.isReadOnly():
+            self._show_mask()
+        super().focusInEvent(event)
+        QTimer.singleShot(0, self._cursor_to_start)
+
+    def _cursor_to_start(self):
+        if self.hasFocus() and self._value is None:
+            self.setCursorPosition(0)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self._cursor_to_start()
+
+    def focusOutEvent(self, event):
+        super().focusOutEvent(event)
+        if event.reason() != Qt.FocusReason.PopupFocusReason:
+            self._show_formatted()
 
 
 def read_value(w: QWidget):
@@ -111,7 +438,10 @@ def _change_signal(w: QWidget):
 
 def _apply_widget_policy(widget: QWidget) -> None:
     """Set size policies per layout rule: line edits expand; combos/pickers stay fixed."""
-    if isinstance(widget, (QLineEdit, QPlainTextEdit, QTextEdit)):
+    if isinstance(widget, (DateField, TimeField, CurrencyField)):
+        widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        widget.setMinimumWidth(160)
+    elif isinstance(widget, (QLineEdit, QPlainTextEdit, QTextEdit)):
         vp = (QSizePolicy.Policy.Expanding if isinstance(widget, (QPlainTextEdit, QTextEdit))
               else QSizePolicy.Policy.Fixed)
         widget.setSizePolicy(QSizePolicy.Policy.Expanding, vp)
@@ -174,6 +504,11 @@ class FormField(QWidget):
         self.clear_error()
 
     def validate(self) -> bool:
+        input_error = getattr(self.widget, "input_error", None)
+        message = input_error() if callable(input_error) else None
+        if message:
+            self.set_error(message)
+            return False
         value = self.value()
         if self.required and value in (None, "", []):
             self.set_error(self.required_message)
@@ -222,7 +557,8 @@ class Form(QWidget):
     def add(self, key: str, label: str, widget: QWidget, required: bool = False,
             short: bool = False, **kwargs) -> FormField:
         _apply_widget_policy(widget)
-        if self._combo_width is not None and (short or isinstance(widget, (QComboBox, QAbstractSpinBox))):
+        if self._combo_width is not None and (short or isinstance(widget, (QComboBox, QAbstractSpinBox, DateField,
+                                                          TimeField, CurrencyField))):
             widget.setFixedWidth(self._combo_width)
         field = FormField(widget, required=required, label_text=label, **kwargs)
         h_pol = widget.sizePolicy().horizontalPolicy()

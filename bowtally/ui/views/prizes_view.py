@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Preisverwaltung: Preise je Turnier anlegen, Platz und Klasse zuordnen, Preis-PDF drucken."""
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QLineEdit, QPlainTextEdit, QSpinBox
+from PySide6.QtWidgets import QComboBox, QLineEdit, QPlainTextEdit, QSpinBox
 
 from bowtally.services import master_data_service as md
 from bowtally.services import prize_service as ps
@@ -10,6 +10,7 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
+from bowtally.ui.components.form_field import CurrencyField
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.dialogs.record_dialog import RecordDialog
@@ -41,11 +42,7 @@ class PrizeDialog(RecordDialog):
     def _setup_form(self):
         rank_spin = QSpinBox()
         rank_spin.setRange(1, 999)
-        val_spin = QDoubleSpinBox()
-        val_spin.setRange(0, 9999)
-        val_spin.setDecimals(2)
-        val_spin.setSuffix(" €")
-        val_spin.setSpecialValueText("–")
+        val_spin = CurrencyField(allow_empty=True)
         desc = QPlainTextEdit()
         desc.setMinimumHeight(50)
         self._class_combo = QComboBox()

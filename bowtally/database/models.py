@@ -3,7 +3,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import (JSON, Boolean, CheckConstraint, Column, Date, DateTime, Float,
-                        ForeignKey, Integer, String, Table, Text, UniqueConstraint)
+                        ForeignKey, Index, Integer, String, Table, Text, UniqueConstraint)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -115,7 +115,7 @@ class Archer(Base):
     last_name: Mapped[str] = mapped_column(Text, nullable=False)
     birth_date: Mapped[date | None] = mapped_column(Date)
     club: Mapped[str | None] = mapped_column(Text)
-    member_number: Mapped[str | None] = mapped_column(Text)
+    pass_number: Mapped[str | None] = mapped_column(Text)
     email: Mapped[str | None] = mapped_column(Text)
     phone: Mapped[str | None] = mapped_column(Text)
     default_bow_class_id: Mapped[int | None] = mapped_column(ForeignKey("bow_classes.id"))
@@ -271,6 +271,8 @@ class TournamentParticipant(Base):
                         name="ck_participants_registration"),
         CheckConstraint("payment_status IN ('unpaid', 'pending', 'paid')",
                         name="ck_participants_payment"),
+        # an archer (database id) takes part in a tournament at most once
+        Index("uq_participants_tournament_archer", "tournament_id", "archer_id", unique=True),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

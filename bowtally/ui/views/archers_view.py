@@ -22,8 +22,8 @@ from bowtally.ui.dialogs.import_dialog import run_import
 from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
-HEADERS = ["Vorname", "Nachname", "Verein", "Klasse", "Mitgliedsnummer", "Status"]
-EXPORT_HEADERS = ["Nachname", "Vorname", "Geburtsdatum", "Verein", "Mitgliedsnummer",
+HEADERS = ["Vorname", "Nachname", "Verein", "Klasse", "Passnummer", "Status"]
+EXPORT_HEADERS = ["Nachname", "Vorname", "Geburtsdatum", "Verein", "Passnummer",
                   "Bogenklasse", "E-Mail", "Telefon", "Aktiv"]
 
 
@@ -72,7 +72,7 @@ class ArcherDialog(RecordDialog):
         self.form.add("birth_date", "Geburtsdatum", DateField(),
                       hint="Format TT.MM.JJJJ, optional")
         self.form.add("club", "Verein", club)
-        self.form.add("member_number", "Mitgliedsnummer", QLineEdit(), short=True)
+        self.form.add("pass_number", "Passnummer", QLineEdit(), short=True)
         self.form.add("default_bow_class_id", "Standardklasse", bow_class)
         email_field = QLineEdit()
         self.form.add("email", "E-Mail", email_field, validator=email_validator)
@@ -171,7 +171,7 @@ class ArchersView(ListView):
                            "Lege den ersten Schützen an oder importiere eine Mitgliederliste.",
                            "Neuer Schütze")
         super().__init__("Schützen", HEADERS, empty,
-                         search_placeholder="Name, Verein oder Mitgliedsnummer …",
+                         search_placeholder="Name, Verein oder Passnummer …",
                          multi_select=True)
         empty.actionTriggered.connect(self.new_item)
         self._show_inactive = QCheckBox("Inaktive Schützen anzeigen")
@@ -205,7 +205,7 @@ class ArchersView(ListView):
         self.table.set_rows([[a.first_name, a.last_name, a.club,
                               a.default_bow_class.abbreviation or a.default_bow_class.name
                               if a.default_bow_class else None,
-                              a.member_number,
+                              a.pass_number,
                               Cell(a.active, chip=("Aktiv", "success") if a.active
                                    else ("Inaktiv", "danger"))] for a in visible],
                             [a.id for a in visible])
@@ -333,7 +333,7 @@ class ArchersView(ListView):
         rows = []
         for i in ids:
             a = self._archers[i]
-            rows.append([a.last_name, a.first_name, a.birth_date, a.club, a.member_number,
-                         a.default_bow_class.name if a.default_bow_class else None, a.email,
+            rows.append([a.last_name, a.first_name, a.birth_date, a.club,
+                         a.pass_number, a.default_bow_class.name if a.default_bow_class else None, a.email,
                          a.phone, "Ja" if a.active else "Nein"])
         return [("Schützen", EXPORT_HEADERS, rows)]

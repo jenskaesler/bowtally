@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Entry fees of the active tournament: drawer CRUD, delete protection, load templates."""
-from PySide6.QtWidgets import QDoubleSpinBox, QLineEdit, QPlainTextEdit
+from PySide6.QtWidgets import QLineEdit, QPlainTextEdit
 
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, show_error
@@ -8,7 +8,7 @@ from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.data_table import Cell
 from bowtally.ui.components.empty_state import EmptyState
-from bowtally.ui.components.form_field import Form
+from bowtally.ui.components.form_field import CurrencyField, Form
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.views import ListView
@@ -28,19 +28,11 @@ def _locked(t) -> tuple[bool, str]:
     return False, ""
 
 
-class AmountField(QDoubleSpinBox):
+class AmountField(CurrencyField):
+    """Euro amount (mask __,__ €, grows to ____,__ €); blank counts as 0."""
+
     def __init__(self):
-        super().__init__()
-        self.setRange(0, 9999)
-        self.setDecimals(2)
-        self.setSuffix(" €")
-        self.setSingleStep(1)
-
-    def field_value(self):
-        return self.value()
-
-    def set_field_value(self, value):
-        self.setValue(float(value or 0))
+        super().__init__(allow_empty=False)
 
 
 class FeesView(ListView):

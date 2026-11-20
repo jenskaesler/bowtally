@@ -2,7 +2,7 @@
 """Participant management of one tournament: picker, registration / payment status,
 inline editing, bulk actions, capacity limit and import."""
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDateEdit, QDialog, QDoubleSpinBox,
+from PySide6.QtWidgets import (QButtonGroup, QComboBox, QDialog,
                                QFormLayout, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
                                QMenu, QRadioButton, QVBoxLayout, QWidget)
 
@@ -18,6 +18,7 @@ from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
 from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable, ID_ROLE, TimeDelegate
 from bowtally.ui.components.empty_state import EmptyState
+from bowtally.ui.components.form_field import CurrencyField, DateField
 from bowtally.ui.components.search_bar import SearchBar
 from bowtally.ui.components.status_chip import payment_chip, registration_chip
 from bowtally.ui.components.toast import Toast
@@ -51,7 +52,7 @@ class ArcherPicker(QDialog):
         restore_geom(self, "archer_picker")
         self.finished.connect(lambda: save_geom(self, "archer_picker"))
         self.free_slots = free_slots
-        self.search = SearchBar("Name, Verein oder Mitgliedsnummer …")
+        self.search = SearchBar("Name, Verein oder Passnummer …")
         self.list = QListWidget()
         self.archers = {a.id: a for a in md.list_archers()}
         for a in self.archers.values():
@@ -61,7 +62,7 @@ class ArcherPicker(QDialog):
             item = QListWidgetItem(f"{text}   {details}" if details else text)
             item.setData(Qt.ItemDataRole.UserRole, a.id)
             item.setData(Qt.ItemDataRole.UserRole + 1,
-                         f"{text} {a.club or ''} {a.member_number or ''}".lower())
+                         f"{text} {a.club or ''} {a.pass_number or ''}".lower())
             if a.id in assigned_ids:
                 item.setFlags(Qt.ItemFlag.NoItemFlags)
                 item.setToolTip("Bereits diesem Turnier zugewiesen")
@@ -247,15 +248,14 @@ class _ConfirmPaymentDialog(QDialog):
         pay_widget.setLayout(pay_row)
         form.addRow("Zahlung:", pay_widget)
 
-        self.amount_spin = QDoubleSpinBox()
-        self.amount_spin.setRange(0, 9999)
-        self.amount_spin.setDecimals(2)
-        self.amount_spin.setSuffix(" €")
+        self.amount_spin = CurrencyField()
+        self.amount_spin.setFixedWidth(160)
         self._lbl_amount = QLabel("Betrag:")
         form.addRow(self._lbl_amount, self.amount_spin)
 
-        self.date_edit = QDateEdit(QDate.currentDate())
-        self.date_edit.setCalendarPopup(True)
+        self.date_edit = DateField(allow_empty=False)
+        self.date_edit.setDate(QDate.currentDate())
+        self.date_edit.setFixedWidth(160)
         self._lbl_date = QLabel("Datum:")
         form.addRow(self._lbl_date, self.date_edit)
 
@@ -310,6 +310,9 @@ class ParticipantsView(QWidget):
         self.status_filter.currentIndexChanged.connect(lambda _i: self._apply_filter())
         self.btn_add = button("Schütze zuweisen", self.pick_archers, "primary",
                               "Schützen aus den Stammdaten zuweisen (Strg+N)")
+        self.btn_new = button("Neuer Schütze", self.new_archer,
+                              tooltip="Neuen Schützen in den Stammdaten anlegen und direkt "
+                                      "diesem Turnier zuweisen")
         self._more_menu = QMenu()
         self._act_renumber = self._more_menu.addAction(
             "Startnummern neu vergeben", self._renumber)
@@ -333,6 +336,7 @@ class ParticipantsView(QWidget):
         bar.addStretch(1)
         bar.addWidget(self.search)
         bar.addWidget(self.btn_more)
+        bar.addWidget(self.btn_new)
         bar.addWidget(self.btn_add)
 
         empty = EmptyState("users", "Noch keine Teilnehmer",
@@ -391,6 +395,10 @@ class ParticipantsView(QWidget):
                                 else shooting_hint if not assignable
                                 else full_hint(cap) if cap.is_full and not waitlist_auto
                                 else "Schützen aus den Stammdaten zuweisen (Strg+N)")
+        self.btn_new.setEnabled(add_ok)
+        self.btn_new.setToolTip(self.btn_add.toolTip() if not add_ok else
+                                "Neuen Schützen in den Stammdaten anlegen und direkt "
+                                "diesem Turnier zuweisen")
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
         self._parts = {p.id: p for p in parts}
@@ -766,11 +774,63 @@ class ParticipantsView(QWidget):
                     by_archer = {p.archer_id: p.id
                                  for p in ts.get_tournament(t.id).participants}
                     for aid, cid in choices.items():
-                        ts.update_participant(by_archer[aid], {"bow_class_id": cid})
+                        if aid in by_archer:        # skipped duplicates have no participant
+                            ts.update_participant(by_archer[aid], {"bow_class_id": cid})
         except Exception as exc:
             show_error(self, exc)
             return
-        Toast.show(self, f"{added} Teilnehmer zugewiesen", Toast.SUCCESS)
+        skipped = len(ids) - added
+        if skipped:
+            Toast.show(self, f"{added} Teilnehmer zugewiesen, {skipped} übersprungen – bereits "
+                             "im Turnier (gleicher Schütze oder gleicher Name)", Toast.WARNING)
+        else:
+            Toast.show(self, f"{added} Teilnehmer zugewiesen", Toast.SUCCESS)
+        self._reload()
+
+    def new_archer(self):
+        """Create an archer in the master data and assign it to this tournament at once."""
+        if self.tournament is None or not self.btn_new.isEnabled():
+            return
+        from bowtally.ui.views.archers_view import ArcherDialog
+        t = self.tournament
+        dlg = ArcherDialog(parent=self)
+        if not dlg.exec() or not dlg.saved_id:
+            return
+        archer = md.get_archer(dlg.saved_id)
+        dup = ts.find_duplicate_participant(ts.get_tournament(t.id), archer.id, archer.first_name,
+                                            archer.last_name, archer.birth_date)
+        if dup is not None:
+            name = f"{dup.archer.first_name} {dup.archer.last_name}"
+            if ConfirmDialog.ask(
+                    self, "Bereits Teilnehmer",
+                    f"{name} ist bereits Teilnehmer dieses Turniers (Startnummer "
+                    f"{dup.start_number or '–'}). Der Schütze wird nicht noch einmal zugewiesen.\n\n"
+                    "Den eben angelegten Stammdatensatz wieder löschen?",
+                    "Löschen", destructive=True):
+                md.delete_archer(archer.id)
+                Toast.show(self, "Doppelter Stammdatensatz gelöscht", Toast.INFO)
+            self._reload()
+            return
+        class_id = None
+        if archer.default_bow_class_id not in {bc.id for bc in t.bow_classes}:
+            cdlg = ClassAssignDialog([archer], t.bow_classes, self)
+            if not cdlg.exec():
+                Toast.show(self, f"{dlg.saved_name} in den Stammdaten angelegt, "
+                                 "aber nicht zugewiesen", Toast.INFO)
+                return
+            class_id = cdlg.choices().get(archer.id)
+        try:
+            with busy():
+                ts.add_participants(t.id, [archer.id])
+                if class_id is not None:
+                    pid = next(p.id for p in ts.get_tournament(t.id).participants
+                               if p.archer_id == archer.id)
+                    ts.update_participant(pid, {"bow_class_id": class_id})
+        except Exception as exc:
+            show_error(self, exc, f"{dlg.saved_name} wurde angelegt, aber nicht zugewiesen")
+            self._reload()
+            return
+        Toast.show(self, f"{dlg.saved_name} angelegt und zugewiesen", Toast.SUCCESS)
         self._reload()
 
     def _renumber(self):
@@ -796,8 +856,11 @@ class ParticipantsView(QWidget):
         except Exception as exc:
             show_error(self, exc, "Import fehlgeschlagen")
             return
+        dup = r.get("duplicates", 0)
         Toast.show(self, f"{r['added']} Teilnehmer hinzugefügt ({r['created']} Schützen neu "
-                         f"angelegt, {r['updated']} aktualisiert)", Toast.SUCCESS)
+                         f"angelegt, {r['updated']} aktualisiert)"
+                         + (f", {dup} bereits im Turnier übersprungen" if dup else ""),
+                   Toast.WARNING if dup else Toast.SUCCESS)
         self._reload()
 
     def _run_draw(self):

@@ -3,14 +3,14 @@
 
 Every page shows a step indicator, a title and a short explanation.
 """
-from PySide6.QtCore import QDate, Qt, QTime, QTimer
+from PySide6.QtCore import QDate, Qt, QTimer
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDateEdit, QDoubleSpinBox,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox,
                                QFormLayout, QFrame, QGridLayout, QGroupBox, QHBoxLayout,
                                QHeaderView, QLabel,
                                QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit,
                                QPushButton, QScrollArea, QSizePolicy, QSpinBox, QTableWidget,
-                               QTableWidgetItem, QTimeEdit, QToolButton, QVBoxLayout, QWidget,
+                               QTableWidgetItem, QToolButton, QVBoxLayout, QWidget,
                                QWizard, QWizardPage)
 
 from bowtally.services import master_data_service as md
@@ -20,11 +20,13 @@ from bowtally.services import tournament_service as ts
 from bowtally.ui import button, repolish, restore_geom, save_geom, show_error, theme
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
+from bowtally.ui.components.form_field import CurrencyField, DateField, TimeField
 from bowtally.ui.components.toast import Toast
 
 DEFAULT_TARGETS = 28
 DEFAULT_DEADLINE_DAYS = 14
 WIZARD_LABEL_W = 200   # fixed label column so all pages align
+DEFAULT_START_GROUPS = ", ".join(str(i) for i in range(1, 11))
 WIZARD_COMBO_W = 220   # fixed width for combos / date / time / spin
 STEPS = ["Grunddaten", "Konfiguration", "Bogenklassen", "Fristen und Zeiten",
          "Startgebühren", "Kontakt und Bank", "Hinweise und Texte", "Zusammenfassung"]
@@ -124,10 +126,7 @@ class FeeTable(QWidget):
         edit = QLineEdit(name)
         edit.setPlaceholderText("z. B. Erwachsene")
         self.table.setCellWidget(r, 0, edit)
-        spin = QDoubleSpinBox()
-        spin.setRange(0, 9999)
-        spin.setDecimals(2)
-        spin.setSuffix(" €")
+        spin = CurrencyField()
         spin.setValue(float(amount or 0))
         self.table.setCellWidget(r, 1, spin)
         delete = QToolButton(objectName="iconButton")
@@ -240,10 +239,8 @@ class TournamentWizard(QWizard):
         t = self.tournament
         self.name = QLineEdit(self._t("name", ""))
         self.name.setPlaceholderText("z. B. 3D-Waldturnier 2027")
-        self.date = QDateEdit()
+        self.date = DateField(allow_empty=False)
         self.date.setDate(QDate(t.date) if t else QDate.currentDate().addDays(60))
-        self.date.setCalendarPopup(True)
-        self.date.setDisplayFormat("dd.MM.yyyy")
         self.date.setFixedWidth(WIZARD_COMBO_W)
         self.location = QLineEdit(self._t("location", ""))
         self.organizer = QLineEdit(self._t("organizer", ""))
@@ -317,7 +314,9 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 1 config
     def _page_config(self) -> QWizardPage:
-        self.groups = QLineEdit(self._t("start_groups", ""))
+        # new tournaments start with groups 1 to 10; existing ones keep their groups
+        default_groups = "" if self.tournament is not None else DEFAULT_START_GROUPS
+        self.groups = QLineEdit(self._t("start_groups", default_groups) or default_groups)
         self.groups.setPlaceholderText("z. B. A, B, C, D")
         self._draw_cb = QCheckBox("Teilnehmer per Auslosung einteilen")
         self._draw_cb.setChecked(bool(self._t("use_draw", False)))
@@ -327,9 +326,9 @@ class TournamentWizard(QWizard):
         self.scoring_mode = QComboBox()
         self.scoring_mode.setFixedWidth(WIZARD_COMBO_W)
         for val, lbl in [
-            ("per_target", "Pro Ziel"),
+            ("per_target", "Zielwertung"),
             ("per_round", "Rundenwertung"),
-            ("total_only", "Nur Gesamtpunkte"),
+            ("total_only", "Gesamtwertung"),
         ]:
             self.scoring_mode.addItem(lbl, val)  # noqa: just loop body
         cur = self._t("scoring_mode", "per_target")
@@ -369,20 +368,11 @@ class TournamentWizard(QWizard):
                      "Rundenkonfiguration, Wertungsmodus und Startgruppen. "
                      "Jede Runde hat ein eigenes Regelwerk und eigene Scheibenanzahl.")
         form = _form()
-        club = ss.get_club_profile()
-        course_desc = (club.get("course_description")
-                       or ss.get("default_parcours_description", "") or "")
         form.addRow(_lbl("Wertungsmodus"), self.scoring_mode)
         form.addRow(_lbl(""), self._draw_cb)
         form.addRow(_lbl("Startgruppen"), self.groups)
-        self._config_dirty = False
         page.body.addLayout(form)
         page.body.addWidget(self._round_group, 1)
-        if course_desc:
-            page.set_action_btn(button(
-                "Parcours-Beschreibung übernehmen",
-                lambda: self._fill_config(course_desc),
-                tooltip="Parcours-Hinweise aus dem Vereinsprofil übernehmen"))
         return page
 
     def _init_round_table(self):
@@ -504,23 +494,17 @@ class TournamentWizard(QWizard):
 
     # ------------------------------------------------------------ 5 deadlines
     def _page_deadlines(self) -> QWizardPage:
-        self.deadline = QDateEdit()
-        self.deadline.setCalendarPopup(True)
-        self.deadline.setDisplayFormat("dd.MM.yyyy")
+        self.deadline = DateField(allow_empty=False)
         deadline = self._t("registration_deadline")
         self.deadline.setDate(QDate(deadline) if deadline else
                               self.date.date().addDays(-DEFAULT_DEADLINE_DAYS))
         self.max_participants = QSpinBox()
         self.max_participants.setRange(0, 9999)
         self.max_participants.setValue(self._t("max_participants", 0))
-        self.checkin_time = QTimeEdit(QTime.fromString(self._t("checkin_start_time", "09:00"),
-                                                       "HH:mm"))
-        self.shooting_time = QTimeEdit(QTime.fromString(self._t("shooting_start_time", "10:00"),
-                                                        "HH:mm"))
-        for w in (self.checkin_time, self.shooting_time):
-            w.setDisplayFormat("HH:mm")
-            w.setMinimumTime(QTime(0, 0))
-            w.setSpecialValueText("--:--")
+        self.checkin_time = TimeField(allow_empty=False)
+        self.checkin_time.setTime(self._t("checkin_start_time", "09:00") or "09:00")
+        self.shooting_time = TimeField(allow_empty=False)
+        self.shooting_time.setTime(self._t("shooting_start_time", "10:00") or "10:00")
         for w in (self.deadline, self.checkin_time, self.shooting_time, self.max_participants):
             w.setFixedWidth(WIZARD_COMBO_W)
         self.practice = QCheckBox("Einschießen erlaubt")
@@ -671,16 +655,6 @@ class TournamentWizard(QWizard):
         self._basics_dirty.clear()
         Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
 
-    def _fill_config(self, desc: str):
-        if self._config_dirty and not ConfirmDialog.ask(
-                self, "Felder überschreiben?",
-                "Folgende Felder sind bereits ausgefüllt und werden überschrieben:\n– Hinweise zum Parcours",
-                "Überschreiben", destructive=False):
-            return
-        self.course_notes.setPlainText(desc)
-        self._config_dirty = False
-        Toast.show(self, "Parcours-Beschreibung übernommen.", Toast.INFO)
-
     def _fill_contact(self, club: dict, role_data: dict):
         contact_name_val = ""
         contact_phone_val = ""
@@ -723,7 +697,11 @@ class TournamentWizard(QWizard):
         self.closing.setPlaceholderText(CLOSING_PLACEHOLDER)
         for w in (self.intro, self.legal, self.closing):
             w.setFixedHeight(130)
-        self.course_notes = QPlainTextEdit(self._t("notes", ""))
+        # Parcours-Hinweise: aus den Einstellungen vorbelegen, solange das Turnier keine eigenen hat
+        club = ss.get_club_profile()
+        course_desc = (club.get("course_description")
+                       or ss.get("default_parcours_description", "") or "")
+        self.course_notes = QPlainTextEdit(self._t("notes", "") or course_desc)
         self.course_notes.setPlaceholderText("z. B. Festes Schuhwerk empfohlen, Parcours ca. 4 km")
         self.course_notes.setFixedHeight(70)
         page = _Page(6, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
@@ -733,7 +711,6 @@ class TournamentWizard(QWizard):
         form.addRow(_lbl("Hinweise zum Parcours"), self.course_notes)
         form.addRow(_lbl("Wichtige Hinweise"), self.legal)
         form.addRow(_lbl("Abschlusstext"), self.closing)
-        self.course_notes.textChanged.connect(lambda: setattr(self, '_config_dirty', True))
         page.body.addLayout(form)
         page.body.addStretch()
         return page

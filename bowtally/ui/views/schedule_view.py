@@ -8,6 +8,7 @@ from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.empty_state import EmptyState
+from bowtally.ui.components.form_field import TimeField
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
 from bowtally.ui.dialogs.record_dialog import RecordDialog
@@ -36,8 +37,7 @@ class ScheduleGroupDialog(RecordDialog):
         dur.setRange(0, 600)
         dur.setSpecialValueText("–")
         dur.setSuffix(" min")
-        time_edit = QLineEdit()
-        time_edit.setPlaceholderText("HH:MM")
+        time_edit = TimeField()
         self.form.add("group_name", "Gruppenname", QLineEdit(), required=True)
         self.form.add("start_time", "Startzeit", time_edit,
                       hint="Format HH:MM, z. B. 09:30")

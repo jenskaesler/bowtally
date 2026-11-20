@@ -35,6 +35,7 @@ class CheckinView(QWidget):
         self.capacity = CapacityBar()
         self.capacity.setFixedWidth(320)
         self.phase_hint = QLabel(objectName="dangerText")
+        self.phase_hint.hide()
         self.btn_checkin = button("Einchecken", self.checkin_selected, "primary",
                                   "Ausgewählten Teilnehmer einchecken (Enter)")
         self.btn_walkin = button("Als Walk-in erfassen", self.open_walk_in, "danger",
@@ -53,28 +54,26 @@ class CheckinView(QWidget):
         self.table.selectionChanged.connect(self._on_selection)
         self.table.activated.connect(lambda _id: self.checkin_selected())
 
+        # one row: counter + capacity left, search + buttons right-aligned
         top = QHBoxLayout()
         top.addWidget(self.counter)
         top.addSpacing(20)
         top.addWidget(self.capacity)
-        top.addStretch()
-        top.addWidget(self.phase_hint)
-        search_row = QHBoxLayout()
-        search_row.addWidget(self.search)
-        search_row.addWidget(self.btn_checkin)
-        search_row.addWidget(self.btn_walkin)
-        search_row.addStretch(1)
+        top.addStretch(1)
+        for w in (self.search, self.btn_checkin, self.btn_walkin):
+            # bottom-aligned: the big counter must not change the gap to the list
+            top.addWidget(w, 0, Qt.AlignmentFlag.AlignBottom)
+        top.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         actions = QHBoxLayout()
+        actions.addWidget(self.phase_hint)
         actions.addWidget(self.payment_warning)
         actions.addStretch()
         actions.addWidget(self.not_found)
 
-        search_row.setContentsMargins(0, 0, 0, BAR_BOTTOM_MARGIN)
         main = QVBoxLayout()
         main.setContentsMargins(0, 8, 0, 0)
         main.setSpacing(10)
         main.addLayout(top)
-        main.addLayout(search_row)
         main.addLayout(actions)
         main.addWidget(self.table, 1)
 
@@ -105,6 +104,7 @@ class CheckinView(QWidget):
         self.phase_hint.setText("" if enabled else
                                 "Einchecken ist in den Phasen „Einschreibung“ und „Schießen“ "
                                 "möglich.")
+        self.phase_hint.setVisible(not enabled)     # an empty row would add a gap above the list
         stats = ts.get_tournament_stats(t.id)
         self.counter.setText(f"Eingecheckt: {stats.by_status['checked_in']} / "
                              f"Erwartet: {stats.expected}")

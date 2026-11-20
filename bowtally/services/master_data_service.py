@@ -17,7 +17,8 @@ from bowtally.services import ValidationError
 
 FILES_DIR = "archer_files"      # below the app data folder: archer_files/<archer id>/<file>
 
-ARCHER_FIELDS = ["first_name", "last_name", "birth_date", "club", "member_number", "email",
+ARCHER_FIELDS = ["first_name", "last_name", "birth_date", "club", "pass_number",
+                 "email",
                  "phone", "default_bow_class_id", "notes", "active", "notify_new_tournament",
                  "notify_results"]
 BOW_CLASS_FIELDS = ["name", "abbreviation", "age_group", "description"]
@@ -33,7 +34,7 @@ def list_archers(search: str = "", include_inactive: bool = False) -> list[Arche
         if search:
             like = f"%{search}%"
             q = q.where(or_(Archer.first_name.ilike(like), Archer.last_name.ilike(like),
-                            Archer.club.ilike(like), Archer.member_number.ilike(like)))
+                            Archer.club.ilike(like), Archer.pass_number.ilike(like)))
         return list(s.scalars(q.order_by(Archer.last_name, Archer.first_name)))
 
 
@@ -202,11 +203,15 @@ def get_notifiable_archers() -> list[Archer]:
         return rows
 
 
-def find_archer(s, member_number: str | None, first_name: str, last_name: str,
+def find_archer(s, pass_number: str | None, first_name: str, last_name: str,
                 birth_date: date | None = None) -> Archer | None:
-    """Duplicate lookup: member number wins, else name (+ birth date when given)."""
-    if member_number:
-        hit = s.scalar(select(Archer).where(Archer.member_number == member_number))
+    """Duplicate lookup: the pass number (optional) finds an archer only together with the same
+    name; otherwise the name (+ birth date when given on both sides) decides."""
+    if pass_number:
+        hit = s.scalar(select(Archer).where(
+            Archer.pass_number == pass_number,
+            func.lower(Archer.first_name) == first_name.lower(),
+            func.lower(Archer.last_name) == last_name.lower()))
         if hit is not None:
             return hit
     q = select(Archer).where(func.lower(Archer.first_name) == first_name.lower(),
@@ -228,7 +233,7 @@ def import_archers(records: list[dict], strategy: str) -> dict:
                 rec["default_bow_class_id"] = classes.get(str(bc).strip().lower())
             rec = _clean_archer(rec)
             existing = None if strategy == "new" else find_archer(
-                s, rec.get("member_number"), rec["first_name"], rec["last_name"],
+                s, rec.get("pass_number"), rec["first_name"], rec["last_name"],
                 rec.get("birth_date"))
             if existing is None:
                 s.add(Archer(**rec))

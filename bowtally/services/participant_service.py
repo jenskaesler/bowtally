@@ -11,7 +11,7 @@ from bowtally.database.models import (PAYMENT_STATUSES, REGISTRATION_STATUSES, A
 from bowtally.services import ValidationError
 from bowtally.services.master_data_service import _clean_archer
 from bowtally.services.tournament_service import (CapacityInfo, _add, _check_editable,
-                                                  capacity_info)
+                                                  capacity_info, find_duplicate_participant)
 
 REGISTRATION_LABELS = {
     "registered": "Gemeldet", "confirmed": "Bestätigt", "checked_in": "Eingecheckt",
@@ -135,7 +135,7 @@ def search_for_checkin(tournament_id: int, query: str) -> list[TournamentPartici
                 return exact
         parts = [p for p in parts if query in " ".join(
             filter(None, (p.archer.first_name, p.archer.last_name, p.archer.club,
-                          p.archer.member_number, f"{p.archer.first_name} {p.archer.last_name}",
+                          p.archer.pass_number, f"{p.archer.first_name} {p.archer.last_name}",
                           f"{p.archer.last_name} {p.archer.first_name}"))).lower()]
     return sorted(parts, key=lambda p: (p.registration_status == "checked_in",
                                         p.archer.last_name.lower(), p.archer.first_name.lower()))
@@ -153,7 +153,12 @@ def register_walk_in(tournament_id: int, archer_data: dict, bow_class_id: int,
     with session_scope() as s:
         t = s.get(Tournament, tournament_id)
         _check_editable(t)
-        archer = find_archer(s, archer_data.get("member_number"), archer_data["first_name"],
+        dup = find_duplicate_participant(t, None, archer_data["first_name"],
+                                         archer_data["last_name"], archer_data.get("birth_date"))
+        if dup is not None:
+            raise ValidationError(f"{dup.archer.first_name} {dup.archer.last_name} ist bereits "
+                                  "Teilnehmer dieses Turniers.")
+        archer = find_archer(s, archer_data.get("pass_number"), archer_data["first_name"],
                              archer_data["last_name"])
         if archer is None:
             archer = Archer(**archer_data)

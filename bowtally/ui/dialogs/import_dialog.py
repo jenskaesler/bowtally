@@ -2,6 +2,7 @@
 """Generic import dialog: column mapping, preview, validation report, duplicate strategy."""
 from pathlib import Path
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
                                QGroupBox, QHBoxLayout, QLabel, QPlainTextEdit, QTableWidget,
                                QTableWidgetItem, QVBoxLayout, QWidget)

@@ -6,6 +6,52 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **➕ Neuer Schütze direkt im Turnier** — Im Tab Teilnehmer legt der Button **Neuer Schütze**
+  (links neben „Schütze zuweisen“) einen Schützen in den Stammdaten an und weist ihn gleichzeitig
+  dem geöffneten Turnier zu.
+- **🪪 Passnummer statt Mitgliedsnummer** — Schützen haben ein neues Feld Passnummer (auch in
+  Suche, Import und Export). Die Mitgliedsnummer entfällt bei den Schützen;
+  vorhandene Werte werden in eine leere Passnummer übernommen (auch beim Wiederherstellen älterer
+  Backups). Die Mitgliedsnummer der Mitgliederkartei bleibt unverändert.
+
+### Geändert
+
+- **📅 Datumsfelder mit direkter Eingabe** — Alle Datumsfelder zeigen die Maske `__.__.____`;
+  ein Klick ins Feld erlaubt die direkte Eingabe, der Kalender öffnet über das Symbol rechts
+  (oder F4). Unvollständige oder ungültige Daten werden als Fehler angezeigt.
+- **⏰💶 Uhrzeit- und Betragsfelder vorformatiert** — Uhrzeiten (Helfer-Einsätze, Startzeiten,
+  Einschreibung/Schießbeginn) zeigen die Maske `__:__`, Beträge (Startgebühren, Preise, Inventar,
+  Reparaturkosten, Zahlungen) die Maske `__,__ €`. Wer mehr als zwei Stellen vor dem Komma tippt,
+  bekommt automatisch weitere Stellen (bis `____,__ €`); ein Komma oder Punkt springt zu den Cent.
+  Außerhalb der Bearbeitung steht der Betrag formatiert da, z. B. `20,00 €`.
+- **🔒 Helfer nach der Ergebnisliste gesperrt** — Ist die Ergebnisliste erstellt oder das
+  Turnier abgeschlossen, lassen sich Helfer nicht mehr anlegen, zuweisen, bearbeiten oder
+  entfernen. Drucken, Export und Bestätigungs-Mail bleiben möglich.
+- **🏞️ Parcours-Beschreibung automatisch** — Im Turnier-Assistenten entfällt der Button
+  „Parcours-Beschreibung übernehmen“; die Beschreibung aus den Einstellungen wird automatisch in
+  „Hinweise zum Parcours“ eingetragen, solange das Turnier dort noch nichts stehen hat.
+- **🔢 Ergebniseingabe nur Zahlen** — In Runden- und Gesamteingabe werden nur Ziffern
+  angenommen, auch beim Einfügen.
+- **🏷️ Wertungsmodi umbenannt** — Im Turnier-Assistenten heißen die Wertungsmodi jetzt
+  „Zielwertung“ (bisher „Pro Ziel“), „Rundenwertung“ und „Gesamtwertung“ (bisher
+  „Nur Gesamtpunkte“).
+- **🔢 Startgruppen vorbelegt** — Bei neuen Turnieren sind die Startgruppen 1 bis 10 eingetragen;
+  bestehende Turniere behalten ihre Gruppen.
+- **✅ Einschreibung kompakter** — Suchfeld, „Einchecken“ und „Als Walk-in erfassen“ stehen
+  rechtsbündig in derselben Zeile wie Zähler und Kapazitätsbalken.
+
+### Behoben
+
+- **👥 Keine doppelten Teilnehmer** — Ein Schütze kann nur einmal am Turnier teilnehmen. Geprüft
+  wird über den Schützen-Datensatz (abgesichert durch einen eindeutigen Datenbank-Index) und
+  zusätzlich über den Namen, da die Passnummer keine Pflichtangabe ist; gleichnamige Personen
+  unterscheidet das Geburtsdatum. Das gilt für Zuweisen, Import (auch doppelt in der Datei),
+  Walk-in und „Neuer Schütze“. Eine Passnummer erkennt einen Schützen nur noch zusammen mit dem
+  passenden Namen.
+- **📥 Import-Dialog** — Der Dialog zur Spaltenzuordnung brach beim Öffnen ab (fehlender Import).
+
 ## [2026.11.5] – 2026-11-17
 
 ### Hinzugefügt
