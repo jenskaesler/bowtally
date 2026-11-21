@@ -799,7 +799,7 @@ Desktop bzw. WhatsApp Web, dort prüfst und sendest du die Nachricht selbst.</p>
 <p>Die Einträge erscheinen bzw. sind aktiv, wenn eine gültige Telefonnummer hinterlegt ist.
 Ergebnisversand und Turnier-Ankündigung gibt es nur per E-Mail, weil WhatsApp-Links keine
 Anhänge (PDF) übertragen können.</p>
-<h3>App oder WhatsApp Web</h3>
+<a name="whatsapp-app"></a><h3>App oder WhatsApp Web</h3>
 <p>Unter Einstellungen → Turnierverwaltung → WhatsApp-Vorlagen legst du mit <b>WhatsApp öffnen
 mit</b> fest, wohin der Link führt:</p>
 <ul>
@@ -811,7 +811,7 @@ mit</b> fest, wohin der Link führt:</p>
 <p>Meldet Windows beim Öffnen „Der Datei ist keine App zum Ausführen dieser Aktion zugeordnet“,
 ist dem Link <code>whatsapp://</code> keine App zugeordnet – auch wenn WhatsApp Desktop installiert
 ist. Die Zeile <b>Linktyp whatsapp</b> in den WhatsApp-Vorlagen zeigt, ob eine App zugeordnet
-ist. <b>WhatsApp Desktop zuordnen …</b> öffnet die Windows-Einstellungen direkt bei den
+ist. <b>App zuordnen …</b> öffnet die Windows-Einstellungen direkt bei den
 Standard-Apps von WhatsApp Desktop: Dort beim Eintrag <code>WHATSAPP</code> die App WhatsApp
 wählen und zu BowTally zurückkehren – der Status aktualisiert sich. (Windows erlaubt Programmen
 nicht, Standard-Apps selbst festzulegen.) Alternativ <b>WhatsApp Web im Browser</b> wählen.</p>

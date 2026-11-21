@@ -1250,9 +1250,10 @@ class SettingsDialog(QDialog):
         if wa_win.is_windows():
             self._wa_status = QLabel()
             self._wa_status.setWordWrap(True)
-            assign = button("WhatsApp Desktop zuordnen …", self._assign_whatsapp_desktop,
+            assign = button("App zuordnen …", self._assign_whatsapp_desktop,
                             tooltip="Öffnet die Windows-Einstellungen bei den Standard-Apps von "
                                     "WhatsApp Desktop; dort bei WHATSAPP die WhatsApp-App wählen")
+            assign.setFixedWidth(SETTINGS_COMBO_W)          # as wide as the combo above
             row = QHBoxLayout()
             row.setContentsMargins(0, 0, 0, 0)
             row.addWidget(assign)
@@ -1260,11 +1261,8 @@ class SettingsDialog(QDialog):
             holder = QWidget()
             holder.setLayout(row)
             target_form.addRow(self._flbl("Linktyp whatsapp"), holder)
-            hint = QLabel("Windows lässt Standard-Apps nur in den Einstellungen festlegen: Dort "
-                          "beim Eintrag WHATSAPP die App WhatsApp auswählen und zu BowTally "
-                          "zurückkehren.", objectName="pageSubtitle")
-            hint.setWordWrap(True)
-            target_form.addRow("", hint)
+            target_form.addRow("", help_link("WhatsApp", "whatsapp-app",
+                                             "Wie ordne ich WhatsApp Desktop zu?"))
             self._refresh_whatsapp_status()
             QApplication.instance().applicationStateChanged.connect(self._on_app_state)
         lay.addWidget(target_box)

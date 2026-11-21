@@ -16,8 +16,7 @@ WHATSAPP_PACKAGE_FAMILY = "5319275A.WhatsAppDesktop_cv1g1gvanyjgm"
 WHATSAPP_AUMID = WHATSAPP_PACKAGE_FAMILY + "!App"
 _PACKAGES_KEY = (r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion"
                  r"\AppModel\Repository\Packages")
-_USER_CHOICE_KEY = (r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations"
-                    r"\whatsapp\UserChoice")
+ASSOCF_IS_PROTOCOL, ASSOCSTR_PROGID = 0x1000, 20         # shlwapi AssocQueryStringW
 
 
 def is_windows() -> bool:
@@ -45,23 +44,21 @@ def whatsapp_desktop_installed() -> bool:
         return False
 
 
-def whatsapp_link_assigned() -> bool:
-    """The link type whatsapp:// opens an app: a default chosen in Windows (UserChoice) or a
-    classic handler with an open command."""
+def whatsapp_link_assigned(protocol: str = "whatsapp") -> bool:
+    """The link type whatsapp:// opens an app. Asks Windows for the effective handler (the same
+    lookup Explorer uses): Windows 11 keeps the choice outside the classic UserChoice key, and
+    without a choice the ProgID is "Undecided"."""
     if not is_windows():
         return True
-    import winreg
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _USER_CHOICE_KEY) as key:
-            if winreg.QueryValueEx(key, "ProgId")[0]:
-                return True
-    except OSError:
-        pass
-    try:
-        with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"whatsapp\shell\open\command") as key:
-            return bool(winreg.QueryValueEx(key, "")[0])
-    except OSError:
-        return False
+    import ctypes
+    from ctypes import wintypes
+    query = ctypes.windll.shlwapi.AssocQueryStringW
+    query.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                      wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+    size = wintypes.DWORD(512)
+    buf = ctypes.create_unicode_buffer(size.value)
+    ok = query(ASSOCF_IS_PROTOCOL, ASSOCSTR_PROGID, protocol, None, buf, ctypes.byref(size)) == 0
+    return ok and buf.value not in ("", "Undecided")
 
 
 def open_default_app_settings() -> bool:

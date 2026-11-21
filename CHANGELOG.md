@@ -6,6 +6,18 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Behoben
+
+- **💬 WhatsApp-Zuordnung richtig erkannt** — Die Einstellungen zeigten „Nicht zugeordnet“, obwohl
+  WhatsApp Desktop dem Linktyp `whatsapp` zugeordnet war: Windows 11 speichert die Wahl nicht mehr
+  im klassischen Registry-Schlüssel. BowTally fragt jetzt Windows direkt, welche App den Link
+  öffnet.
+
+### Geändert
+
+- **⚙️ WhatsApp-Einstellungen aufgeräumt** — Der Button heißt kurz „App zuordnen …“ und ist so breit
+  wie die Auswahl darüber; statt des Hinweistexts führt ein Link in die Hilfe.
+
 ## [2026.11.6] – 2026-11-21
 
 ### Hinzugefügt

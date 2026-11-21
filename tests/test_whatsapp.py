@@ -186,3 +186,10 @@ def test_windows_detection_does_not_crash():
     from bowtally.ui.utils import whatsapp_windows as ww
     assert isinstance(ww.whatsapp_desktop_installed(), bool)
     assert isinstance(ww.whatsapp_link_assigned(), bool)
+
+
+@pytest.mark.skipif(__import__("sys").platform != "win32", reason="Windows association lookup")
+def test_link_type_without_app_is_not_assigned():
+    from bowtally.ui.utils import whatsapp_windows as ww
+    assert not ww.whatsapp_link_assigned("bowtally-gibt-es-nicht")     # unknown link type
+    assert ww.whatsapp_link_assigned("https")                          # always has a browser
