@@ -17,7 +17,7 @@ from bowtally.ui.components.toast import Toast
 from bowtally.ui.utils.mailto import template_context, tournament_ctx
 
 # tournament_ctx is shared with mailto.py (same placeholders), not duplicated here
-__all__ = ["normalize_phone", "build_wa_url", "render_template", "open_whatsapp",
+__all__ = ["normalize_phone", "build_wa_url", "use_whatsapp_web", "render_template", "open_whatsapp",
            "send_whatsapp", "tournament_ctx"]
 
 DEFAULT_COUNTRY_CODE = "49"
@@ -44,9 +44,20 @@ def normalize_phone(raw: str | None) -> str | None:
     return s if _E164.match(s) else None
 
 
-def build_wa_url(phone_e164: str, text: str) -> str:
-    """https://wa.me/<number without '+'>?text=<url-encoded text>"""
-    return f"https://wa.me/{phone_e164.lstrip('+')}?text={quote(text, safe='')}"
+def build_wa_url(phone_e164: str, text: str, web: bool = False) -> str:
+    """https://wa.me/<number without '+'>?text=<url-encoded text>
+
+    wa.me lets the browser hand over to the WhatsApp app (whatsapp:// link); without a working
+    app association Windows reports "no app". web=True opens WhatsApp Web directly instead."""
+    number, encoded = phone_e164.lstrip("+"), quote(text, safe="")
+    if web:
+        return f"https://web.whatsapp.com/send?phone={number}&text={encoded}"
+    return f"https://wa.me/{number}?text={encoded}"
+
+
+def use_whatsapp_web() -> bool:
+    """Setting "WhatsApp öffnen mit": WhatsApp Web in the browser instead of the app."""
+    return ss.get(ss.KEY_WHATSAPP_TARGET, "app") == "web"
 
 
 def template_fields(template: str) -> set[str]:
@@ -106,9 +117,11 @@ def open_whatsapp(template_key: str, raw_phone: str | None, context: dict,
         Toast.show(parent, f"WhatsApp-Vorlage „{template_key}“ ist {reason}. Bitte unter "
                            "Einstellungen > WhatsApp-Vorlagen prüfen.", Toast.WARNING)
         return False
-    if not QDesktopServices.openUrl(QUrl(build_wa_url(phone, text))):
-        Toast.show(parent, "WhatsApp konnte nicht geöffnet werden. Ist ein Browser oder "
-                           "WhatsApp Desktop installiert?", Toast.WARNING)
+    web = use_whatsapp_web()
+    if not QDesktopServices.openUrl(QUrl(build_wa_url(phone, text, web))):
+        Toast.show(parent, "WhatsApp konnte nicht geöffnet werden. Ist ein Browser installiert?"
+                   + ("" if web else " Alternativ unter Einstellungen > WhatsApp-Vorlagen "
+                      "„WhatsApp Web im Browser“ wählen."), Toast.WARNING)
         return False
     if unresolved:
         Toast.show(parent, "Platzhalter ohne Wert in der WhatsApp-Vorlage: "
@@ -118,7 +131,7 @@ def open_whatsapp(template_key: str, raw_phone: str | None, context: dict,
 
 
 def send_whatsapp(parent, template_key: str, recipients: list[tuple[str, str | None, dict]],
-                  title: str = "WhatsApp senden") -> None:
+                  title: str = "Nachricht per WhatsApp senden") -> None:
     """One recipient: open the chat directly. Several: the sequential WhatsAppSendDialog
     (each new wa.me call would replace the chat opened before). recipients: (name, phone, ctx)."""
     if not recipients:

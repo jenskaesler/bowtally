@@ -47,6 +47,7 @@ KEY_EMAIL_TPL_HELPER = "email_helper"
 KEY_EMAIL_TPL_DATA_REQUEST = "email_data_request"
 KEY_EMAIL_TPL_TOURNAMENT_ANNOUNCE = "email_tpl_tournament_announce"
 # WhatsApp templates (click-to-chat wa.me): only a body, full settings key
+KEY_WHATSAPP_TARGET = "whatsapp_target"          # app (wa.me) | web (web.whatsapp.com)
 KEY_WHATSAPP_TPL_CONFIRMATION = "whatsapp_reg_body"
 KEY_WHATSAPP_TPL_PAYMENT = "whatsapp_payment_body"
 KEY_WHATSAPP_TPL_DOCS = "whatsapp_docs_body"
@@ -63,6 +64,7 @@ OPTIONS = {
     KEY_UI_LANGUAGE: ["de"],
     KEY_UI_THEME_MODE: ["system", "light", "dark"],
     "waitlist_mode": ["block", "auto"],
+    KEY_WHATSAPP_TARGET: ["app", "web"],
     KEY_LOG_LEVEL: ["info", "warning", "debug"],
     KEY_FONT_FAMILY: [*config.BUNDLED_FONTS, "Segoe UI"],
 }

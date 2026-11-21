@@ -17,7 +17,11 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   du in einem Dialog nacheinander ab (Status Offen / Geöffnet / Bestätigt / Übersprungen, kein
   automatisches Weiterschalten). Die sechs Texte pflegst du unter Einstellungen →
   Turnierverwaltung → **WhatsApp-Vorlagen**. Ergebnisversand und Turnier-Ankündigung bleiben
-  reine E-Mail-Funktionen, weil WhatsApp-Links keine Anhänge übertragen.
+  reine E-Mail-Funktionen, weil WhatsApp-Links keine Anhänge übertragen. Mit „WhatsApp öffnen
+  mit“ wählst du zwischen WhatsApp-App (`wa.me`) und WhatsApp Web im Browser – Letzteres hilft,
+  wenn Windows dem Link `whatsapp://` keine App zugeordnet hat. Die Einstellungen zeigen, ob der
+  Linktyp `whatsapp` zugeordnet ist; **WhatsApp Desktop zuordnen …** öffnet die
+  Windows-Einstellungen direkt bei den Standard-Apps von WhatsApp Desktop.
 
 - **➕ Neuer Schütze direkt im Turnier** — Im Tab Teilnehmer legt der Button **Neuer Schütze**
   (links neben „Schütze zuweisen“) einen Schützen in den Stammdaten an und weist ihn gleichzeitig
@@ -57,8 +61,13 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 - **🏹 Bogenklassen im Turnier-Assistenten** — Standard-Klassen stehen zuerst, danach die
   eigenen, jeweils alphabetisch von links nach rechts. Die neue Option „Nur eigene Klassen
   anzeigen“ (angehakt, sobald es eigene Klassen gibt) blendet die Standard-Klassen aus.
-- **💬 Meldung oben rechts** — Im Turnier-Assistenten erscheint „Vereinsdaten übernommen.“ oben
-  rechts statt unten rechts, wo sie die Schaltflächen der Fußzeile verdeckte.
+- **💬 Infofenster oben rechts** — Hinweise und Bestätigungen (z. B. „Gespeichert“, „Vereinsdaten
+  übernommen.“) erscheinen in der ganzen App oben rechts statt unten rechts, wo sie Schaltflächen
+  verdecken konnten; neue Meldungen stehen oben, ältere rücken nach unten.
+- **✉️ Einheitliche Sende-Texte** — Alle Sende-Aktionen nennen den Weg: z. B. „Datenauskunft per
+  E-Mail senden“ / „Datenauskunft per WhatsApp senden“, „Anmeldebestätigung per E-Mail senden“,
+  „Bestätigung per WhatsApp senden“ (Helfer), „Benachrichtigung per E-Mail senden (n)“ (Warteliste)
+  und „Ergebnisse per E-Mail senden“ (Auswertung).
 - **📝 Einschießbereich zweizeilig** — Das Feld im Tab „Fristen und Zeiten“ ist jetzt ein
   zweizeiliges Textfeld.
 - **📊 Teilnehmerzahl im Tab Konfiguration** — Maximale Teilnehmerzahl und Auslastung stehen im

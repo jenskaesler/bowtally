@@ -195,8 +195,8 @@ class _WaitlistNotifyDialog(QDialog):
                 item.setToolTip("Keine E-Mail-Adresse und keine gültige Telefonnummer hinterlegt")
             self.lst.addItem(item)
         self.lst.itemChanged.connect(self._update_btn)
-        self.btn = button("E-Mail senden (0)", self._send, "primary")
-        self.btn_wa = button("WhatsApp senden (0)", self._send_whatsapp,
+        self.btn = button("Benachrichtigung per E-Mail senden (0)", self._send, "primary")
+        self.btn_wa = button("Benachrichtigung per WhatsApp senden (0)", self._send_whatsapp,
                              tooltip="Chats nacheinander öffnen (nur mit gültiger Telefonnummer)")
         row = QHBoxLayout()
         row.addStretch()
@@ -217,9 +217,9 @@ class _WaitlistNotifyDialog(QDialog):
         checked = self._checked()
         n = sum(1 for p in checked if p.archer.email)
         n_wa = sum(1 for p in checked if normalize_phone(p.archer.phone))
-        self.btn.setText(f"E-Mail senden ({n})")
+        self.btn.setText(f"Benachrichtigung per E-Mail senden ({n})")
         self.btn.setEnabled(n > 0)
-        self.btn_wa.setText(f"WhatsApp senden ({n_wa})")
+        self.btn_wa.setText(f"Benachrichtigung per WhatsApp senden ({n_wa})")
         self.btn_wa.setEnabled(n_wa > 0)
 
     def _send_whatsapp(self):
@@ -227,7 +227,7 @@ class _WaitlistNotifyDialog(QDialog):
         send_whatsapp(self, ss.KEY_WHATSAPP_TPL_WAITLIST,
                       whatsapp_recipients(recipients, self._tournament,
                                           freigewordene_plaetze=str(self._freed)),
-                      "Warteliste per WhatsApp benachrichtigen")
+                      "Benachrichtigung per WhatsApp senden")
 
     def _send(self):
         t = self._tournament
@@ -600,21 +600,21 @@ class ParticipantsView(QWidget):
         email_ok = has_email and not locked
         entries += [
             None,
-            ("E-Mail: Anmeldebestätigung senden",
+            ("Anmeldebestätigung per E-Mail senden",
              lambda: self._send_email(ss.KEY_EMAIL_TPL_CONFIRMATION), email_ok),
-            ("E-Mail: Zahlungserinnerung senden",
+            ("Zahlungserinnerung per E-Mail senden",
              lambda: self._send_email(ss.KEY_EMAIL_TPL_PAYMENT), email_ok),
-            ("E-Mail: Startunterlagen senden",
+            ("Startunterlagen per E-Mail senden",
              lambda: self._send_email(ss.KEY_EMAIL_TPL_DOCS), email_ok),
         ]
         wa_ok = not locked and any(normalize_phone(p.archer.phone) for p in sel)
         entries += [
             None,
-            ("WhatsApp: Anmeldebestätigung senden",
+            ("Anmeldebestätigung per WhatsApp senden",
              lambda: self._send_whatsapp(ss.KEY_WHATSAPP_TPL_CONFIRMATION), wa_ok),
-            ("WhatsApp: Zahlungserinnerung senden",
+            ("Zahlungserinnerung per WhatsApp senden",
              lambda: self._send_whatsapp(ss.KEY_WHATSAPP_TPL_PAYMENT), wa_ok),
-            ("WhatsApp: Startunterlagen senden",
+            ("Startunterlagen per WhatsApp senden",
              lambda: self._send_whatsapp(ss.KEY_WHATSAPP_TPL_DOCS), wa_ok),
         ]
         menu(self, entries).exec(pos)
@@ -636,7 +636,7 @@ class ParticipantsView(QWidget):
         if with_email and ConfirmDialog.ask(
                 self, "Bestätigungsmail senden?",
                 f"Bestätigungsmail an {len(with_email)} Teilnehmer senden?",
-                "E-Mail senden", destructive=False):
+                "Bestätigung per E-Mail senden", destructive=False):
             t = self.tournament
             for p in with_email:
                 open_mailto(ss.KEY_EMAIL_TPL_CONFIRMATION, p.archer.email, {
@@ -795,7 +795,11 @@ class ParticipantsView(QWidget):
         if not sel:
             Toast.show(self, "Keine Empfänger ausgewählt.", Toast.WARNING)
             return
-        send_whatsapp(self, template_key, whatsapp_recipients(sel, self.tournament))
+        what = {ss.KEY_WHATSAPP_TPL_CONFIRMATION: "Anmeldebestätigung",
+                ss.KEY_WHATSAPP_TPL_PAYMENT: "Zahlungserinnerung",
+                ss.KEY_WHATSAPP_TPL_DOCS: "Startunterlagen"}.get(template_key, "Nachricht")
+        send_whatsapp(self, template_key, whatsapp_recipients(sel, self.tournament),
+                      f"{what} per WhatsApp senden")
 
     # ------------------------------------------------------------ add / import
     def pick_archers(self):

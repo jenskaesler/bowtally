@@ -35,6 +35,9 @@ maximale Teilnehmerzahl erreicht ist oder dass ein Turnier in der Phase „Schie
 <h3>Dialoge</h3>
 <p>In Bearbeiten-Dialogen ist <b>Speichern</b> blau und wird rot, sobald du etwas geändert hast;
 <b>Abbrechen</b> ist schwarz.</p>
+<p>Hinweise und Bestätigungen (z. B. „Gespeichert“) erscheinen als kleine <b>Infofenster
+oben rechts</b> im jeweiligen Fenster und verschwinden nach einigen Sekunden von selbst; ein
+Klick schließt sie sofort. Neue Meldungen stehen oben, ältere rücken nach unten.</p>
 <h3>Aktives Turnier</h3>
 <p>Wenn du ein Turnier öffnest, erscheint im oberen Teil der Seitenleiste ein Turnier-Block mit
 Name, Phase und diesen Schnellzugriffen:</p>
@@ -161,8 +164,7 @@ eine Fortschrittsleiste den aktuellen Schritt; die Zusammenfassung enthält
 Beschreibung. Der Button <b>Vereinsdaten übernehmen</b> in der Fußzeile trägt
 Veranstalter und Ort aus dem Vereinsprofil ein; bereits geänderte Felder
 werden erst nach Rückfrage überschrieben. Der Button erscheint nur, wenn im
-Vereinsprofil Name oder Ort hinterlegt sind. Die Bestätigung „Vereinsdaten übernommen.“
-erscheint oben rechts, damit sie die Schaltflächen der Fußzeile nicht verdeckt.</p>
+Vereinsprofil Name oder Ort hinterlegt sind.</p>
 <h3>2 Konfiguration</h3>
 <p><b>Wertungsmodus</b>: <i>Zielwertung</i> (Punkte je Ziel und Schuss),
 <i>Rundenwertung</i> (Punkte je Runde) oder <i>Gesamtwertung</i> (nur Gesamtpunkte).</p>
@@ -445,7 +447,7 @@ Ergebnisliste beliebig oft neu erstellen.</p>
       zugewiesenen Preisen als PDF</li>
   <li><b>Exportieren</b> – Excel, OpenDocument, CSV oder <b>PDF (.pdf)</b>
       (Dateiname frei wählbar)</li>
-  <li><b>Ergebnisse versenden</b> – Ergebnisse per E-Mail an die Teilnehmer,
+  <li><b>Ergebnisse per E-Mail senden</b> – Ergebnisse per E-Mail an die Teilnehmer,
       siehe „E-Mail-Funktionen“</li>
 </ul>
 <h3>Voraussetzungen und Abschluss</h3>
@@ -555,14 +557,15 @@ Wege, einen Helfer hinzuzufügen:</p>
 </ul>
 <p>Im Einsatz-Dialog trägst du Aufgabe und Zeit ein und kannst
 <i>Bestätigung versendet</i> abhaken.</p>
-<p>Im Kontextmenü: <b>Bestätigung senden</b> (öffnet die Helfer-Vorlage als
-E-Mail, nur mit E-Mail-Adresse), <b>Als bestätigt markieren</b>,
+<p>Im Kontextmenü: <b>Bestätigung per E-Mail senden</b> (öffnet die Helfer-Vorlage als
+E-Mail, nur mit E-Mail-Adresse), <b>Bestätigung per WhatsApp senden</b> (nur mit gültiger
+Telefonnummer), <b>Als bestätigt markieren</b>,
 <b>Bestätigung zurücksetzen</b> und <b>Entfernen</b>.
 <b>Helferliste drucken</b> erstellt eine PDF-Liste, <b>Exportieren</b> eine
 Tabelle (CSV, Excel, OpenDocument) – ohne Bankdaten.</p>
 <p>Sobald die <b>Ergebnisliste erstellt</b> oder das Turnier abgeschlossen ist, sind
 die Helfer gesperrt: Anlegen, Zuweisen, Bearbeiten und Entfernen sind nicht mehr
-möglich; Drucken, Exportieren und Bestätigung senden bleiben verfügbar.</p>
+möglich; Drucken, Exportieren und das Senden der Bestätigung bleiben verfügbar.</p>
 <h3>Helferhistorie</h3>
 <p>Beim Abschluss des Turniers (Phase <i>Abgeschlossen</i>) wird für jedes
 Mitglied unter den Helfern automatisch ein Eintrag in dessen Helferhistorie
@@ -595,8 +598,9 @@ im Turnier über <b>Aus Mitgliederkartei</b> als Helfer zuweisen.</p>
 <p><b>Datenschutz:</b> Bankdaten erscheinen in keinem Export und in keiner
 Liste. Sie sind nur Bestandteil des passwortgeschützten Backups.</p>
 <p><b>Datenauskunft:</b> Möchte ein Mitglied wissen, welche Daten über es gespeichert sind,
-wählt man das Mitglied aus und klickt auf <b>Datenauskunft senden</b> (nur mit hinterlegter
-E-Mail-Adresse). Es öffnet sich ein Mailentwurf mit allen gespeicherten Daten; die IBAN ist bis
+wählt man das Mitglied aus und klickt auf <b>Datenauskunft per E-Mail senden</b> (nur mit
+hinterlegter E-Mail-Adresse) oder <b>Datenauskunft per WhatsApp senden</b> (nur mit gültiger
+Telefonnummer). Es öffnet sich ein Mailentwurf mit allen gespeicherten Daten; die IBAN ist bis
 auf die letzten vier Stellen durch Sternchen ersetzt. Der Text lässt sich unter
 <b>Einstellungen &rarr; E-Mail-Vorlagen &rarr; Datenauskunft</b> anpassen (Platzhalter
 <code>{daten}</code>).</p>
@@ -748,14 +752,16 @@ geschweiften Klammern, z. B. <code>{name}</code> (Liste siehe „Referenz“). U
 Platzhalter bleiben im Text stehen.</p>
 <h3>Wo werden Mails vorbereitet?</h3>
 <ul>
-  <li><b>Teilnehmer</b> (Rechtsklick): <i>E-Mail: Anmeldebestätigung / Zahlungserinnerung /
-      Startunterlagen senden</i>. Bei mehreren Teilnehmern fragt BowTally vorher nach, weil je
+  <li><b>Teilnehmer</b> (Rechtsklick): <i>Anmeldebestätigung / Zahlungserinnerung /
+      Startunterlagen per E-Mail senden</i>. Bei mehreren Teilnehmern fragt BowTally vorher nach, weil je
       Person ein Mail-Fenster geöffnet wird.</li>
   <li><b>Anmeldung bestätigen</b> fragt anschließend, ob die Bestätigungsmail geöffnet werden soll.</li>
   <li><b>Warteliste</b>: Nach dem Nachrücken öffnet <b>Benachrichtigen</b> eine Liste, aus der du
-      die Wartelisten-Mail an ausgewählte Personen öffnest.</li>
-  <li><b>Helfer</b> (Rechtsklick): <i>Bestätigung senden</i></li>
-  <li><b>Auswertung</b>: <b>Ergebnisse versenden</b></li>
+      mit <b>Benachrichtigung per E-Mail senden (n)</b> die Wartelisten-Mail an ausgewählte
+      Personen öffnest.</li>
+  <li><b>Helfer</b> (Rechtsklick): <i>Bestätigung per E-Mail senden</i></li>
+  <li><b>Mitglieder</b> (Rechtsklick): <i>Datenauskunft per E-Mail senden</i></li>
+  <li><b>Auswertung</b>: <b>Ergebnisse per E-Mail senden</b></li>
   <li><b>Ankündigung</b> nach dem Erzeugen der Ausschreibung</li>
 </ul>
 <p>Hat ein Teilnehmer oder Helfer keine E-Mail-Adresse, meldet BowTally das; ist eine Vorlage leer,
@@ -767,9 +773,9 @@ sofern aktive Schützen mit der Option <i>Bei neuen Turnieren per E-Mail benachr
 E-Mail-Adresse existieren. Die Mail wird mit der Ausschreibung (PDF) im Anhang geöffnet; die
 Empfänger stehen im Blindkopie-Feld (BCC).</p>
 <h3>Ergebnisversand</h3>
-<p><b>Ergebnisse versenden</b> (erst nach „Ergebnisliste erstellen“) öffnet eine Liste mit Rang und
+<p><b>Ergebnisse per E-Mail senden</b> (erst nach „Ergebnisliste erstellen“) öffnet eine Liste mit Rang und
 Punkten. Vorausgewählt sind Teilnehmer mit der Option <i>Ergebnisversand per E-Mail</i>; Teilnehmer
-ohne E-Mail-Adresse sind ausgegraut. <b>E-Mail senden (n)</b> öffnet je Auswahl eine Mail mit der
+ohne E-Mail-Adresse sind ausgegraut. <b>Ergebnisse per E-Mail senden (n)</b> öffnet je Auswahl eine Mail mit der
 <b>Ergebnisliste im Anhang</b>.</p>
 <h3>Anhang-Mechanismus (.eml)</h3>
 <p>Ein <code>mailto:</code>-Link kann keine Dateien enthalten. Bei Mails mit Anhang erzeugt BowTally
@@ -784,15 +790,31 @@ Standard-Mailprogramm. Das Mailprogramm muss <code>.eml</code>-Dateien als bearb
 Desktop bzw. WhatsApp Web, dort prüfst und sendest du die Nachricht selbst.</p>
 <h3>Wo gibt es WhatsApp?</h3>
 <ul>
-  <li><b>Teilnehmer</b> (Rechtsklick): <i>WhatsApp: Anmeldebestätigung / Zahlungserinnerung /
-      Startunterlagen senden</i></li>
-  <li><b>Warteliste</b>: im Dialog <b>Benachrichtigen</b> der Button <b>WhatsApp senden (n)</b></li>
-  <li><b>Helfer</b> (Rechtsklick): <i>WhatsApp: Bestätigung senden</i></li>
-  <li><b>Mitglieder</b> (Rechtsklick): <i>WhatsApp: Datenauskunft senden</i></li>
+  <li><b>Teilnehmer</b> (Rechtsklick): <i>Anmeldebestätigung / Zahlungserinnerung /
+      Startunterlagen per WhatsApp senden</i></li>
+  <li><b>Warteliste</b>: im Dialog <b>Benachrichtigen</b> der Button <b>Benachrichtigung per WhatsApp senden (n)</b></li>
+  <li><b>Helfer</b> (Rechtsklick): <i>Bestätigung per WhatsApp senden</i></li>
+  <li><b>Mitglieder</b> (Rechtsklick): <i>Datenauskunft per WhatsApp senden</i></li>
 </ul>
 <p>Die Einträge erscheinen bzw. sind aktiv, wenn eine gültige Telefonnummer hinterlegt ist.
 Ergebnisversand und Turnier-Ankündigung gibt es nur per E-Mail, weil WhatsApp-Links keine
 Anhänge (PDF) übertragen können.</p>
+<h3>App oder WhatsApp Web</h3>
+<p>Unter Einstellungen → Turnierverwaltung → WhatsApp-Vorlagen legst du mit <b>WhatsApp öffnen
+mit</b> fest, wohin der Link führt:</p>
+<ul>
+  <li><b>WhatsApp-App (wa.me)</b> (Standard) – der Browser öffnet <code>wa.me</code> und übergibt
+      an WhatsApp Desktop.</li>
+  <li><b>WhatsApp Web im Browser</b> – öffnet <code>web.whatsapp.com</code> direkt; beim ersten
+      Mal meldest du dich dort per QR-Code an.</li>
+</ul>
+<p>Meldet Windows beim Öffnen „Der Datei ist keine App zum Ausführen dieser Aktion zugeordnet“,
+ist dem Link <code>whatsapp://</code> keine App zugeordnet – auch wenn WhatsApp Desktop installiert
+ist. Die Zeile <b>Linktyp whatsapp</b> in den WhatsApp-Vorlagen zeigt, ob eine App zugeordnet
+ist. <b>WhatsApp Desktop zuordnen …</b> öffnet die Windows-Einstellungen direkt bei den
+Standard-Apps von WhatsApp Desktop: Dort beim Eintrag <code>WHATSAPP</code> die App WhatsApp
+wählen und zu BowTally zurückkehren – der Status aktualisiert sich. (Windows erlaubt Programmen
+nicht, Standard-Apps selbst festzulegen.) Alternativ <b>WhatsApp Web im Browser</b> wählen.</p>
 <h3>Telefonnummern</h3>
 <p>BowTally wandelt die Nummer lokal in das internationale Format um: Leerzeichen, Klammern,
 Binde- und Schrägstriche fallen weg, eine führende <code>0</code> wird zu <code>+49</code>,
@@ -814,7 +836,8 @@ Chat heißt nicht, dass die Nachricht gesendet wurde. Der Status wird nicht gesp
 <code>{logo}</code> (siehe „Referenz“). Ist eine Vorlage leer oder fehlerhaft, erscheint ein
 Hinweis; Platzhalter ohne Wert bleiben im Text stehen und werden gemeldet.</p>
 <h3>Datenschutz</h3>
-<p>Anders als <code>mailto:</code> ist <code>wa.me</code> ein Link auf eine Domain von Meta.
+<p>Anders als <code>mailto:</code> sind <code>wa.me</code> und <code>web.whatsapp.com</code>
+Links auf Domains von Meta.
 Name, Rufnummer und Nachrichtentext gehen dabei im Rahmen des von dir ausgelösten Browser- bzw.
 App-Aufrufs an WhatsApp – nicht durch BowTally selbst. Das gilt besonders für die
 <b>Datenauskunft</b>, die persönliche Daten enthält.</p>

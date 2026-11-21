@@ -162,6 +162,8 @@ DEFAULT_SETTINGS = [
      "email", "string", "E-Mail-Vorlage: Text Datenauskunft"),
     # WhatsApp templates (wa.me click-to-chat): short texts, no subject, no attachment;
     # same placeholders as the e-mail templates except {logo}
+    ("whatsapp_target", "app", "whatsapp", "string",
+     "WhatsApp öffnen mit: app (wa.me, WhatsApp-App) oder web (WhatsApp Web im Browser)"),
     ("whatsapp_reg_body",
      "Hallo {first_name}, deine Anmeldung zum {turniername} am {datum} in {ort} ist "
      "bestätigt. Klasse: {klasse}, Startgruppe: {startgruppe}, Startnummer: {startnummer}. "

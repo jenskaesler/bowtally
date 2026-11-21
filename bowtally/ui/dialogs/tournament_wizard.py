@@ -731,7 +731,7 @@ class TournamentWizard(QWizard):
         if city:
             self.location.setText(city)
         self._basics_dirty.clear()
-        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO, top=True)
+        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
 
     def _fill_contact(self, club: dict, role_data: dict):
         contact_name_val = ""
@@ -762,7 +762,7 @@ class TournamentWizard(QWizard):
             if val:
                 edit.setText(val)
         self._contact_dirty.clear()
-        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO, top=True)
+        Toast.show(self, "Vereinsdaten übernommen.", Toast.INFO)
 
     # ------------------------------------------------------------ 8 texts
     def _page_texts(self) -> QWizardPage:

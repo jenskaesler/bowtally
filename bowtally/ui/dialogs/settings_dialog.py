@@ -17,6 +17,7 @@ from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.help_link import help_link
 from bowtally.ui.components.search_bar import PLACEHOLDER as SEARCH_PLACEHOLDER
 from bowtally.ui.dialogs.export_helper import open_path
+from bowtally.ui.utils import whatsapp_windows as wa_win
 from bowtally.services import ValidationError, inventory_service as inv, settings_service as ss
 from bowtally.ui import (burger_button, button, mark_dirty, restore_geom, save_geom, show_error,
                          theme)
@@ -47,6 +48,7 @@ COMBO_LABELS = {
     ss.KEY_PRINT_ORIENTATION: {"portrait": "Hochformat", "landscape": "Querformat"},
     ss.KEY_UI_LANGUAGE: {"de": "Deutsch"},
     "waitlist_mode": {"block": "Gesperrt (kein Nachrücken)", "auto": "Automatisch (Warteliste)"},
+    ss.KEY_WHATSAPP_TARGET: {"app": "WhatsApp-App (wa.me)", "web": "WhatsApp Web im Browser"},
     ss.KEY_LOG_LEVEL: {"info": "Info", "warning": "Warnung", "debug": "Debug"},
 }
 LABEL_OVERRIDES = {
@@ -1233,6 +1235,39 @@ class SettingsDialog(QDialog):
                       "Platzhalter der E-Mail-Vorlagen.", objectName="pageSubtitle")
         note.setWordWrap(True)
         lay.addWidget(note)
+        target_box = QGroupBox("Öffnen mit")
+        target_form = self._form(target_box)
+        target = QComboBox()
+        target.setFixedWidth(SETTINGS_COMBO_W)
+        for value in ss.OPTIONS[ss.KEY_WHATSAPP_TARGET]:
+            target.addItem(COMBO_LABELS[ss.KEY_WHATSAPP_TARGET][value], value)
+        target.setCurrentIndex(max(0, target.findData(values.get(ss.KEY_WHATSAPP_TARGET) or "app")))
+        target.setToolTip("WhatsApp-App: der Browser übergibt an WhatsApp Desktop; das klappt nur, "
+                          "wenn Windows dem Link whatsapp:// die App zugeordnet hat. "
+                          "WhatsApp Web: öffnet web.whatsapp.com direkt im Browser.")
+        self.value_widgets[ss.KEY_WHATSAPP_TARGET] = target
+        target_form.addRow(self._flbl("WhatsApp öffnen mit"), target)
+        if wa_win.is_windows():
+            self._wa_status = QLabel()
+            self._wa_status.setWordWrap(True)
+            assign = button("WhatsApp Desktop zuordnen …", self._assign_whatsapp_desktop,
+                            tooltip="Öffnet die Windows-Einstellungen bei den Standard-Apps von "
+                                    "WhatsApp Desktop; dort bei WHATSAPP die WhatsApp-App wählen")
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.addWidget(assign)
+            row.addWidget(self._wa_status, 1)
+            holder = QWidget()
+            holder.setLayout(row)
+            target_form.addRow(self._flbl("Linktyp whatsapp"), holder)
+            hint = QLabel("Windows lässt Standard-Apps nur in den Einstellungen festlegen: Dort "
+                          "beim Eintrag WHATSAPP die App WhatsApp auswählen und zu BowTally "
+                          "zurückkehren.", objectName="pageSubtitle")
+            hint.setWordWrap(True)
+            target_form.addRow("", hint)
+            self._refresh_whatsapp_status()
+            QApplication.instance().applicationStateChanged.connect(self._on_app_state)
+        lay.addWidget(target_box)
         lay.addWidget(help_link("Referenz", "platzhalter-email", "Platzhalter in der Hilfe"))
         for title, key in (
             ("Anmeldebestätigung", ss.KEY_WHATSAPP_TPL_CONFIRMATION),
@@ -1254,6 +1289,26 @@ class SettingsDialog(QDialog):
         scroll.setWidgetResizable(True)
         scroll.setWidget(inner)
         return scroll
+
+    def _refresh_whatsapp_status(self):
+        if not wa_win.whatsapp_desktop_installed():
+            text, color = "WhatsApp Desktop ist nicht installiert – WhatsApp Web verwenden.", "warning"
+        elif wa_win.whatsapp_link_assigned():
+            text, color = "Zugeordnet: WhatsApp-Links öffnen WhatsApp Desktop.", "success"
+        else:
+            text, color = "Nicht zugeordnet: WhatsApp-Links öffnen keine App.", "accent"
+        self._wa_status.setText(text)
+        self._wa_status.setStyleSheet(f"color: {theme.current()[color]};")
+
+    def _on_app_state(self, state):
+        if state == Qt.ApplicationState.ApplicationActive and hasattr(self, "_wa_status"):
+            self._refresh_whatsapp_status()       # back from Windows Settings
+
+    def _assign_whatsapp_desktop(self):
+        from bowtally.ui.components.toast import Toast
+        if not wa_win.open_default_app_settings():
+            Toast.show(self, "Die Windows-Einstellungen konnten nicht geöffnet werden.",
+                       Toast.WARNING)
 
     def _category_tab(self, *categories: str, extra: QWidget | None = None) -> QWidget:
         inner = QWidget()

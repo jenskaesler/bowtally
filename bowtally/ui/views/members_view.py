@@ -364,9 +364,9 @@ class MembersView(ListView):
         m = self._rows[row_id]
         entries = [("Bearbeiten", self.edit_item)]
         if m.email:
-            entries.append(("Datenauskunft senden", lambda: self._send_data_request(row_id)))
+            entries.append(("Datenauskunft per E-Mail senden", lambda: self._send_data_request(row_id)))
         if normalize_phone(m.phone):
-            entries.append(("WhatsApp: Datenauskunft senden",
+            entries.append(("Datenauskunft per WhatsApp senden",
                             lambda: self._send_data_request_whatsapp(row_id)))
         entries.append(("Als inaktiv markieren" if m.active else "Wieder aktivieren",
                         lambda: self._set_active(row_id, not m.active)))

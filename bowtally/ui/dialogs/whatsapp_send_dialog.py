@@ -18,7 +18,7 @@ NO_PHONE = "Übersprungen – keine gültige Nummer"
 
 class WhatsAppSendDialog(QDialog):
     def __init__(self, template_key: str, recipients: list[tuple[str, str | None, dict]],
-                 title: str = "WhatsApp senden", parent=None):
+                 title: str = "Nachricht per WhatsApp senden", parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.resize(620, 460)

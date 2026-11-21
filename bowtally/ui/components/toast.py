@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Non-blocking notifications, bottom right (or top right) of the window, stacked vertically."""
+"""Non-blocking notifications, top right of the window, stacked vertically (newest on top)."""
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
 from PySide6.QtWidgets import (QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPushButton,
                                QVBoxLayout, QWidget)
@@ -16,21 +16,18 @@ class Toast(QFrame):
     SUCCESS, INFO, WARNING, ERROR = "success", "info", "warning", "error"
     _ICONS = {SUCCESS: ("check-circle", "success"), INFO: ("info", "primary"),
               WARNING: ("alert", "warning"), ERROR: ("x-circle", "accent")}
-    # (id(window), top) -> visible toasts, oldest first
-    _stacks: dict[tuple[int, bool], list["Toast"]] = {}
+    _stacks: dict[int, list["Toast"]] = {}   # id(window) -> visible toasts, oldest first
 
     @classmethod
     def show(cls, parent: QWidget | None, text: str, kind: str = INFO,
-             action: tuple[str, object] | None = None, top: bool = False) -> "Toast | None":
-        """Toast.show(parent, "Text", Toast.SUCCESS, action=("Öffnen", callback)).
-        top=True shows it top right (e.g. in dialogs whose buttons sit bottom right)."""
+             action: tuple[str, object] | None = None) -> "Toast | None":
+        """Toast.show(parent, "Text", Toast.SUCCESS, action=("Öffnen", callback))."""
         window = parent.window() if parent is not None else None
         if window is None:
             return None
         toast = cls(window, text, kind, action)
-        toast._top = top
-        cls._stacks.setdefault((id(window), top), []).append(toast)
-        cls._restack(window, top)
+        cls._stacks.setdefault(id(window), []).append(toast)
+        cls._restack(window)
         QFrame.show(toast)
         toast.raise_()
         toast._fade(0.0, 1.0, FADE_IN_MS)
@@ -40,7 +37,6 @@ class Toast(QFrame):
     def __init__(self, window: QWidget, text: str, kind: str, action):
         super().__init__(window)
         self._window = window
-        self._top = False
         self._closing = False
         self.setObjectName("toast")
         self.setProperty("kind", kind)
@@ -95,27 +91,18 @@ class Toast(QFrame):
         self._fade(self._effect.opacity(), 0.0, FADE_OUT_MS, self._remove)
 
     def _remove(self):
-        stack = self._stacks.get((id(self._window), self._top), [])
+        stack = self._stacks.get(id(self._window), [])
         if self in stack:
             stack.remove(self)
         self.deleteLater()
-        self._restack(self._window, self._top)
+        self._restack(self._window)
 
     @classmethod
-    def _restack(cls, window: QWidget, top: bool = False):
-        """Bottom: newest toast at the bottom, older ones move up.
-        Top: newest toast at the top, older ones move down."""
+    def _restack(cls, window: QWidget):
+        """Top right: newest toast at the top, older ones move down."""
         x = window.width() - WIDTH - MARGIN
-        if top:
-            y = MARGIN
-            for toast in reversed(cls._stacks.get((id(window), True), [])):
-                toast.adjustSize()
-                toast.move(x, y)
-                y += toast.height() + SPACING
-            return
-        y = window.height() - MARGIN
-        for toast in reversed(cls._stacks.get((id(window), False), [])):
+        y = MARGIN
+        for toast in reversed(cls._stacks.get(id(window), [])):
             toast.adjustSize()
-            y -= toast.height()
             toast.move(x, y)
-            y -= SPACING
+            y += toast.height() + SPACING

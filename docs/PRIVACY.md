@@ -39,8 +39,9 @@ BowTally versendet selbst keine Nachrichten. E-Mails werden als `mailto:`-Link b
 im lokalen Mailprogramm geöffnet; das ist ein rein lokaler Aufruf ohne Netzwerkzugriff durch
 BowTally.
 
-Die optionale WhatsApp-Funktion öffnet einen Chat über `wa.me` (Click-to-Chat). Anders als
-`mailto:` ist `wa.me` ein HTTPS-Link auf eine Domain von Meta: Rufnummer, Name und
+Die optionale WhatsApp-Funktion öffnet einen Chat über `wa.me` (Click-to-Chat) oder, je nach
+Einstellung, direkt über WhatsApp Web (`web.whatsapp.com`). Anders als `mailto:` sind das
+HTTPS-Links auf Domains von Meta: Rufnummer, Name und
 Nachrichtentext werden dabei im Rahmen des vom Benutzer selbst ausgelösten Browser- bzw.
 App-Aufrufs an WhatsApp übertragen, nicht durch BowTally direkt. Telefonnummern werden
 ausschließlich lokal normalisiert, es gibt keinen Validierungsdienst, keinen automatischen

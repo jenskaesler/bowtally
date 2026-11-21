@@ -222,9 +222,9 @@ class HelpersView(ListView):
         _name, phone, email = hs.display_contact(th)
         contact = []                        # sending stays possible after the results list
         if email:
-            contact.append(("Bestätigung senden", lambda: self._mailto(row_id)))
+            contact.append(("Bestätigung per E-Mail senden", lambda: self._mailto(row_id)))
         if normalize_phone(phone):
-            contact.append(("WhatsApp: Bestätigung senden", lambda: self._whatsapp(row_id)))
+            contact.append(("Bestätigung per WhatsApp senden", lambda: self._whatsapp(row_id)))
         if self._locked:
             return contact
         new_confirmed = not th.confirmed

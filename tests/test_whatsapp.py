@@ -148,3 +148,41 @@ def test_sequential_dialog_is_controlled_by_the_user(db, opened):
     assert len(opened["urls"]) == 2
     assert dlg.progress.text().startswith("4 von 4 bearbeitet")
     assert "1 als gesendet markiert" in dlg.progress.text()
+
+
+def test_build_wa_url_for_whatsapp_web():
+    url = wa.build_wa_url("+491711234567", "Hallo & tschüss", web=True)
+    parts = urlparse(url)
+    assert (parts.scheme, parts.netloc, parts.path) == ("https", "web.whatsapp.com", "/send")
+    query = parse_qs(parts.query)
+    assert query["phone"] == ["491711234567"] and query["text"] == ["Hallo & tschüss"]
+
+
+def test_setting_whatsapp_web_opens_web_whatsapp(db, opened):
+    assert ss.get(ss.KEY_WHATSAPP_TARGET) == "app"                  # default: app via wa.me
+    ss.set_value(ss.KEY_WHATSAPP_TPL_CONFIRMATION, "Hallo {first_name}")
+    wa.open_whatsapp(ss.KEY_WHATSAPP_TPL_CONFIRMATION, "0171 1234567", {"first_name": "Anna"})
+    ss.set_value(ss.KEY_WHATSAPP_TARGET, "web")
+    wa.open_whatsapp(ss.KEY_WHATSAPP_TPL_CONFIRMATION, "0171 1234567", {"first_name": "Anna"})
+    assert urlparse(opened["urls"][0]).netloc == "wa.me"
+    web = urlparse(opened["urls"][1])
+    assert web.netloc == "web.whatsapp.com" and parse_qs(web.query)["text"] == ["Hallo Anna"]
+
+
+def test_windows_settings_open_at_whatsapp_desktop_or_default_apps(monkeypatch):
+    from bowtally.ui.utils import whatsapp_windows as ww
+    urls = []
+    monkeypatch.setattr(ww, "is_windows", lambda: True)
+    monkeypatch.setattr(ww.QDesktopServices, "openUrl", lambda u: urls.append(u.toString()) or True)
+    monkeypatch.setattr(ww, "whatsapp_desktop_installed", lambda: True)
+    assert ww.open_default_app_settings()
+    monkeypatch.setattr(ww, "whatsapp_desktop_installed", lambda: False)
+    assert ww.open_default_app_settings()
+    assert urls == ["ms-settings:defaultapps?registeredAUMID=5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App",
+                    "ms-settings:defaultapps"]
+
+
+def test_windows_detection_does_not_crash():
+    from bowtally.ui.utils import whatsapp_windows as ww
+    assert isinstance(ww.whatsapp_desktop_installed(), bool)
+    assert isinstance(ww.whatsapp_link_assigned(), bool)

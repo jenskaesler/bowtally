@@ -54,7 +54,7 @@ class _SendResultsDialog(QDialog):
     def __init__(self, tournament_id, pid_to_rank: dict, pdf_path, parent=None):
         super().__init__(parent)
         self._pdf_path = pdf_path
-        self.setWindowTitle("Ergebnisse versenden")
+        self.setWindowTitle("Ergebnisse per E-Mail senden")
         self.resize(520, 420)
         t = ts.get_tournament(tournament_id)
         self._t = t
@@ -88,7 +88,7 @@ class _SendResultsDialog(QDialog):
         self._select_all_chk = QCheckBox("Alle auswählen")
         self._select_all_chk.setTristate(True)
         self._select_all_chk.clicked.connect(self._toggle_all)
-        self.btn = button("E-Mail senden (0)", self._send, "primary")
+        self.btn = button("Ergebnisse per E-Mail senden (0)", self._send, "primary")
         row = QHBoxLayout()
         row.addWidget(self._select_all_chk)
         row.addStretch()
@@ -115,7 +115,7 @@ class _SendResultsDialog(QDialog):
     def _update_btn(self, *_):
         eligible = self._eligible()
         n = sum(1 for it in eligible if it.checkState() == Qt.CheckState.Checked)
-        self.btn.setText(f"E-Mail senden ({n})")
+        self.btn.setText(f"Ergebnisse per E-Mail senden ({n})")
         self.btn.setEnabled(n > 0)
         self._select_all_chk.blockSignals(True)
         if n == 0:
@@ -160,7 +160,7 @@ class ResultsView(QWidget):
         self.spinner = Spinner()
         self.btn_pdf = button("Ergebnisliste erstellen", self._create_pdf, "primary",
                               "Druckfertige Ergebnisliste als PDF erstellen")
-        self.btn_send = button("Ergebnisse versenden", self._send_results,
+        self.btn_send = button("Ergebnisse per E-Mail senden", self._send_results,
                                tooltip="Ergebnisse per E-Mail an Teilnehmer versenden")
         self.btn_certs = button("Urkunden drucken", self._create_certificates,
                                 tooltip="Urkunden für Podiumsplätze als PDF erstellen")
