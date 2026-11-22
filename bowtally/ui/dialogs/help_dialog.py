@@ -514,8 +514,9 @@ Ansicht; BowTally merkt sich die zuletzt gewählte. <b>◀</b>, <b>Heute</b> und
 hervorgehoben. Ein Klick auf einen Monatsnamen springt direkt in die Monatsansicht.
 Fährst du mit der Maus über ein Turnier, erscheint eine Vorschau mit
 <b>Turnier öffnen →</b>; ein Klick auf das Badge öffnet das Turnier direkt.</p>
-<p><b>Turnier aus dem Kalender anlegen:</b> Doppelklick auf einen Tag in der Monats- oder
-Wochenansicht (oder <b>Neues Turnier an diesem Tag</b> in der Tagesansicht) öffnet den
+<p><b>Turnier aus dem Kalender anlegen:</b> Rechtsklick auf einen Tag in der Jahres-, Monats-
+oder Wochenansicht und <b>Neues Turnier am …</b> wählen, ein Doppelklick auf einen Tag in der
+Monats- oder Wochenansicht oder <b>Neues Turnier</b> oben rechts in der Tagesansicht öffnet den
 Turnier-Assistenten; das Datum ist bereits auf diesen Tag gesetzt.</p>
 <p><b>ICS exportieren</b> schreibt alle Turniere in eine Kalenderdatei
 (<code>.ics</code>) im Exportordner, die du in andere Kalender-Apps importieren
@@ -617,11 +618,13 @@ auf die letzten vier Stellen durch Sternchen ersetzt. Der Text lässt sich unter
 <h3>Dashboard</h3>
 <p>Ohne geöffnetes Turnier zeigt das Dashboard Kacheln für
 <i>Aktive Turniere</i>, <i>Nächstes Turnier</i>, <i>Turnierarchiv</i>,
-<i>Schützen</i>, <i>Regelwerke</i>, <i>Bogenklassen</i>, <i>Helfer</i>,
+<i>Schützen</i>, <i>Regelwerke</i>, <i>Bogenklassen</i>, <i>Mitglieder</i>,
 <i>Inventar</i> (mit Gesamtwert) und <i>Kalender</i> mit Direktlinks, jeweils mit farbigem
 Symbol. <i>Regelwerke</i> und <i>Bogenklassen</i> zeigen, wie viele davon mitgelieferte
 Standards und wie viele eigene sind; das <i>Turnierarchiv</i> zeigt die Zahl der
-abgeschlossenen Turniere und die Gesamtzahl. Die Kacheln lassen sich
+abgeschlossenen Turniere und die Gesamtzahl. <i>Aktive Turniere</i> zeigt dazu die Gesamtzahl
+und die Entwürfe, <i>Mitglieder</i> zählt die aktiven Mitglieder mit der Zahl der Turnierhelfer
+und der inaktiven Mitglieder. Die Kacheln lassen sich
 per Drag-and-Drop umsortieren; die Reihenfolge bleibt erhalten.</p>
 <h3>Turnier-Dashboard</h3>
 <p>Mit geöffnetem Turnier (<b>Turnier-Dashboard</b> in der Seitenleiste) zeigt
@@ -691,6 +694,13 @@ Gleichstandsregeln stellst du je Regelwerk ein. Im Block <b>Druck</b> stellst du
 Papiergröße (A4, A5, A3, Letter), Format (Hoch- oder Querformat), Vereinslogo
 und Einzelwertung je Scheibe auf Ausdrucken ein. Im Block <b>Inventarkategorien</b>
 pflegst du die Kategorien des Inventars.</p>
+<p>Daneben legen die <b>Druckfarben (PDF-Ausdrucke)</b> die Farben aller Ausdrucke fest
+(Ausschreibung, Listen, Wertungskarten, Ergebnisliste, Urkunden, Parcoursplan) – unabhängig
+von den Farben der Oberfläche: Hauptfarbe für Überschriften und Tabellenköpfe, Sekundärfarbe,
+sekundärer Text und Rahmenlinien. Beim Update werden sie aus den bisherigen
+Oberflächenfarben übernommen, Ausdrucke sehen also zunächst aus wie vorher.
+<b>Zurücksetzen auf Standard</b> in diesem Block setzt nur die Druckfarben zurück; sie werden
+mit <b>Speichern</b> übernommen.</p>
 <a name="textvorlagen"></a><h3>Turnierverwaltung → Textvorlagen</h3>
 <p>Textvorlagen für Ausschreibungen: Parcours-Beschreibung, Überweisungshinweis,
 Gruppenhinweis und Wichtige Hinweise. Sie werden im Turnier-Assistenten als Vorgabe
@@ -719,12 +729,8 @@ stehen in <code>docs/THIRD-PARTY-NOTICES.md</code>.</p>
 <h3>System → Design</h3>
 <p><b>Darstellung</b> System, Hell oder Dunkel (Dark Mode), Markenfarben und
 individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> und
-<b>Zurücksetzen auf Standard</b>.</p>
-<p><b>Druckfarben (PDF-Ausdrucke)</b> legen die Farben aller Ausdrucke fest (Ausschreibung,
-Listen, Wertungskarten, Ergebnisliste, Urkunden, Parcoursplan) – unabhängig von den Farben
-der Oberfläche: Hauptfarbe für Überschriften und Tabellenköpfe, Sekundärfarbe, sekundärer
-Text und Rahmenlinien. Beim Update werden sie aus den bisherigen Oberflächenfarben
-übernommen, Ausdrucke sehen also zunächst aus wie vorher.</p>
+<b>Zurücksetzen auf Standard</b>. Die Farben der Ausdrucke stellst du unter
+Turnierverwaltung → Allgemein ein (<b>Druckfarben</b>).</p>
 <h3>Regelwerke</h3>
 <p>Regelwerke definieren, wie viele Schüsse je Scheibe erlaubt sind und
 wie viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
@@ -885,7 +891,9 @@ Startgebühren und Notizen.</p>
 <h3>PDF-Dokumente</h3>
 <p>Jeder Ausdruck trägt unten rechts klein das BowTally-Logo, den Schriftzug
 „sponsored by BowTally“ und einen QR-Code zum BowTally-Repository auf GitHub (im PDF auch
-anklickbar). Die Seitenzahl steht deshalb unten in der Mitte.</p>
+anklickbar). Die Fußzeile ist auf allen Ausdrucken gleich: links „Erstellt am:“ mit Datum und
+Uhrzeit, in der Mitte die Seitenzahl, rechts das Sponsoring. Urkunden tragen nur das Sponsoring
+unten rechts im Rahmen.</p>
 <p>Ausschreibung, Listen, Pläne, Urkunden und Ergebnisliste werden als PDF im
 <b>Standard-Exportpfad</b> abgelegt (Einstellungen → System → Allgemein; leer =
 Downloads-Ordner).</p>

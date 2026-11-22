@@ -177,6 +177,13 @@ class _HoverCard(QFrame):
 # Day cell
 # ---------------------------------------------------------------------------
 
+def _new_tournament_menu(parent, d: date, emit) -> None:
+    """Right-click menu of a calendar day: create a tournament on that date."""
+    from PySide6.QtGui import QCursor
+    from bowtally.ui.views import menu
+    menu(parent, [(f"Neues Turnier am {d:%d.%m.%Y}", lambda: emit(d), True)]).exec(QCursor.pos())
+
+
 class _DayCell(QFrame):
     tournamentClicked = Signal(int)
     newRequested = Signal(object)        # date
@@ -188,7 +195,7 @@ class _DayCell(QFrame):
         self.setObjectName("dayCell")
         self.setMinimumHeight(80)
         self._date = d
-        self.setToolTip("Doppelklick: neues Turnier an diesem Tag anlegen")
+        self.setToolTip("Doppelklick oder Rechtsklick: neues Turnier an diesem Tag anlegen")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(3, 2, 3, 2)
         lay.setSpacing(1)
@@ -218,6 +225,9 @@ class _DayCell(QFrame):
     def mouseDoubleClickEvent(self, e):
         self.newRequested.emit(self._date)
 
+    def contextMenuEvent(self, e):
+        _new_tournament_menu(self, self._date, self.newRequested.emit)
+
 
 # ---------------------------------------------------------------------------
 # Year view helpers
@@ -226,6 +236,7 @@ class _DayCell(QFrame):
 class _MiniMonth(QFrame):
     monthClicked = Signal(int, int)
     dayClicked = Signal(object)
+    newRequested = Signal(object)           # date
     badgeHovered = Signal(object, object)   # tournament, global QPoint
     badgeUnhovered = Signal()
 
@@ -263,6 +274,8 @@ class _MiniMonth(QFrame):
             d = date(year, month, day)
             lbl = QLabel(str(day))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.contextMenuEvent = lambda _e, d2=d, w=lbl: _new_tournament_menu(
+                w, d2, self.newRequested.emit)
             tournaments = by_date.get(d, [])
             if tournaments:
                 tok = _phase_color(tournaments[0].phase)
@@ -291,6 +304,7 @@ class _MiniMonth(QFrame):
 class _YearView(QWidget):
     monthClicked = Signal(int, int)
     dayClicked = Signal(object)
+    newRequested = Signal(object)
     badgeHovered = Signal(object, object)
     badgeUnhovered = Signal()
 
@@ -309,6 +323,7 @@ class _YearView(QWidget):
             mm = _MiniMonth(year, i + 1, by_date)
             mm.monthClicked.connect(self.monthClicked)
             mm.dayClicked.connect(self.dayClicked)
+            mm.newRequested.connect(self.newRequested)
             mm.badgeHovered.connect(self.badgeHovered)
             mm.badgeUnhovered.connect(self.badgeUnhovered)
             self._grid.addWidget(mm, row, col)
@@ -475,6 +490,7 @@ class CalendarView(QWidget):
         view.set_year(year, self._by_date)
         view.monthClicked.connect(self._on_year_month_click)
         view.dayClicked.connect(self._on_year_day_click)
+        view.newRequested.connect(self.newTournament)
         view.badgeHovered.connect(self._on_badge_hover)
         view.badgeUnhovered.connect(self._on_badge_unhover)
         self._content_lay.addWidget(view, 1)
@@ -539,6 +555,13 @@ class CalendarView(QWidget):
         self._title_lbl.setText(
             f"{_DAY_ABBR[d.weekday()]}, {d.day}. {_MONTH_NAMES[d.month - 1]} {d.year}")
         t_list = self._by_date.get(d, [])
+        bar = QWidget()          # a widget, so _rebuild removes it again
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addStretch()
+        row.addWidget(button("Neues Turnier", lambda: self.newTournament.emit(d),
+                             "primary", "Turnier-Assistent mit diesem Datum öffnen"))
+        self._content_lay.addWidget(bar)
         if not t_list:
             from bowtally.ui.components.empty_state import EmptyState
             self._content_lay.addWidget(
@@ -546,13 +569,6 @@ class CalendarView(QWidget):
         else:
             for t in t_list:
                 self._content_lay.addWidget(self._day_card(t))
-        bar = QWidget()          # a widget, so _rebuild removes it again
-        row = QHBoxLayout(bar)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.addWidget(button("Neues Turnier an diesem Tag", lambda: self.newTournament.emit(d),
-                             "primary", "Turnier-Assistent mit diesem Datum öffnen"))
-        row.addStretch()
-        self._content_lay.addWidget(bar)
         self._content_lay.addStretch()
 
     def _month_panel(self, year: int, month: int) -> QWidget:

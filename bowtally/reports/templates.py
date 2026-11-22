@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Layout constants and font resolution for the reportlab result list."""
 import os
+from datetime import datetime
 from pathlib import Path
 
 from reportlab.graphics import renderPDF
@@ -35,7 +36,7 @@ FONT_SIZE_FOOTER = 8
 
 TABLE_ROW_PADDING = 3
 PODIUM_PLACES = 3
-FOOTER_TEXT = "Erstellt mit BowTally"
+FOOTER_TEXT = "Erstellt am:"   # bottom left, followed by the timestamp
 
 FALLBACK_FONT = "Helvetica"
 FALLBACK_FONT_BOLD = "Helvetica-Bold"
@@ -140,10 +141,30 @@ def draw_watermark(c, right: float = 6 * mm, bottom: float = 4 * mm) -> None:
     c.restoreState()
 
 
+def draw_footer(c, created: str) -> None:
+    """Same footer on every print: "Erstellt am: <timestamp>" left, page number centered."""
+    from bowtally.services import settings_service as ss
+    font = register_fonts([ss.get(ss.KEY_FONT_FAMILY) or "Open Sans", "Segoe UI", "Arial"])[0]
+    c.saveState()
+    c.setFont(font, FONT_SIZE_FOOTER)
+    c.setFillColor(colors.HexColor(ss.get(ss.KEY_PRINT_COLOR_TEXT_SECONDARY) or "#777777"))
+    y = MARGIN_BOTTOM / 2
+    c.drawString(MARGIN_LEFT, y, f"{FOOTER_TEXT} {created}")
+    c.drawCentredString(c._pagesize[0] / 2, y, f"Seite {c.getPageNumber()}")
+    c.restoreState()
+
+
 class WatermarkCanvas(rl_canvas.Canvas):
-    """Canvas that puts the BowTally watermark on every page (use as canvasmaker)."""
+    """Canvas for every print (use as canvasmaker): footer and BowTally watermark on each page."""
     watermark_inset = (6 * mm, 4 * mm)        # right, bottom
+    show_footer = True                        # certificates: watermark only
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._created = datetime.now().strftime("%d.%m.%Y %H:%M")
 
     def showPage(self):
+        if self.show_footer:
+            draw_footer(self, self._created)
         draw_watermark(self, *self.watermark_inset)
         super().showPage()

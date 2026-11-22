@@ -28,17 +28,6 @@ def build_rules_pdf(tournament_id: int | None = None, path: str | Path | None = 
     sub_s = ParagraphStyle("s", fontName=font, fontSize=9, leading=12, textColor=text2)
     body = ParagraphStyle("b", fontName=font, fontSize=10, leading=14)
     pagesize = tpl.page_size("A4", "portrait")
-    created = datetime.now().strftime("%d.%m.%Y %H:%M")
-
-    def footer(canvas, doc):
-        canvas.saveState()
-        canvas.setFont(font, tpl.FONT_SIZE_FOOTER)
-        canvas.setFillColor(text2)
-        y = tpl.MARGIN_BOTTOM / 2
-        canvas.drawString(tpl.MARGIN_LEFT, y, f"{tpl.FOOTER_TEXT} · {created}")
-        canvas.drawCentredString(pagesize[0] / 2, y, f"Seite {doc.page}")
-        canvas.restoreState()
-
     width = pagesize[0] - tpl.MARGIN_LEFT - tpl.MARGIN_RIGHT
     club_s = ParagraphStyle("c", fontName=bold, fontSize=16, leading=20)
     logo = _logo(club.get("logo_path"), *LOGO_HEADER)
@@ -63,6 +52,5 @@ def build_rules_pdf(tournament_id: int | None = None, path: str | Path | None = 
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM,
                             title="Turnierregeln",
                             author=club.get("club_name") or "BowTally", creator="BowTally")
-    doc.build(story, onFirstPage=footer, onLaterPages=footer,
-              canvasmaker=tpl.WatermarkCanvas)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     return path

@@ -157,3 +157,18 @@ def test_backup_info_file_has_schema_version(tournament, tmp_path):
         zf.setpassword(b"pw")
         info = zf.read("bowtally.info").decode("utf-8")
     assert f"schema_version: {engine.schema_version()}\n" in info
+
+
+def test_same_footer_on_prints_but_not_on_certificates(tournament, monkeypatch, tmp_path):
+    from bowtally.reports import certificates as cert, helper_list
+    from bowtally.reports import templates as tpl
+    calls = []
+    real = tpl.draw_footer
+    monkeypatch.setattr(tpl, "draw_footer", lambda c, created: (calls.append(created),
+                                                                real(c, created)))
+    helper_list.build_helper_list(tournament.id, tmp_path / "h.pdf")
+    assert calls and calls[0][2] == "."              # "dd.mm.yyyy hh:mm"
+    calls.clear()
+    monkeypatch.setattr(cert.rs, "compute_ranking", lambda tid, **k: {})
+    cert.build_certificates(tournament.id, tmp_path / "u.pdf")
+    assert calls == []

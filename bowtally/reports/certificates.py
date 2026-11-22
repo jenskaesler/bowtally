@@ -135,6 +135,7 @@ def build_certificates(tournament_id: int, path: str | Path | None = None,
 
     c = tpl.WatermarkCanvas(str(path), pagesize=(PAGE_W, PAGE_H))
     c.watermark_inset = (16 * mm, 16 * mm)     # inside the certificate frame
+    c.show_footer = False                      # a certificate gets only the sponsoring
     c.setTitle(f"Urkunden {t.name}")
     count = 0
     for bc_id, rows in per_class.items():

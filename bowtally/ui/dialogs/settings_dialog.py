@@ -195,7 +195,7 @@ class SettingsDialog(QDialog):
             ("bank",     self._bank_tab()),
             ("design",   self._design_tab()),
             ("behavior", self._category_tab("behavior", "print",
-                                            extra=self._inventory_categories_box())),
+                                            extra=self._behavior_extra())),
             ("print",    self._print_tab()),
             ("email",    self._email_tab()),
             ("whatsapp", self._whatsapp_tab()),
@@ -619,6 +619,8 @@ class SettingsDialog(QDialog):
             self.logo_preview.setPixmap(pix.scaled(LOGO_PREVIEW - 8, LOGO_PREVIEW - 8,
                                                    Qt.AspectRatioMode.KeepAspectRatio,
                                                    Qt.TransformationMode.SmoothTransformation))
+        if hasattr(self, "_saved"):      # not while the dialog is still being built
+            self._update_save_btn()
 
     # ------------------------------------------------------------ tab 2
     def _design_tab(self) -> QWidget:
@@ -638,16 +640,16 @@ class SettingsDialog(QDialog):
         lay.addWidget(mode_box)
 
         self.color_fields: dict[str, ColorField] = {}
-        boxes = {"brand": self._form(), "light": self._form(), "dark": self._form(),
-                 "print": self._form()}
-        colors = sorted((st for st in self.settings if st.value_type == "color"),
+        boxes = {"brand": self._form(), "light": self._form(), "dark": self._form()}
+        # print colors live in Turnierverwaltung -> Allgemein, see _print_colors_box()
+        colors = sorted((st for st in self.settings if st.value_type == "color"
+                         and not st.key.startswith("print_")),
                         key=lambda st: next((i for i, suffix in enumerate(COLOR_ORDER)
                                              if st.key.endswith(suffix)), len(COLOR_ORDER)))
         for st in colors:
             field = ColorField(st.value or ss.DEFAULTS.get(st.key, "#000000"))
             self.color_fields[st.key] = field
             group = ("brand" if st.key in BRAND_COLORS else
-                     "print" if st.key.startswith("print_") else
                      "dark" if st.key.startswith("color_dark_") else "light")
             boxes[group].addRow((st.description or st.key).replace(" (Dunkel)", ""), field)
         cols = QHBoxLayout()
@@ -659,12 +661,9 @@ class SettingsDialog(QDialog):
             box.setLayout(boxes[group])
             cols.addWidget(box)
         lay.addLayout(cols)
-        print_box = QGroupBox("Druckfarben (PDF-Ausdrucke)")
-        print_box.setLayout(boxes["print"])
-        lay.addWidget(print_box)
         btns = QHBoxLayout()
         btns.addWidget(button("Vorschau anwenden", self._preview, "primary"))
-        btns.addWidget(button("Zurücksetzen auf Standard", self._reset_colors))
+        btns.addWidget(button("Zurücksetzen auf Standard", lambda: self._reset_colors()))
         btns.addStretch()
         lay.addLayout(btns)
         lay.addStretch()
@@ -684,12 +683,28 @@ class SettingsDialog(QDialog):
         except ValidationError as exc:
             show_error(self, exc)
 
-    def _reset_colors(self):
-        defaults = ss.DEFAULTS
+    def _reset_colors(self, prefix: str = "color_"):
+        """prefix "color_": app theme (Design tab), "print_color_": PDF print colors."""
         for key, field in self.color_fields.items():
-            if key in defaults:
-                field.set_value(defaults[key])
-        self._preview()
+            if key.startswith(prefix) and key in ss.DEFAULTS:
+                field.set_value(ss.DEFAULTS[key])
+        if prefix == "color_":
+            self._preview()
+
+    def _print_colors_box(self) -> QGroupBox:
+        """Print colors; saved with the Speichern button like the theme colors."""
+        box = QGroupBox("Druckfarben (PDF-Ausdrucke)")
+        form = self._form(box)
+        for st in self.settings:
+            if st.value_type == "color" and st.key.startswith("print_"):
+                field = ColorField(st.value or ss.DEFAULTS.get(st.key, "#000000"))
+                self.color_fields[st.key] = field
+                label = self._flbl(st.description or st.key)
+                label.setWordWrap(True)
+                form.addRow(label, field)
+        form.addRow("", button("Zurücksetzen auf Standard",
+                               lambda: self._reset_colors("print_color_")))
+        return box
 
     # ------------------------------------------------------------ tab 2b (bank) / tabs 4+5
     def _bank_tab(self) -> QWidget:
@@ -1110,6 +1125,15 @@ class SettingsDialog(QDialog):
         return scroll
 
     # ------------------------------------------------------------ inventory categories box
+    def _behavior_extra(self) -> QWidget:
+        """Inventory categories and print colors side by side."""
+        w = QWidget()
+        row = QHBoxLayout(w)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(self._inventory_categories_box(), 1)
+        row.addWidget(self._print_colors_box(), 1, Qt.AlignmentFlag.AlignTop)
+        return w
+
     def _inventory_categories_box(self) -> QGroupBox:
         """Categories are stored right away; they do not use the Speichern button."""
         box = QGroupBox("Inventarkategorien")

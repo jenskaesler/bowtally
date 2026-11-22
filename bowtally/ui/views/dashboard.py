@@ -159,9 +159,11 @@ class GlobalDashboard(QWidget):
 
         c, lay = _dcard("active", "Aktive Turniere")
         self.active_count = QLabel("0", objectName="cardValue")
+        self.active_lbl = QLabel(objectName="pageSubtitle")
         self.active_links = QVBoxLayout()
         self.active_links.setSpacing(0)
         lay.addWidget(self.active_count)
+        lay.addWidget(self.active_lbl)
         lay.addLayout(self.active_links)
         lay.addStretch()
         self._cards["active"] = c
@@ -226,7 +228,9 @@ class GlobalDashboard(QWidget):
 
         c, lay = _dcard("helpers", "Mitglieder")
         self.helpers_count = QLabel("0", objectName="cardValue")
+        self.helpers_lbl = QLabel(objectName="pageSubtitle")
         lay.addWidget(self.helpers_count)
+        lay.addWidget(self.helpers_lbl)
         lay.addWidget(_link("Mitglieder öffnen →", lambda: self.navigate.emit("helpers"),
                             "Mitglieder verwalten"))
         lay.addStretch()
@@ -292,6 +296,10 @@ class GlobalDashboard(QWidget):
         tournaments = ts.list_tournaments()
         active = [t for t in tournaments if t.phase not in ("closed", "draft")]
         self.active_count.setText(str(len(active)))
+        drafts = sum(t.phase == "draft" for t in tournaments)
+        self.active_lbl.setText(f"laufend von {len(tournaments)} Turnieren insgesamt"
+                                + (f" · {drafts} {'Entwurf' if drafts == 1 else 'Entwürfe'}"
+                                   if drafts else ""))
         closed = sum(t.phase == "closed" for t in tournaments)
         self.archive_count.setText(str(closed))
         self.archive_lbl.setText(f"abgeschlossen von {len(tournaments)} Turnieren insgesamt")
@@ -313,7 +321,8 @@ class GlobalDashboard(QWidget):
         no_club = sum(1 for a in archers if not (a.club and a.club.strip()))
         self.archer_count.setText(str(len(archers)))
         self.club_count.setText(f"aktive Schützen aus {len(clubs)} Vereinen" if clubs
-                                else "noch keine Vereine")
+                                else "noch keine Vereine erfasst" if archers
+                                else "noch keine Schützen")
         self.no_club_lbl.setText(f"{no_club} ohne Vereinszugehörigkeit")
         self.no_club_lbl.setVisible(no_club > 0)
         logo_path = svc.get_club_profile().get("logo_path") or ""
@@ -347,8 +356,14 @@ class GlobalDashboard(QWidget):
             builtin = sum(bool(i.is_builtin) for i in items)
             count_lbl.setText(str(len(items)))
             split_lbl.setText(f"{builtin} Standard · {len(items) - builtin} eigene")
-        helpers = ms.list_members(include_inactive=False, only_helpers=True)
-        self.helpers_count.setText(str(len(helpers)))
+        members = ms.list_members()
+        active_members = [m for m in members if m.active]
+        helpers = sum(bool(m.is_tournament_helper) for m in active_members)
+        inactive = len(members) - len(active_members)
+        self.helpers_count.setText(str(len(active_members)))
+        self.helpers_lbl.setText(
+            (f"{helpers} Turnierhelfer" + (f" · {inactive} inaktiv" if inactive else ""))
+            if members else "noch keine Mitglieder")
         self.inventory_count.setText(str(len(inv_svc.list_items())))
         self.inventory_value.setText(f"Gesamtwert {money(inv_svc.inventory_total_value())}")
         upcoming_cal = [t for t in tournaments if t.date >= date.today()]

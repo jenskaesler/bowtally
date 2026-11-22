@@ -28,10 +28,17 @@ def test_new_print_color_takes_the_custom_ui_color(db):
     assert ss.get(ss.KEY_PRINT_COLOR_PRIMARY) == "#123456"
 
 
-def test_design_tab_shows_print_colors(db):
+def test_print_colors_sit_in_general_tab(db):
     from bowtally.ui.dialogs.settings_dialog import SettingsDialog
     dlg = SettingsDialog(lambda *_: None)
-    assert ss.KEY_PRINT_COLOR_BORDER in dlg.color_fields
+    field = dlg.color_fields[ss.KEY_PRINT_COLOR_BORDER]
+    page = dlg._stack.widget(dlg._page_index["behavior"])
+    assert page.isAncestorOf(field)          # Turnierverwaltung -> Allgemein, not Design
+    field.set_value("#111111")
+    dlg.color_fields[ss.KEY_COLOR_BORDER].set_value("#222222")
+    dlg._reset_colors("print_color_")
+    assert field.value() == ss.DEFAULTS[ss.KEY_PRINT_COLOR_BORDER]
+    assert dlg.color_fields[ss.KEY_COLOR_BORDER].value() == "#222222"
 
 
 def test_calendar_double_click_presets_wizard_date(db):
@@ -65,3 +72,51 @@ def test_backup_prune_keeps_newest_by_count(tmp_path):
     assert sorted(f.name for f in tmp_path.iterdir()) == [
         "bowtally_backup_2026-01-04-000000.zip", "bowtally_backup_2026-01-05-000000.zip",
         "other.zip"]
+
+
+def test_dashboard_empty_texts_and_counts(db):
+    from bowtally.ui.views.dashboard import GlobalDashboard
+    dash = GlobalDashboard()
+    dash.refresh()
+    assert dash.club_count.text() == "noch keine Schützen"
+    assert dash.helpers_lbl.text() == "noch keine Mitglieder"
+    assert dash.active_lbl.text() == "laufend von 0 Turnieren insgesamt"
+
+
+def test_logo_alone_enables_save(db, tmp_path, monkeypatch):
+    from PySide6.QtGui import QColor, QImage
+    from PySide6.QtWidgets import QFileDialog
+    from bowtally.ui.dialogs.settings_dialog import SettingsDialog
+    logo = tmp_path / "logo.png"
+    img = QImage(20, 20, QImage.Format.Format_RGB32)
+    img.fill(QColor("red"))
+    img.save(str(logo))
+    dlg = SettingsDialog(lambda *_: None)
+    assert not dlg._save_btn.isEnabled()
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(logo), ""))
+    dlg._browse_logo()
+    assert dlg._save_btn.isEnabled()
+    dlg._save_settings()
+    assert ss.get_club_profile()["logo_path"].endswith("logo.png")
+
+
+@pytest.mark.parametrize("year_view", [False, True])
+def test_calendar_right_click_offers_new_tournament(db, monkeypatch, year_view):
+    import types
+    from PySide6.QtWidgets import QLabel
+    import bowtally.ui.views as views
+    from bowtally.ui.views import calendar_view as cv
+    # QMenu.exec cannot be patched on the PySide class -> replace the menu helper
+    monkeypatch.setattr(views, "menu", lambda parent, entries: types.SimpleNamespace(
+        exec=lambda *_: entries[0][1]()))
+    got = []
+    if year_view:
+        view = cv._MiniMonth(2027, 5, {})
+        view.newRequested.connect(got.append)
+        day = next(w for w in view.findChildren(QLabel) if w.text() == "8")
+        day.contextMenuEvent(None)
+    else:
+        cell = cv._DayCell(date(2027, 5, 8), [])
+        cell.newRequested.connect(got.append)
+        cell.contextMenuEvent(None)
+    assert got == [date(2027, 5, 8)]
