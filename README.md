@@ -49,6 +49,7 @@ flowchart LR
 - 📋 **Leitfaden** – Erklärung, Aufgaben mit Direktlinks, Statusampeln und abhakbare Checkliste je Phase.
 - 🧙 **Turnier-Assistent** – acht Schritte: Grunddaten (mit internen Notizen), Konfiguration (Wertungsmodus, maximale Teilnehmerzahl mit Auslastung, Startgruppen, Regelwerk und Runden), Bogenklassen (Standard-Klassen zuerst, dann eigene, alphabetisch; Option „Nur eigene Klassen anzeigen“), Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Hinweise und Texte, Zusammenfassung.
 - 📋 **Turnier kopieren** – bestehendes Turnier als Vorlage nutzen; Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
+- 🔗 **Ausschreibungslinks** – Links zur bereits veröffentlichten Ausschreibung (Website, Facebook, Instagram, Mein Bogenturnier oder frei) auf dem Turnier-Dashboard, in jeder Phase, je mit QR-Code (offline erzeugt) zum Vergrößern für Flyer und Posts.
 - 📝 **Notizen** – freies Textfeld je Turnier (interne Notizen aus dem Assistenten landen hier); erscheint nie in der Ausschreibung, wird auf dem Dashboard und im abgeschlossenen Leitfaden angezeigt und im Turnier-Export mitgeliefert.
 - 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export; Doppelklick auf einen Tag legt dort ein neues Turnier an.
 

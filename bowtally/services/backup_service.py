@@ -16,7 +16,8 @@ from bowtally.services import settings_service as ss
 
 EXPORT_TABLE_ORDER = [
     "app_settings", "club_profile", "scoring_rules", "bow_classes", "archers",
-    "tournament_phases", "tournaments", "entry_fees", "tournament_participants",
+    "tournament_phases", "tournaments", "announcement_links", "entry_fees",
+    "tournament_participants",
     "tournament_rounds", "scores", "members", "tournament_helpers", "member_helper_history",
     "member_files", "archer_files",
     "score_sheet_templates", "prizes", "course_targets", "schedule_groups",

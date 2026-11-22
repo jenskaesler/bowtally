@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """Dashboard: global overview, or - with an active tournament - the tournament dashboard."""
+import html
 import json
 import os
 from datetime import date
 
-from PySide6.QtCore import Qt, QMimeData, Signal
-from PySide6.QtGui import QDrag, QPixmap
-from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
-                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtCore import QMimeData, QSize, Qt, Signal
+from PySide6.QtGui import QDrag, QIcon, QPixmap
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
+                               QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import course_service as cs
 from bowtally.services import member_service as ms
@@ -424,11 +425,19 @@ class TournamentDashboard(QWidget):
         self.grid.setSpacing(16)
         for col in range(3):
             self.grid.setColumnStretch(col, 1)
+        content = QWidget()
+        content_lay = QVBoxLayout(content)
+        content_lay.setContentsMargins(0, 0, 0, 0)
+        content_lay.addLayout(self.grid)
+        content_lay.addStretch()
+        scroll = QScrollArea()          # the links card can make the page taller than the window
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.header)
-        lay.addLayout(self.grid)
-        lay.addStretch()
+        lay.addWidget(scroll, 1)
 
     def refresh(self):
         _clear(self.grid)
@@ -461,6 +470,81 @@ class TournamentDashboard(QWidget):
         self.grid.addWidget(self._costs_card(t), 2, 0, 1, 3)
         if t.internal_notes:
             self.grid.addWidget(self._notes_card(t), 3, 0, 1, 3)
+        # in every phase: links to the announcement already published elsewhere
+        self.grid.addWidget(self._links_card(t), 4, 0, 1, 3)
+
+    def _links_card(self, t):
+        from PySide6.QtGui import QFontMetrics
+        from bowtally.services import announcement_link_service as als
+        from bowtally.ui.dialogs.announcement_link_dialog import platform_pixmap, qr_pixmap
+        card, c = _card("Ausschreibungslinks")
+        head = QHBoxLayout()
+        head.addWidget(QLabel("Links zur bereits veröffentlichten Ausschreibung, je mit QR-Code "
+                              "für Flyer, Infostand oder weitere Posts.",
+                              objectName="pageSubtitle", wordWrap=True), 1)
+        head.addWidget(button("Link hinzufügen", lambda: self._edit_link(t.id), "primary",
+                              "Link zu einer veröffentlichten Ausschreibung hinterlegen"))
+        c.addLayout(head)
+        links = als.list_links(t.id)
+        if not links:
+            c.addWidget(QLabel("Noch keine Links hinterlegt.", objectName="pageSubtitle"))
+        for link in links:
+            row_w = QFrame()
+            row_w.setToolTip("Rechtsklick: Bearbeiten oder Löschen")
+            row_w.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            row_w.customContextMenuRequested.connect(
+                lambda _pos, lk=link, w=row_w: self._link_menu(w, t.id, lk))
+            row = QHBoxLayout(row_w)
+            row.setContentsMargins(0, 4, 0, 4)
+            icon = QLabel()
+            icon.setPixmap(platform_pixmap(link.platform, 20))
+            row.addWidget(icon)
+            name = QLabel(als.platform_name(link))
+            f = name.font()
+            f.setBold(True)
+            name.setFont(f)
+            name.setMinimumWidth(140)
+            row.addWidget(name)
+            shown = QFontMetrics(self.font()).elidedText(link.url, Qt.TextElideMode.ElideMiddle,
+                                                          460)
+            url = QLabel(f'<a href="{html.escape(link.url, quote=True)}">{html.escape(shown)}</a>')
+            url.setOpenExternalLinks(True)
+            url.setToolTip(link.url)
+            row.addWidget(url, 1)
+            qr = QPushButton(flat=True)
+            qr.setIcon(QIcon(qr_pixmap(link.url, 56)))
+            qr.setIconSize(QSize(56, 56))
+            qr.setCursor(Qt.CursorShape.PointingHandCursor)
+            qr.setToolTip("QR-Code vergrößern")
+            qr.clicked.connect(lambda _=False, lk=link: self._zoom_qr(lk))
+            row.addWidget(qr)
+            c.addWidget(row_w)
+        return card
+
+    def _edit_link(self, tournament_id: int, link=None):
+        from bowtally.ui.dialogs.announcement_link_dialog import AnnouncementLinkDialog
+        if AnnouncementLinkDialog(tournament_id, link, self).exec():
+            self.refresh()
+
+    def _link_menu(self, widget, tournament_id: int, link):
+        from PySide6.QtGui import QCursor
+        from bowtally.ui.views import menu
+        menu(widget, [("Bearbeiten", lambda: self._edit_link(tournament_id, link), True),
+                      ("Löschen", lambda: self._delete_link(link), True)]).exec(QCursor.pos())
+
+    def _delete_link(self, link):
+        from bowtally.services import announcement_link_service as als
+        from bowtally.ui.components.confirm_dialog import ConfirmDialog
+        if ConfirmDialog.ask(self, "Link löschen?",
+                             f"Der Link „{als.platform_name(link)}“ wird endgültig "
+                             f"gelöscht.\n{link.url}", "Löschen"):
+            als.delete_link(link.id)
+            self.refresh()
+
+    def _zoom_qr(self, link):
+        from bowtally.services import announcement_link_service as als
+        from bowtally.ui.dialogs.announcement_link_dialog import QrZoomDialog
+        QrZoomDialog(als.platform_name(link), link.url, self).exec()
 
     def _costs_card(self, t):
         card, c = _card("Material", on_click=lambda: self.action.emit("course"))

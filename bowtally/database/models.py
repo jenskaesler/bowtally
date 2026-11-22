@@ -601,3 +601,19 @@ class CourseItem(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     inventory_item: Mapped["InventoryItem | None"] = relationship()
+
+
+class AnnouncementLink(Base):
+    """Link to an announcement already published elsewhere (website, Facebook, ...), shown with a
+    QR code on the tournament dashboard. Pure promotion aid: no link to the PDF or the phases."""
+    __tablename__ = "announcement_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tournament_id: Mapped[int] = mapped_column(
+        ForeignKey("tournaments.id", ondelete="CASCADE"), nullable=False)
+    platform: Mapped[str] = mapped_column(Text, nullable=False)   # website|facebook|...|custom
+    platform_label: Mapped[str | None] = mapped_column(Text)       # only for "custom"
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, default=_now, onupdate=_now)

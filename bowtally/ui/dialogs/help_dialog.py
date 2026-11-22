@@ -636,6 +636,17 @@ Turnierdatum, Einschreibung ab, Schießbeginn mit Countdown). Die Karte
 <b>Material</b> zeigt getrennt die <b>Kosten Einmalartikel</b> (echte Zusatzkosten dieses
 Turniers) und den <b>Warenwert Bestandsinventar</b> (angeforderte Menge × Einzelpreis der
 verwendeten Inventarartikel). Ein Klick auf eine Karte öffnet die passende Ansicht.</p>
+<a name="ausschreibungslinks"></a><h3>Ausschreibungslinks</h3>
+<p>Ist die Ausschreibung bereits veröffentlicht (Vereinswebsite, Facebook, Instagram,
+Mein Bogenturnier o. ä.), hinterlegst du in der Karte <b>Ausschreibungslinks</b> den Link dazu –
+in jeder Phase. <b>Link hinzufügen</b> öffnet den Dialog: Plattform wählen (bei <i>Andere …</i>
+zusätzlich einen Namen eingeben) und die URL einfügen; die QR-Vorschau entsteht beim Tippen.
+Mehrere Links je Plattform sind möglich, z. B. zwei Facebook-Posts.</p>
+<p>Jeder Link erscheint mit Symbol, Name, anklickbarer URL und QR-Code. Ein Klick auf den
+QR-Code zeigt ihn groß, z. B. für einen Screenshot für Flyer, Infostand oder weitere Posts.
+Rechtsklick auf einen Eintrag: <b>Bearbeiten</b> oder <b>Löschen</b> (endgültig, nach Rückfrage).
+BowTally prüft nicht, ob der Link erreichbar ist, und verwendet ihn nicht im
+Ausschreibungs-PDF. Die Links sind im Backup enthalten.</p>
 <h3>Logbuch</h3>
 <p>Das <b>Logbuch</b> protokolliert Aktivitäten als Tabelle mit einer Zeile je Eintrag
 (Zeit, Typ, Meldung, Kontext). Du kannst nach Turnier,

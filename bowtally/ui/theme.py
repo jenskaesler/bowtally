@@ -579,6 +579,15 @@ ICONS = {
     "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     "calendar": '<rect x="3.5" y="5" width="17" height="15" rx="2"/>'
                 '<path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    # platform icons for announcement links: monochrome, no official brand colors
+    "globe": '<circle cx="12" cy="12" r="9"/>'
+             '<path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    "link": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/>'
+            '<path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    "facebook": '<rect x="3" y="3" width="18" height="18" rx="4"/>'
+                '<path d="M15.5 7.5H14a2 2 0 0 0-2 2V21M9 13h6"/>',
+    "instagram": '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/>'
+                 '<circle cx="17.2" cy="6.8" r="1.1" fill="{c}" stroke="none"/>',
     "file": '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
     "edit": '<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
     "copy": '<rect x="9" y="9" width="13" height="13" rx="2"/>'
