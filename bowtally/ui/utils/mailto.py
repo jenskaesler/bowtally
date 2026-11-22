@@ -104,7 +104,7 @@ def template_context(context: dict, with_logo: bool = True) -> "_SafeDict":
 
 
 def open_mailto(template_key: str, recipient_email: str | None, context: dict,
-                parent=None, attachment: Path | None = None, bcc: str | None = None,
+                parent=None, attachment: Path | list[Path] | None = None, bcc: str | None = None,
                 as_draft: bool = False) -> None:
     """Open a mailto: URL built from app_settings template `template_key`.
 
@@ -139,9 +139,10 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
             msg["Bcc"] = bcc
         msg["Subject"] = subj
         msg.set_content(_html_body(body, _font_family()), subtype="html", charset="utf-8")
-        if attachment:
-            msg.add_attachment(Path(attachment).read_bytes(), maintype="application",
-                               subtype="pdf", filename=Path(attachment).name)
+        for att in (attachment if isinstance(attachment, list) else [attachment] if attachment
+                    else []):
+            msg.add_attachment(Path(att).read_bytes(), maintype="application",
+                               subtype="pdf", filename=Path(att).name)
         # shortcut: temp .eml files are not cleaned up, fine for a few KB-MB per mail
         name = context.get("turniername") or "Turnier"
         safe_name = "".join(ch for ch in name if ch.isalnum() or ch in (" ", "-", "_")).strip().replace(" ", "_") or "Turnier"

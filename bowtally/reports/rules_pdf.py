@@ -20,8 +20,8 @@ def build_rules_pdf(tournament_id: int | None = None, path: str | Path | None = 
     path = Path(path) if path else config.export_dir() / f"Turnierregeln_{datetime.now():%Y%m%d_%H%M%S}.pdf"
     settings = ss.get_all()
     club = ss.get_club_profile()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    text2 = colors.HexColor(settings.get(ss.KEY_COLOR_TEXT_SECONDARY) or "#777777")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    text2 = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_TEXT_SECONDARY) or "#777777")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     title_s = ParagraphStyle("t", fontName=bold, fontSize=15, leading=19, textColor=primary)
@@ -36,7 +36,7 @@ def build_rules_pdf(tournament_id: int | None = None, path: str | Path | None = 
         canvas.setFillColor(text2)
         y = tpl.MARGIN_BOTTOM / 2
         canvas.drawString(tpl.MARGIN_LEFT, y, f"{tpl.FOOTER_TEXT} · {created}")
-        canvas.drawRightString(pagesize[0] - tpl.MARGIN_RIGHT, y, f"Seite {doc.page}")
+        canvas.drawCentredString(pagesize[0] / 2, y, f"Seite {doc.page}")
         canvas.restoreState()
 
     width = pagesize[0] - tpl.MARGIN_LEFT - tpl.MARGIN_RIGHT
@@ -63,5 +63,6 @@ def build_rules_pdf(tournament_id: int | None = None, path: str | Path | None = 
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM,
                             title="Turnierregeln",
                             author=club.get("club_name") or "BowTally", creator="BowTally")
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    doc.build(story, onFirstPage=footer, onLaterPages=footer,
+              canvasmaker=tpl.WatermarkCanvas)
     return path

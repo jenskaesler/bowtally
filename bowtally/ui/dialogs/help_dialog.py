@@ -54,7 +54,9 @@ erreichst du dann über <b>Alle Turniere</b> in den Turnier-Details. Nach dem Ö
 zeigt BowTally zuerst den Leitfaden. Beim nächsten Start wird das zuletzt aktive Turnier
 wieder geöffnet.</p>
 <h3>Statusleiste</h3>
-<p>Ganz unten stehen der Pfad der Datenbank und die Programmversion. Das Fragezeichen öffnet
+<p>Ganz unten stehen der Pfad der Datenbank, die Version des Datenbankschemas (z. B.
+<i>Schema 0042</i>, die volle Bezeichnung im Tooltip) und die Programmversion. Das Schema hat eine
+eigene Nummer, weil nicht jede neue Programmversion die Datenbank ändert. Das Fragezeichen öffnet
 diese Hilfe (<code>F1</code>).</p>
 """),
     ("Turniere", """
@@ -442,7 +444,9 @@ Ergebnisliste beliebig oft neu erstellen.</p>
 <p>Diese Buttons sind erst aktiv, nachdem die Ergebnisliste erstellt wurde
 (vorher steht im Tooltip „Bitte zuerst die Ergebnisliste erstellen“):</p>
 <ul>
-  <li><b>Urkunden drucken</b> – Urkunden für die Podiumsplätze als PDF</li>
+  <li><b>Urkunden drucken</b> – Urkunden für die Podiumsplätze als PDF, mit Vereinslogo (falls
+      im Vereinsprofil hinterlegt) und Unterschriftszeilen für den 1. und 2. Vorsitzenden aus
+      dem Vereinsvorstand</li>
   <li><b>Preis- und Siegerliste</b> – Rangliste je Bogenklasse mit den
       zugewiesenen Preisen als PDF</li>
   <li><b>Exportieren</b> – Excel, OpenDocument, CSV oder <b>PDF (.pdf)</b>
@@ -510,6 +514,9 @@ Ansicht; BowTally merkt sich die zuletzt gewählte. <b>◀</b>, <b>Heute</b> und
 hervorgehoben. Ein Klick auf einen Monatsnamen springt direkt in die Monatsansicht.
 Fährst du mit der Maus über ein Turnier, erscheint eine Vorschau mit
 <b>Turnier öffnen →</b>; ein Klick auf das Badge öffnet das Turnier direkt.</p>
+<p><b>Turnier aus dem Kalender anlegen:</b> Doppelklick auf einen Tag in der Monats- oder
+Wochenansicht (oder <b>Neues Turnier an diesem Tag</b> in der Tagesansicht) öffnet den
+Turnier-Assistenten; das Datum ist bereits auf diesen Tag gesetzt.</p>
 <p><b>ICS exportieren</b> schreibt alle Turniere in eine Kalenderdatei
 (<code>.ics</code>) im Exportordner, die du in andere Kalender-Apps importieren
 kannst.</p>
@@ -611,7 +618,10 @@ auf die letzten vier Stellen durch Sternchen ersetzt. Der Text lässt sich unter
 <p>Ohne geöffnetes Turnier zeigt das Dashboard Kacheln für
 <i>Aktive Turniere</i>, <i>Nächstes Turnier</i>, <i>Turnierarchiv</i>,
 <i>Schützen</i>, <i>Regelwerke</i>, <i>Bogenklassen</i>, <i>Helfer</i>,
-<i>Inventar</i> (mit Gesamtwert) und <i>Kalender</i> mit Direktlinks. Die Kacheln lassen sich
+<i>Inventar</i> (mit Gesamtwert) und <i>Kalender</i> mit Direktlinks, jeweils mit farbigem
+Symbol. <i>Regelwerke</i> und <i>Bogenklassen</i> zeigen, wie viele davon mitgelieferte
+Standards und wie viele eigene sind; das <i>Turnierarchiv</i> zeigt die Zahl der
+abgeschlossenen Turniere und die Gesamtzahl. Die Kacheln lassen sich
 per Drag-and-Drop umsortieren; die Reihenfolge bleibt erhalten.</p>
 <h3>Turnier-Dashboard</h3>
 <p>Mit geöffnetem Turnier (<b>Turnier-Dashboard</b> in der Seitenleiste) zeigt
@@ -710,6 +720,11 @@ stehen in <code>docs/THIRD-PARTY-NOTICES.md</code>.</p>
 <p><b>Darstellung</b> System, Hell oder Dunkel (Dark Mode), Markenfarben und
 individuelle Farben für das helle und dunkle Theme, <b>Vorschau anwenden</b> und
 <b>Zurücksetzen auf Standard</b>.</p>
+<p><b>Druckfarben (PDF-Ausdrucke)</b> legen die Farben aller Ausdrucke fest (Ausschreibung,
+Listen, Wertungskarten, Ergebnisliste, Urkunden, Parcoursplan) – unabhängig von den Farben
+der Oberfläche: Hauptfarbe für Überschriften und Tabellenköpfe, Sekundärfarbe, sekundärer
+Text und Rahmenlinien. Beim Update werden sie aus den bisherigen Oberflächenfarben
+übernommen, Ausdrucke sehen also zunächst aus wie vorher.</p>
 <h3>Regelwerke</h3>
 <p>Regelwerke definieren, wie viele Schüsse je Scheibe erlaubt sind und
 wie viele Punkte je Trefferzone vergeben werden. Standard-Regelwerke
@@ -724,7 +739,7 @@ gewinnt. Gezählt werden Zonen mit dem passenden <b>Typ</b> in der Zonenliste.</
 Auch Standard-Klassen sind schreibgeschützt. Reihenfolge per Drag-and-Drop.</p>
 <h3>Backup</h3>
 <p>Siehe „Backup &amp; Updates“: automatisches Backup beim Beenden, Speicherort
-(Lokal / Netzwerk / Nextcloud), Aufbewahrungsdauer und Wiederherstellung aus
+(Lokal / Netzwerk / Nextcloud), Anzahl aufbewahrter Backups und Wiederherstellung aus
 einer JSON-Datei.</p>
 <h3>Navigation</h3>
 <p>Unter Einstellungen → System → Allgemein → <b>Navigation</b> lässt sich die Reihenfolge der
@@ -776,7 +791,9 @@ Empfänger stehen im Blindkopie-Feld (BCC).</p>
 <p><b>Ergebnisse per E-Mail senden</b> (erst nach „Ergebnisliste erstellen“) öffnet eine Liste mit Rang und
 Punkten. Vorausgewählt sind Teilnehmer mit der Option <i>Ergebnisversand per E-Mail</i>; Teilnehmer
 ohne E-Mail-Adresse sind ausgegraut. <b>Ergebnisse per E-Mail senden (n)</b> öffnet je Auswahl eine Mail mit der
-<b>Ergebnisliste im Anhang</b>.</p>
+<b>Ergebnisliste im Anhang</b>. Ist <i>Podiumsplätzen zusätzlich ihre Urkunde anhängen</i>
+gesetzt (Standard), bekommen die Platzierten jeder Klasse zusätzlich ihre eigene Urkunde als PDF
+in dieselbe Mail.</p>
 <h3>Anhang-Mechanismus (.eml)</h3>
 <p>Ein <code>mailto:</code>-Link kann keine Dateien enthalten. Bei Mails mit Anhang erzeugt BowTally
 daher einen <b>.eml-Entwurf</b> (als „unversendet“ markiert) mit dem PDF und öffnet ihn im
@@ -866,6 +883,9 @@ der Rangliste (zusätzlich als PDF). In der Phase <i>Abgeschlossen</i> exportier
 <b>Alle Turnierdaten exportieren</b> (Leitfaden) Teilnehmer, Ergebnisse, Rangliste,
 Startgebühren und Notizen.</p>
 <h3>PDF-Dokumente</h3>
+<p>Jeder Ausdruck trägt unten rechts klein das BowTally-Logo, den Schriftzug
+„sponsored by BowTally“ und einen QR-Code zum BowTally-Repository auf GitHub (im PDF auch
+anklickbar). Die Seitenzahl steht deshalb unten in der Mitte.</p>
 <p>Ausschreibung, Listen, Pläne, Urkunden und Ergebnisliste werden als PDF im
 <b>Standard-Exportpfad</b> abgelegt (Einstellungen → System → Allgemein; leer =
 Downloads-Ordner).</p>
@@ -875,8 +895,9 @@ Downloads-Ordner).</p>
 <h3>Backup</h3>
 <p>Unter Einstellungen → System → <b>Backup</b> stellst du ein:</p>
 <ul>
-  <li><b>Automatisches Backup beim Beenden der App</b> und die <b>Aufbewahrungsdauer</b>
-      (1–365 Tage); ältere Backups werden nach einer Sicherung automatisch gelöscht</li>
+  <li><b>Automatisches Backup beim Beenden der App</b> und <b>Anzahl aufbewahren</b>
+      (1–999 Backups, Standard 30); nach jeder Sicherung bleiben im Zielordner nur die neuesten
+      so viele Backups erhalten, ältere werden automatisch gelöscht – auch im Nextcloud-Ordner</li>
   <li><b>Speicherort</b>: <i>Lokal</i> (Ordner), <i>Netzwerk</i> (NAS / Freigabe, optional mit
       Anmeldung) oder <i>Nextcloud</i> (Server-URL, Benutzer, Passwort, Zielpfad). Nextcloud
       ist nur ein Speicherziel für Backups: BowTally lädt die Datei hoch, gleicht aber keine
@@ -922,8 +943,8 @@ Internetverbindung prüfen.“ bei Netzwerkproblemen, bzw. eine Meldung mit dem 
 wenn der Server mit einem Fehler antwortet. Ist alles aktuell, lautet die Meldung „Kein Update
 verfügbar.“ Beim automatischen Start-Check bleiben Fehler ohne Meldung.</p>
 <h3>Über BowTally</h3>
-<p>Der Eintrag <b>Über BowTally</b> (Seitenleiste unten) enthält Informationen zur Version,
-den Lizenztext, das Changelog und die Tastenkürzel.</p>
+<p>Der Eintrag <b>Über BowTally</b> (Seitenleiste unten) enthält Informationen zur Version
+und zum Datenbankschema (beides steht auch auf dem Startbildschirm), den Lizenztext, das Changelog und die Tastenkürzel.</p>
 """),
     ("Rechtsklick-Menüs", """
 <h2>Rechtsklick-Menüs</h2>

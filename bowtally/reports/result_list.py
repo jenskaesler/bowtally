@@ -65,10 +65,10 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
     t = get_tournament(tournament_id)
     settings = ss.get_all()
     club = ss.get_club_profile()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    secondary = colors.HexColor(settings.get(ss.KEY_COLOR_SECONDARY) or "#0258CF")
-    text2 = colors.HexColor(settings.get(ss.KEY_COLOR_TEXT_SECONDARY) or "#777777")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    secondary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_SECONDARY) or "#0258CF")
+    text2 = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_TEXT_SECONDARY) or "#777777")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
     show_logo = ss.get_bool(ss.KEY_PRINT_SHOW_LOGO)
     show_targets = ss.get_bool(ss.KEY_PRINT_SHOW_SCORES_PER_TARGET)
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
@@ -84,7 +84,7 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
         canvas.setFillColor(text2)
         y = tpl.MARGIN_BOTTOM / 2
         canvas.drawString(tpl.MARGIN_LEFT, y, f"{tpl.FOOTER_TEXT} · {created}")
-        canvas.drawRightString(pagesize[0] - tpl.MARGIN_RIGHT, y, f"Seite {doc.page}")
+        canvas.drawCentredString(pagesize[0] / 2, y, f"Seite {doc.page}")
         canvas.restoreState()
 
     doc = SimpleDocTemplate(str(path), pagesize=pagesize, leftMargin=tpl.MARGIN_LEFT,
@@ -141,7 +141,8 @@ def build_result_list(tournament_id: int, path: str | Path) -> Path:
     if not classes_with_people:
         story += [PageBreak(), Paragraph("Keine Teilnehmer erfasst.", st["muted"])]
 
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    doc.build(story, onFirstPage=footer, onLaterPages=footer,
+              canvasmaker=tpl.WatermarkCanvas)
     log.info("Ergebnisliste erstellt: %s", path)
     return path
 

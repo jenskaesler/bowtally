@@ -20,6 +20,12 @@ DEFAULT_SETTINGS = [
     ("color_dark_border", "#2A313B", "ui", "color", "Rahmenlinien (Dunkel)"),
     ("color_dark_text", "#E6EAF0", "ui", "color", "Textfarbe (Dunkel)"),
     ("color_dark_text_secondary", "#8D96A3", "ui", "color", "Sekundärer Text (Dunkel)"),
+    # Druckfarben (PDF); beim ersten Anlegen aus der passenden UI-Farbe übernommen, siehe run()
+    ("print_color_primary", "#00357D", "print", "color",
+     "Hauptfarbe (Überschriften, Tabellenköpfe)"),
+    ("print_color_secondary", "#0258CF", "print", "color", "Sekundärfarbe (Zwischentitel)"),
+    ("print_color_text_secondary", "#777777", "print", "color", "Sekundärer Text"),
+    ("print_color_border", "#D0D7E0", "print", "color", "Rahmenlinien"),
     ("ui_theme_mode", "system", "ui", "string", "Darstellung: system, light oder dark"),
     ("font_family", "Open Sans", "ui", "string", "Schriftart (Open Sans, Inter, Source Sans 3 oder Segoe UI; Fallback: Segoe UI, Arial)"),
     ("print_paper_size", "A4", "print", "string", "Papiergröße für PDF/Druck"),
@@ -515,6 +521,9 @@ def run(session: Session) -> None:
     existing_settings = set(session.scalars(select(AppSetting.key)))
     for key, value, category, value_type, description in DEFAULT_SETTINGS:
         if key not in existing_settings:
+            if key.startswith("print_color_"):      # keep the look of existing installs
+                ui = session.get(AppSetting, key.removeprefix("print_"))
+                value = ui.value if ui is not None and ui.value else value
             session.add(AppSetting(key=key, value=value, category=category,
                                    value_type=value_type, description=description))
     if session.get(ClubProfile, 1) is None:

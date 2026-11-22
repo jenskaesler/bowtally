@@ -20,7 +20,9 @@ datas += collect_data_files("reportlab")
 # Qt plugins (platforms, styles, imageformats, ...) are collected by the PySide6 hooks
 # shipped with PyInstaller; listing them here again would duplicate them.
 
+# reportlab.graphics.barcode loads its widget modules (code128, qr, ...) lazily -> PDF watermark QR
 hiddenimports = (collect_submodules("alembic") + collect_submodules("bowtally")
+                 + collect_submodules("reportlab.graphics.barcode")
                  + ["sqlalchemy.dialects.sqlite", "odf.opendocument", "odf.table",
                     "odf.text", "odf.teletype"])
 

@@ -16,7 +16,7 @@ from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
 from bowtally.services import settings_service as svc
 from bowtally.services import tournament_service as ts
-from bowtally.ui import button
+from bowtally.ui import button, theme
 from bowtally.ui.components.capacity_bar import CapacityBar, ProgressBar
 from bowtally.ui.components.data_table import Cell, DataTable
 from bowtally.ui.components.empty_state import EmptyState
@@ -33,6 +33,14 @@ CARD_DEFAULT_ORDER = [
     "archers", "rules", "bow_classes",
     "helpers", "inventory", "calendar",
 ]
+# tile key -> (icon name, theme token for its color)
+CARD_ICONS = {
+    "active": ("target", "success"), "next": ("clock", "primary"),
+    "archive": ("check-circle", "secondary"), "archers": ("users", "primary"),
+    "rules": ("file", "warning"), "bow_classes": ("layers", "accent"),
+    "helpers": ("users", "success"), "inventory": ("inbox", "warning"),
+    "calendar": ("calendar", "accent"),
+}
 
 
 class _DraggableCard(QFrame):
@@ -109,7 +117,12 @@ def _dcard(key: str, title: str) -> tuple["_DraggableCard", QVBoxLayout]:
     lay = QVBoxLayout(frame)
     lay.setContentsMargins(18, 14, 18, 16)
     lay.setSpacing(6)
-    lay.addWidget(QLabel(title, objectName="sectionTitle"))
+    head = QHBoxLayout()
+    head.setSpacing(8)
+    frame.icon_lbl = QLabel()        # pixmap set in refresh(), so it follows theme changes
+    head.addWidget(frame.icon_lbl)
+    head.addWidget(QLabel(title, objectName="sectionTitle"), 1)
+    lay.addLayout(head)
     return frame, lay
 
 
@@ -171,7 +184,9 @@ class GlobalDashboard(QWidget):
 
         c, lay = _dcard("archive", "Turnierarchiv")
         self.archive_count = QLabel("0", objectName="cardValue")
+        self.archive_lbl = QLabel(objectName="pageSubtitle")
         lay.addWidget(self.archive_count)
+        lay.addWidget(self.archive_lbl)
         lay.addWidget(_link("Alle Turniere →", lambda: self.navigate.emit("tournaments"),
                             "Turnierliste öffnen"))
         lay.addStretch()
@@ -191,7 +206,9 @@ class GlobalDashboard(QWidget):
 
         c, lay = _dcard("rules", "Regelwerke")
         self.rules_count = QLabel("0", objectName="cardValue")
+        self.rules_split = QLabel(objectName="pageSubtitle")
         lay.addWidget(self.rules_count)
+        lay.addWidget(self.rules_split)
         lay.addWidget(_link("Regelwerke öffnen →", lambda: self.navigate.emit("rules"),
                             "Regelwerke verwalten"))
         lay.addStretch()
@@ -199,7 +216,9 @@ class GlobalDashboard(QWidget):
 
         c, lay = _dcard("bow_classes", "Bogenklassen")
         self.bow_count = QLabel("0", objectName="cardValue")
+        self.bow_split = QLabel(objectName="pageSubtitle")
         lay.addWidget(self.bow_count)
+        lay.addWidget(self.bow_split)
         lay.addWidget(_link("Bogenklassen öffnen →", lambda: self.navigate.emit("bow_classes"),
                             "Bogenklassen verwalten"))
         lay.addStretch()
@@ -273,7 +292,12 @@ class GlobalDashboard(QWidget):
         tournaments = ts.list_tournaments()
         active = [t for t in tournaments if t.phase not in ("closed", "draft")]
         self.active_count.setText(str(len(active)))
-        self.archive_count.setText(str(sum(t.phase == "closed" for t in tournaments)))
+        closed = sum(t.phase == "closed" for t in tournaments)
+        self.archive_count.setText(str(closed))
+        self.archive_lbl.setText(f"abgeschlossen von {len(tournaments)} Turnieren insgesamt")
+        tok = theme.current()
+        for key, (name, color) in CARD_ICONS.items():
+            self._cards[key].icon_lbl.setPixmap(theme.pixmap(name, tok[color], 20))
         _clear(self.active_links)
         for t in sorted(active, key=lambda t: t.date)[:ACTIVE_LINKS]:
             active_count = sum(ts.is_active_participant(p) for p in t.participants)
@@ -317,8 +341,12 @@ class GlobalDashboard(QWidget):
             self.next_btn.setText("Neues Turnier")
             self.next_btn.setToolTip("Neues Turnier mit dem Assistenten anlegen")
         self.next_chip.setVisible(nxt is not None)
-        self.rules_count.setText(str(len(sc.list_rules())))
-        self.bow_count.setText(str(len(md.list_bow_classes())))
+        for count_lbl, split_lbl, items in ((self.rules_count, self.rules_split, sc.list_rules()),
+                                            (self.bow_count, self.bow_split,
+                                             md.list_bow_classes())):
+            builtin = sum(bool(i.is_builtin) for i in items)
+            count_lbl.setText(str(len(items)))
+            split_lbl.setText(f"{builtin} Standard · {len(items) - builtin} eigene")
         helpers = ms.list_members(include_inactive=False, only_helpers=True)
         self.helpers_count.setText(str(len(helpers)))
         self.inventory_count.setText(str(len(inv_svc.list_items())))

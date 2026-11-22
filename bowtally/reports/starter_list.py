@@ -24,8 +24,8 @@ def _path(tournament_id: int, label: str) -> Path:
 
 
 def _common(settings):
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     return primary, border, font, bold
@@ -92,7 +92,7 @@ def build_starter_list(tournament_id: int, sort_by: str = "number",
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM)
-    doc.build(story)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     return path
 
 
@@ -177,5 +177,5 @@ def build_group_poster(tournament_id: int, path: str | Path | None = None) -> Pa
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM)
-    doc.build(story)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     return path

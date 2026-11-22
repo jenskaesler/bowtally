@@ -6,6 +6,21 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **📅 Turnier direkt im Kalender anlegen** — Doppelklick auf einen Tag (Monats- und
+  Wochenansicht) oder „Neues Turnier an diesem Tag“ in der Tagesansicht öffnet den
+  Turnier-Assistenten mit diesem Datum.
+- **🏷️ Watermark auf allen Ausdrucken** — Jedes PDF trägt unten rechts das BowTally-Logo, den
+  Schriftzug „sponsored by BowTally“ und einen kleinen QR-Code zum Repository (auch anklickbar).
+  Die Seitenzahl von Ergebnisliste und Regel-PDF steht dafür jetzt unten mittig; auf der Urkunde
+  sitzen Unterschriften und Ort/Datum etwas höher.
+- **📜 Urkunde per E-Mail** — Beim Ergebnisversand bekommen Podiumsplätze zusätzlich ihre eigene
+  Urkunde als PDF angehängt (Option im Versanddialog, standardmäßig an).
+- **🖨️ Druckfarben einstellbar** — Unter Einstellungen → Design legen eigene Druckfarben
+  (Hauptfarbe, Sekundärfarbe, sekundärer Text, Rahmenlinien) die Farben aller PDF-Ausdrucke fest,
+  unabhängig vom App-Theme. Beim Update werden die bisherigen Oberflächenfarben übernommen.
+
 ### Behoben
 
 - **💬 WhatsApp-Zuordnung richtig erkannt** — Die Einstellungen zeigten „Nicht zugeordnet“, obwohl
@@ -15,6 +30,22 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **🗄️ Datenbankschema sichtbar** — Die Schemaversion der Datenbank (Alembic-Revision, unabhängig
+  von der App-Version) steht in der Statusleiste neben dem Datenbankpfad, im Dialog „Über BowTally“
+  und auf dem Startbildschirm unter der Versionsnummer.
+- **🏭 Build mit Versions-Bump** — `build\build.bat` ruft als ersten Schritt `bump-version.ps1` auf.
+  Der Bump committet die Versionsdateien, setzt den Tag `vX` und pusht beides; bei nicht
+  committeten Änderungen oder vorhandenem Tag bricht er ab. Ohne Versionswechsel (`Q`) wird
+  einfach gebaut.
+- **💾 Backup-Aufbewahrung nach Anzahl** — Statt der letzten 30 Tage bleiben jetzt die neuesten
+  N Backups je Zielordner erhalten (Einstellungen → Backup → „Anzahl aufbewahren“, Standard 30).
+  Ältere werden nach jeder Sicherung gelöscht – lokal, im Netzwerk und jetzt auch in Nextcloud.
+- **📜 Urkunde mit beiden Vorständen** — Unterschriftszeilen für 1. und 2. Vorsitzende/n mit Namen
+  aus dem Vereinsvorstand; Ort und Datum stehen mittig darüber. Das Vereinslogo erscheint oben,
+  sofern im Vereinsprofil hinterlegt.
+- **📊 Dashboard-Kacheln** — Alle Kacheln zeigen ein farbiges Symbol. Regelwerke und Bogenklassen
+  zeigen die Anzahl Standard und eigene, das Turnierarchiv die Zahl der abgeschlossenen von allen
+  Turnieren.
 - **⚙️ WhatsApp-Einstellungen aufgeräumt** — Der Button heißt kurz „App zuordnen …“ und ist so breit
   wie die Auswahl darüber; statt des Hinweistexts führt ein Link in die Hilfe.
 

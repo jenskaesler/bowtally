@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Rankings per bow class (tabs), podium highlight, export dropdown, PDF in background."""
+import re
+import tempfile
 from collections import Counter
+from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QCheckBox, QDialog, QFileDialog, QHBoxLayout, QLabel,
@@ -88,6 +91,11 @@ class _SendResultsDialog(QDialog):
         self._select_all_chk = QCheckBox("Alle auswählen")
         self._select_all_chk.setTristate(True)
         self._select_all_chk.clicked.connect(self._toggle_all)
+        from bowtally.reports.certificates import podium_participant_ids
+        self._podium = podium_participant_ids(tournament_id)
+        self._with_cert = QCheckBox("Podiumsplätzen zusätzlich ihre Urkunde anhängen")
+        self._with_cert.setChecked(True)
+        self._with_cert.setEnabled(bool(self._podium))
         self.btn = button("Ergebnisse per E-Mail senden (0)", self._send, "primary")
         row = QHBoxLayout()
         row.addWidget(self._select_all_chk)
@@ -97,6 +105,7 @@ class _SendResultsDialog(QDialog):
         lay = QVBoxLayout(self)
         lay.addWidget(info)
         lay.addWidget(self.lst, 1)
+        lay.addWidget(self._with_cert)
         lay.addLayout(row)
         self._update_btn()  # reflects the preselected archers
 
@@ -134,6 +143,12 @@ class _SendResultsDialog(QDialog):
                 continue
             p = item.data(Qt.ItemDataRole.UserRole)
             r = self._pid_to_rank.get(p.id)
+            attachments = [self._pdf_path]
+            if self._with_cert.isChecked() and p.id in self._podium:
+                try:
+                    attachments.append(self._certificate(p))
+                except Exception as exc:
+                    show_error(self, exc, "Urkunde konnte nicht erstellt werden")
             open_mailto(ss.KEY_EMAIL_TPL_RESULTS, p.archer.email, {
                 "name": f"{p.archer.first_name} {p.archer.last_name}",
                 "verein": p.archer.club or "",
@@ -143,8 +158,14 @@ class _SendResultsDialog(QDialog):
                 "platz": str(r.rank) if r else "",
                 "punkte": str(r.total) if r else "",
                 **tournament_ctx(t, p),
-            }, self, attachment=self._pdf_path)
+            }, self, attachment=attachments)
         self.accept()
+
+    def _certificate(self, p) -> Path:
+        from bowtally.reports.certificates import build_certificates
+        name = re.sub(r"[^\w-]+", "_", f"{p.archer.first_name}_{p.archer.last_name}").strip("_")
+        folder = Path(tempfile.mkdtemp(prefix="bowtally_urkunde_"))
+        return build_certificates(self._t.id, folder / f"Urkunde_{name}.pdf", participant_id=p.id)
 
 
 class ResultsView(QWidget):

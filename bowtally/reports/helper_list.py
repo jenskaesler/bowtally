@@ -28,8 +28,8 @@ def build_helper_list(tournament_id: int, path: str | Path | None = None) -> Pat
     t = ts.get_tournament(tournament_id)
     path = Path(path) if path else helper_list_path(tournament_id)
     settings = ss.get_all()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     title_style = ParagraphStyle("t", fontName=bold, fontSize=15, leading=19, textColor=primary)
@@ -59,5 +59,5 @@ def build_helper_list(tournament_id: int, path: str | Path | None = None) -> Pat
     doc.build([Paragraph(f"Helferliste – {t.name}", title_style),
                Paragraph(f"{t.date:%d.%m.%Y} · {len(helpers)} Helfer · erstellt "
                          f"{datetime.now():%d.%m.%Y %H:%M}", sub_style),
-               Spacer(1, 5 * mm), table])
+               Spacer(1, 5 * mm), table], canvasmaker=tpl.WatermarkCanvas)
     return path

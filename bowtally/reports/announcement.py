@@ -89,9 +89,9 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
     path = Path(path) if path else announcement_path(tournament_id)
     settings = ss.get_all()
     club = ss.get_club_profile()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
-    muted = colors.HexColor(settings.get(ss.KEY_COLOR_TEXT_SECONDARY) or "#777777")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
+    muted = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_TEXT_SECONDARY) or "#777777")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     base = ParagraphStyle("base", fontName=font, fontSize=10.5, leading=15)
@@ -232,7 +232,7 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM,
                             title=HEADINGS["title"].format(name=t.name),
                             author=club.get("club_name") or "BowTally", creator="BowTally")
-    doc.build(story)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     ts.mark_announcement_generated(tournament_id)
     log.info("Ausschreibung erstellt: %s", path)
     return path

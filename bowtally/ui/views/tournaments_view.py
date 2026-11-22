@@ -111,8 +111,8 @@ class TournamentList(ListView):
                 None,
                 ("Löschen", self.delete_item)]
 
-    def new_item(self):
-        wiz = TournamentWizard(parent=self)
+    def new_item(self, day=None):
+        wiz = TournamentWizard(parent=self, day=day)
         if wiz.exec() and wiz.created_id:
             self.changed.emit()
             self.openRequested.emit(wiz.created_id)

@@ -50,7 +50,7 @@ flowchart LR
 - 🧙 **Turnier-Assistent** – acht Schritte: Grunddaten (mit internen Notizen), Konfiguration (Wertungsmodus, maximale Teilnehmerzahl mit Auslastung, Startgruppen, Regelwerk und Runden), Bogenklassen (Standard-Klassen zuerst, dann eigene, alphabetisch; Option „Nur eigene Klassen anzeigen“), Fristen und Zeiten, Startgebühren, Kontakt und Bankdaten, Hinweise und Texte, Zusammenfassung.
 - 📋 **Turnier kopieren** – bestehendes Turnier als Vorlage nutzen; Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
 - 📝 **Notizen** – freies Textfeld je Turnier (interne Notizen aus dem Assistenten landen hier); erscheint nie in der Ausschreibung, wird auf dem Dashboard und im abgeschlossenen Leitfaden angezeigt und im Turnier-Export mitgeliefert.
-- 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export.
+- 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export; Doppelklick auf einen Tag legt dort ein neues Turnier an.
 
 ### Ausschreibung und Anmeldung
 
@@ -75,7 +75,8 @@ flowchart LR
 - 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand; Gleichstandsregeln je Regelwerk (Kills, X-Treffer, Treffer in der höchsten Wertung), Hinweis und Ergebniseingabe für ein nötiges Stechen (Spalte „Stechen“ in Liste, Export und PDF).
 - 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse; mit dem Erstellen werden Ergebniseingabe und Helfer gesperrt. Versand per E-Mail mit PDF im Anhang an die vorgemerkten Schützen.
 - 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
-- 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen (Ort/Datum, 1. Vorstand) als PDF.
+- 🏷️ **Watermark** – jeder PDF-Ausdruck trägt unten rechts das BowTally-Logo, „sponsored by BowTally“ und einen kleinen QR-Code zum Repository.
+- 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen für 1. und 2. Vorsitzende/n (Ort/Datum darüber) als PDF; Podiumsplätze bekommen ihre Urkunde auf Wunsch mit der Ergebnis-Mail.
 - 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
 - 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung „Zielwertung“, „Rundenwertung“ oder „Gesamtwertung“ (bei den beiden letzten mit Spalte für Kills/X neben den Punkten).
 
@@ -93,8 +94,8 @@ flowchart LR
 
 - 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
 - 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
-- 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar (Open Sans, Inter und Source Sans 3 werden mitgeliefert, dazu Segoe UI; gilt auch für PDFs). Lizenzen der Schriften: `docs/THIRD-PARTY-NOTICES.md`.
-- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Einstellungen mit Logging-Modus, E-Mail- und WhatsApp-Vorlagen, Logbuch, Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
+- 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, eigene Druckfarben für alle PDF-Ausdrucke, Schriftart wählbar (Open Sans, Inter und Source Sans 3 werden mitgeliefert, dazu Segoe UI; gilt auch für PDFs). Lizenzen der Schriften: `docs/THIRD-PARTY-NOTICES.md`.
+- 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Einstellungen mit Logging-Modus, E-Mail- und WhatsApp-Vorlagen, Logbuch, Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Aufbewahrung der letzten N Backups (Anzahl einstellbar, lokal, Netzwerk und Nextcloud), Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
 - 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
 - 🪵 **Erweitert** – Logging-Modus der Logdatei `app.log` (Info, Warnung, Debug; Standard Info, Debug nur nach Warnhinweis), Button „Logfile öffnen“.
 - ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
@@ -240,7 +241,9 @@ Voraussetzungen: Dev-venv (siehe oben) und [NSIS 3](https://nsis.sourceforge.io/
 build\build.bat
 ```
 
-Das Skript baut mit PyInstaller und danach den Installer mit NSIS und schreibt `build\dist\checksums.txt` mit der SHA-256 des Installers. Die Version kommt aus `bowtally/__version__.py`.
+Als ersten Schritt ruft das Skript `bump-version.ps1` auf: neue Version wählen (Patch, neuer Monat, frei) oder mit `Q` ohne Versionswechsel weiterbauen. Nach einem Versionswechsel werden `bowtally/__version__.py`, `build/setup.nsi` und `README.md` committet (`chore: bump version to X`), mit `vX` getaggt und gepusht. Bei nicht committeten Änderungen oder einem schon vorhandenen Tag bricht der Bump ab, und es wird nicht gebaut.
+
+Danach baut das Skript mit PyInstaller und anschließend den Installer mit NSIS und schreibt `build\dist\checksums.txt` mit der SHA-256 des Installers. Die Version kommt aus `bowtally/__version__.py`.
 
 | Ergebnis | Ort |
 |---|---|
@@ -255,11 +258,9 @@ makensis /DVERSION=2026.11.6 build\setup.nsi
 
 ### Release
 
-1. `.\bump-version.ps1` ausführen und neue Version wählen (oder `-Patch` / `-Month` / `-Version "..."` übergeben).
-2. `CHANGELOG.md` ergänzen.
-3. `build\build.bat` ausführen.
-4. Committen und taggen: `git tag v<version>`, dann `git push origin main --tags`.
-5. GitHub-Release zum Tag anlegen (kein Draft, keine Pre-release) und `BowTally-<version>-Setup.exe` sowie `checksums.txt` aus `build\dist` als Assets hochladen. Ohne `checksums.txt` kann die App den Download nicht prüfen.
+1. `CHANGELOG.md` ergänzen und alle Änderungen committen (der Bump bricht sonst ab).
+2. `build\build.bat` ausführen und die neue Version wählen. Commit, Tag `v<version>` und Push erledigt der Bump, danach wird gebaut.
+3. GitHub-Release zum Tag anlegen (kein Draft, keine Pre-release) und `BowTally-<version>-Setup.exe` sowie `checksums.txt` aus `build\dist` als Assets hochladen. Ohne `checksums.txt` kann die App den Download nicht prüfen.
 
 ---
 

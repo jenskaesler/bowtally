@@ -48,8 +48,13 @@ class _Splash(QSplashScreen):
         self._bar.setStyleSheet("QProgressBar{border:none;background:#dde3ea;border-radius:0;}"
                                 "QProgressBar::chunk{background:#2d6a4f;border-radius:0;}")
 
+    def show_schema(self, number: str):
+        """Adds the schema line once the database is open (and migrated)."""
+        self.setPixmap(self._build_pixmap(number))
+        QApplication.processEvents()
+
     @staticmethod
-    def _build_pixmap() -> QPixmap:
+    def _build_pixmap(schema: str | None = None) -> QPixmap:
         dark = (QApplication.instance().styleHints().colorScheme() == Qt.ColorScheme.Dark)
         W, H = 480, 280
         pix = QPixmap(W, H)
@@ -74,6 +79,11 @@ class _Splash(QSplashScreen):
         p.setPen(QColor("#8899aa" if dark else "#6b7280"))
         p.drawText(0, 174, W, 24, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
                    f"Version {__version__}")
+        if schema:
+            p.setFont(QFont("Segoe UI", 9))
+            p.drawText(0, 196, W, 20,
+                       Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
+                       f"Datenbankschema {schema}")
         p.end()
         return pix
 
@@ -110,6 +120,8 @@ def main() -> int:
                              f"Pfad: {config.DB_PATH}\nLog: {config.LOG_PATH}")
         return 1
 
+    from bowtally.database.engine import schema_number
+    splash.show_schema(schema_number())
     splash.progress(60, "Benutzeroberfläche wird geladen …")
     from bowtally.services import settings_service as ss
     ss.apply_log_level()

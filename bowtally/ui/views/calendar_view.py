@@ -179,6 +179,7 @@ class _HoverCard(QFrame):
 
 class _DayCell(QFrame):
     tournamentClicked = Signal(int)
+    newRequested = Signal(object)        # date
     badgeHovered = Signal(object, object)
     badgeUnhovered = Signal()
 
@@ -186,6 +187,8 @@ class _DayCell(QFrame):
         super().__init__(parent)
         self.setObjectName("dayCell")
         self.setMinimumHeight(80)
+        self._date = d
+        self.setToolTip("Doppelklick: neues Turnier an diesem Tag anlegen")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(3, 2, 3, 2)
         lay.setSpacing(1)
@@ -211,6 +214,9 @@ class _DayCell(QFrame):
             lay.addWidget(more)
 
         lay.addStretch()
+
+    def mouseDoubleClickEvent(self, e):
+        self.newRequested.emit(self._date)
 
 
 # ---------------------------------------------------------------------------
@@ -318,6 +324,7 @@ class _YearView(QWidget):
 
 class CalendarView(QWidget):
     openTournament = Signal(int)
+    newTournament = Signal(object)       # preset date
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -539,6 +546,13 @@ class CalendarView(QWidget):
         else:
             for t in t_list:
                 self._content_lay.addWidget(self._day_card(t))
+        bar = QWidget()          # a widget, so _rebuild removes it again
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(button("Neues Turnier an diesem Tag", lambda: self.newTournament.emit(d),
+                             "primary", "Turnier-Assistent mit diesem Datum öffnen"))
+        row.addStretch()
+        self._content_lay.addWidget(bar)
         self._content_lay.addStretch()
 
     def _month_panel(self, year: int, month: int) -> QWidget:
@@ -592,6 +606,7 @@ class CalendarView(QWidget):
 
     def _connect_cell(self, cell: _DayCell):
         cell.tournamentClicked.connect(self._on_badge_click)
+        cell.newRequested.connect(self.newTournament)
         cell.badgeHovered.connect(self._on_badge_hover)
         cell.badgeUnhovered.connect(self._on_badge_unhover)
 

@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """Local, network and cloud backup / restore for the BowTally database."""
 import base64
+import fnmatch
 import json
+import logging
 import os
 import shutil
 import tempfile
 import zipfile
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from bowtally import config
@@ -42,19 +44,20 @@ def _logo_from_backup(backup: dict) -> str | None:
     return (rows[0].get("logo_path") or None) if rows else None
 
 
-def _prune_by_days(dest_dir: Path, days: int):
-    cutoff = datetime.now() - timedelta(days=days)
-    for pattern in ("BowTally-Backup-*.json", "bowtally_backup_*.zip"):
-        for f in dest_dir.glob(pattern):
-            try:
-                if datetime.fromtimestamp(f.stat().st_mtime) < cutoff:
-                    f.unlink(missing_ok=True)
-            except OSError:
-                pass
+def _prune_by_count(dest_dir: Path, keep: int):
+    """Keeps the newest `keep` backups in dest_dir, deletes the older ones."""
+    files = [f for pattern in ("BowTally-Backup-*.json", "bowtally_backup_*.zip")
+             for f in dest_dir.glob(pattern)]
+    files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+    for f in files[keep:]:
+        try:
+            f.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
-def _retention_days() -> int:
-    return max(1, int(ss.get("backup_retention_days", "30") or 30))
+def _keep_count() -> int:
+    return max(1, int(ss.get("backup_keep_count", "30") or 30))
 
 
 def _get_password(key: str) -> str:
@@ -182,7 +185,7 @@ def backup_local() -> str:
     with session_scope() as session:
         backup = create_backup(session, __version__)
     save_backup_to_zip(backup, file_path, _logo_from_backup(backup), password)
-    _prune_by_days(dest, _retention_days())
+    _prune_by_count(dest, _keep_count())
     _log_backup(file_path.name, "local", os.path.getsize(file_path), True)
     return str(file_path)
 
@@ -210,7 +213,7 @@ def backup_network() -> str:
     with session_scope() as session:
         backup = create_backup(session, __version__)
     save_backup_to_zip(backup, file_path, _logo_from_backup(backup), password)
-    _prune_by_days(dest, _retention_days())
+    _prune_by_count(dest, _keep_count())
     _log_backup(file_path.name, "network", os.path.getsize(file_path), True)
     return str(file_path)
 
@@ -246,6 +249,43 @@ def _nc_mkcol_recursive(base: str, path: str, auth: str) -> None:
                 raise
 
 
+_DAV = "{DAV:}"
+
+
+def _nc_backup_hrefs(xml_bytes: bytes) -> list[tuple[datetime, str]]:
+    """(last modified, href) of the backup files in a PROPFIND Depth-1 answer."""
+    import xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+    from urllib.parse import unquote
+    found = []
+    for resp in ET.fromstring(xml_bytes).iter(f"{_DAV}response"):
+        href = resp.findtext(f"{_DAV}href") or ""
+        name = unquote(href.rstrip("/").rsplit("/", 1)[-1])
+        if not (fnmatch.fnmatch(name, "bowtally_backup_*.zip")
+                or fnmatch.fnmatch(name, "BowTally-Backup-*.json")):
+            continue
+        modified = resp.findtext(f".//{_DAV}getlastmodified")
+        try:
+            when = parsedate_to_datetime(modified).replace(tzinfo=None)
+        except (TypeError, ValueError):
+            when = datetime.min
+        found.append((when, href))
+    return found
+
+
+def _nc_prune(folder_url: str, auth: str, keep: int) -> None:
+    """Keeps the newest `keep` backups in the Nextcloud folder, deletes the older ones."""
+    import urllib.request
+    from urllib.parse import urljoin
+    req = _nc_request(folder_url, "PROPFIND", auth)
+    req.add_header("Depth", "1")
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        files = sorted(_nc_backup_hrefs(resp.read()), reverse=True)
+    for _when, href in files[keep:]:
+        urllib.request.urlopen(_nc_request(urljoin(folder_url, href), "DELETE", auth),
+                               timeout=30)
+
+
 def backup_nextcloud() -> str:
     import urllib.request
     from bowtally.database.engine import session_scope
@@ -277,6 +317,11 @@ def backup_nextcloud() -> str:
             Path(tmp_path).unlink(missing_ok=True)
         except Exception:
             pass
+    try:        # the upload worked; a failed clean-up must not turn it into an error
+        _nc_prune(folder_url, auth, _keep_count())
+    except Exception:
+        logging.getLogger(__name__).warning("Nextcloud: alte Backups nicht gelöscht",
+                                            exc_info=True)
     _log_backup(filename, "nextcloud", tmp_size, True)
     return remote
 

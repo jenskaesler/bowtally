@@ -49,8 +49,8 @@ def build_score_sheets(tournament_id: int, template_id: int,
 
     settings = ss.get_all()
     club = ss.get_club_profile()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     pagesize = tpl.page_size("A4", "portrait")
@@ -129,7 +129,7 @@ def build_score_sheets(tournament_id: int, template_id: int,
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM)
-    doc.build(story)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     return path
 
 

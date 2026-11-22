@@ -16,6 +16,14 @@
     .\bump-version.ps1 -Patch              # nur Patch-Nummer hochzaehlen
     .\bump-version.ps1 -Month             # neuer Monat, Patch auf 0
     .\bump-version.ps1 -Version "2026.12.0"  # freie Eingabe
+
+    Danach werden die Dateien committet ("chore: bump version to X"), mit vX getaggt und
+    Commit und Tag nach origin gepusht. build\build.bat ruft das Skript als ersten Schritt auf.
+
+.OUTPUTS
+    Exit 0  - keine Aenderung (abgebrochen oder bereits aktuell)
+    Exit 1  - Fehler
+    Exit 10 - Version erhoeht, committet, getaggt und gepusht
 #>
 
 param(
@@ -229,6 +237,26 @@ if ($confirm.Trim().ToLower() -ne "j") {
     exit 0
 }
 
+# --- Git-Vorpruefung: abbrechen, bevor Dateien geaendert werden ---
+$tag = "v" + $targetVer
+function Invoke-Git {
+    & git -C $ScriptDir @args
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ("Fehler: git " + ($args -join " ") + " fehlgeschlagen (Exit $LASTEXITCODE).") -ForegroundColor Red
+        exit 1
+    }
+}
+& git -C $ScriptDir rev-parse -q --verify "refs/tags/$tag" *> $null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Fehler: Tag $tag existiert bereits." -ForegroundColor Red
+    exit 1
+}
+# Nicht committete Aenderungen fehlten sonst im getaggten Release
+if (& git -C $ScriptDir status --porcelain --untracked-files=no) {
+    Write-Host "Fehler: Es gibt nicht committete Aenderungen. Bitte zuerst committen." -ForegroundColor Red
+    exit 1
+}
+
 Write-Host ""
 Write-Host "Dateien aktualisieren..." -ForegroundColor Cyan
 
@@ -236,6 +264,14 @@ Update-VersionFile -Path $VersionFile -OldVer $currentVer -NewVer $targetVer
 Update-NsiFile     -Path $NsiFile     -OldVer $currentVer -NewVer $targetVer
 Update-Readme      -Path $ReadmeMd   -OldVer $currentVer -NewVer $targetVer
 
+# --- Commit, Tag und Push (der Tag muss auf dem Bump-Commit sitzen) ---
+Invoke-Git commit -q -m "chore: bump version to $targetVer" -- bowtally/__version__.py build/setup.nsi README.md
+Invoke-Git tag $tag
+Invoke-Git push -q
+Invoke-Git push -q origin $tag
+Write-Host "  [OK] committet, getaggt ($tag) und gepusht"
+
 Write-Host ""
 Write-Host ("Fertig. Version " + $targetVer + " gesetzt.") -ForegroundColor Green
 Write-Host ""
+exit 10

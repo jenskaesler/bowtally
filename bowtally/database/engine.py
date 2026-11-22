@@ -55,6 +55,19 @@ def _stamped_revision(engine) -> str | None:
         return conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
 
 
+def schema_version() -> str | None:
+    """Alembic revision of the open database (independent of the app version)."""
+    if SessionFactory is None:
+        return None
+    return _stamped_revision(SessionFactory.kw["bind"])
+
+
+def schema_number() -> str:
+    """Short schema version for display, e.g. "0042" (full revision: schema_version())."""
+    revision = schema_version()
+    return revision.split("_", 1)[0] if revision else "unbekannt"
+
+
 def _prepare_schema(engine) -> None:
     """Bring an existing but unversioned schema to head instead of crashing on migration 0001."""
     from alembic import command

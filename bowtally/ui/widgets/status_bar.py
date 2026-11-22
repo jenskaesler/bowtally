@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QLabel, QStatusBar, QToolButton
 
 from bowtally import config
 from bowtally.__version__ import __version__
+from bowtally.database import engine
 from bowtally.ui import theme
 
 
@@ -14,7 +15,10 @@ class StatusBar(QStatusBar):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setSizeGripEnabled(False)
-        self.addWidget(QLabel(f"Datenbank: {config.DB_PATH}"))
+        db_label = QLabel(f"Datenbank: {config.DB_PATH}  ·  Schema {engine.schema_number()}")
+        db_label.setToolTip("Datenbankschema (Alembic-Revision): "
+                            f"{engine.schema_version() or 'unbekannt'}")
+        self.addWidget(db_label)
         self.info = QLabel()
         self.addPermanentWidget(self.info)
         self.addPermanentWidget(QLabel(f"BowTally v{__version__}"))

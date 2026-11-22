@@ -29,8 +29,8 @@ def build_course_plan(tournament_id: int, with_notes: bool = True,
     t = ts.get_tournament(tournament_id)
     targets = cs.list_targets(tournament_id)
     settings = ss.get_all()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     title_style = ParagraphStyle("t", fontName=bold, fontSize=15, leading=19, textColor=primary)
@@ -93,7 +93,7 @@ def build_course_plan(tournament_id: int, with_notes: bool = True,
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM)
-    doc.build(story)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     return path
 
 
@@ -108,8 +108,8 @@ def build_schedule_plan(tournament_id: int, path: str | Path | None = None) -> P
             counts.setdefault(p.start_group, []).append(
                 f"{p.archer.last_name}, {p.archer.first_name}")
     settings = ss.get_all()
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
-    border = colors.HexColor(settings.get(ss.KEY_COLOR_BORDER) or "#D0D7E0")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
+    border = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_BORDER) or "#D0D7E0")
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
     title_style = ParagraphStyle("t", fontName=bold, fontSize=15, leading=19, textColor=primary)
@@ -151,5 +151,5 @@ def build_schedule_plan(tournament_id: int, path: str | Path | None = None) -> P
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,
                             topMargin=tpl.MARGIN_TOP, bottomMargin=tpl.MARGIN_BOTTOM)
-    doc.build(story)
+    doc.build(story, canvasmaker=tpl.WatermarkCanvas)
     return path

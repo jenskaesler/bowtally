@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (QDialog, QFrame, QHBoxLayout, QLabel, QListWidget
                                 QVBoxLayout, QWidget)
 
 from bowtally import __version__, config
+from bowtally.database import engine
 from bowtally.ui import button, restore_geom, save_geom, theme
 
 GITHUB_URL = "https://github.com/jenskaesler/bowtally"
@@ -138,7 +139,8 @@ class AboutDialog(QDialog):
         b = self._make_browser()
         b.setHtml(
             f"<h1 style='margin-bottom:4px'>BowTally</h1>"
-            f"<p style='margin-top:0;color:gray'>Version {__version__}</p>"
+            f"<p style='margin-top:0;color:gray'>Version {__version__} · "
+            f"Datenbankschema {engine.schema_number()}</p>"
             f"<p>Turnierverwaltung für 3D-Bogensport-Vereine. BowTally unterstützt den gesamten "
             f"Turnierablauf – von der Ausschreibung über die Anmeldung und Einschreibung bis zur "
             f"Ergebnisauswertung und dem PDF-Druck.</p>"

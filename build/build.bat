@@ -3,6 +3,13 @@ cd /d %~dp0..
 rem Prefer the project venv so a double click works without activating it
 set "PY=python"
 if exist .venv\Scripts\python.exe set "PY=.venv\Scripts\python.exe"
+rem Step 1: bump the version (interactive; commits, tags and pushes).
+rem Exit 0 = no change, 10 = bumped -> build in both cases; anything else = error
+powershell -NoProfile -ExecutionPolicy Bypass -File "%CD%\bump-version.ps1"
+if errorlevel 11 goto :fail
+if errorlevel 10 goto :build
+if errorlevel 1 goto :fail
+:build
 rem Single source of truth for the version: bowtally\__version__.py
 "%PY%" -c "from bowtally.__version__ import __version__ as v; print(v)" > "%TEMP%\bowtally_version.txt"
 if errorlevel 1 goto :fail

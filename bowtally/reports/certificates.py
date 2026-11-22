@@ -8,7 +8,6 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.pdfgen import canvas
 
 from bowtally import config
 from bowtally.reports import templates as tpl
@@ -97,8 +96,28 @@ def _logo(c, path, y_top):
         return y_top
 
 
-def build_certificates(tournament_id: int, path: str | Path | None = None) -> Path:
-    """Generate one A4 certificate per podium place and class."""
+def podium_participant_ids(tournament_id: int) -> set[int]:
+    """Participants that get a certificate (the first PODIUM_PLACES rows of each class)."""
+    return {e.participant_id for rows in rs.compute_ranking(tournament_id).values()
+            for e in rows[:tpl.PODIUM_PLACES]}
+
+
+def _signature(c, cx, base, name, role, font):
+    """Signature line with the name (or "Unterschrift") and the role below."""
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(0.5)
+    c.line(cx - 27.5 * mm, base, cx + 27.5 * mm, base)
+    c.setFillColor(colors.black)
+    c.setFont(font, 10)
+    c.drawCentredString(cx, base - 5 * mm, name or "Unterschrift")
+    c.setFont(font, 8)
+    c.drawCentredString(cx, base - 9.5 * mm, role)
+
+
+def build_certificates(tournament_id: int, path: str | Path | None = None,
+                       participant_id: int | None = None) -> Path:
+    """Generate one A4 certificate per podium place and class.
+    With participant_id only that participant's certificate (e.g. as mail attachment)."""
     path = Path(path) if path else _path(tournament_id)
     t = get_tournament(tournament_id)
     per_class = rs.compute_ranking(tournament_id)
@@ -107,18 +126,22 @@ def build_certificates(tournament_id: int, path: str | Path | None = None) -> Pa
     profile = ss.get_club_profile()
     font, bold = tpl.register_fonts([settings.get(ss.KEY_FONT_FAMILY) or "Open Sans",
                                      "Segoe UI", "Arial"])
-    primary = colors.HexColor(settings.get(ss.KEY_COLOR_PRIMARY) or "#00357D")
+    primary = colors.HexColor(settings.get(ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
     bg = settings.get(KEY_CERT_BG) or "#FFFFFF"
-    board = " ".join(filter(None, [profile.get("first_board_fname"),
-                                   profile.get("first_board_lname")]))
+    boards = [" ".join(filter(None, [profile.get(f"{n}_board_fname"),
+                                     profile.get(f"{n}_board_lname")]))
+              for n in ("first", "second")]
     place_date = ", ".join(filter(None, [t.location, f"{t.date:%d.%m.%Y}"]))
 
-    c = canvas.Canvas(str(path), pagesize=(PAGE_W, PAGE_H))
+    c = tpl.WatermarkCanvas(str(path), pagesize=(PAGE_W, PAGE_H))
+    c.watermark_inset = (16 * mm, 16 * mm)     # inside the certificate frame
     c.setTitle(f"Urkunden {t.name}")
     count = 0
     for bc_id, rows in per_class.items():
         bc = bow_classes.get(bc_id)
         for entry in rows[:tpl.PODIUM_PLACES]:
+            if participant_id is not None and entry.participant_id != participant_id:
+                continue
             count += 1
             if bg.upper() != "#FFFFFF":
                 c.setFillColor(colors.HexColor(bg))
@@ -136,7 +159,7 @@ def build_certificates(tournament_id: int, path: str | Path | None = None) -> Pa
                   colors.black)
             _text(c, entry.name, y - 62 * mm, bold, 32, primary)
             _seal(c, PAGE_W / 2, y - 98 * mm, entry.rank, bold, settings.get(
-                ss.KEY_COLOR_PRIMARY) or "#00357D")
+                ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
             _text(c, f"{entry.rank}. Platz", y - 127 * mm, bold, 24, colors.black)
             if bc:
                 _text(c, f"Klasse: {bc.name}", y - 137 * mm, font, 15, colors.black)
@@ -144,20 +167,13 @@ def build_certificates(tournament_id: int, path: str | Path | None = None) -> Pa
             line_y = y - 160 * mm
             for i, line in enumerate(simpleSplit(f"beim Turnier „{t.name}“", bold, 17, TEXT_W)):
                 _text(c, line, line_y - i * 8 * mm, bold, 17, colors.black)
-            # Fußbereich: Ort/Datum links, Unterschrift rechts
-            base = 34 * mm
-            c.setStrokeColor(colors.black)
-            c.setLineWidth(0.5)
-            c.line(28 * mm, base, 83 * mm, base)
-            c.line(PAGE_W - 83 * mm, base, PAGE_W - 28 * mm, base)
+            # Fußbereich: Ort/Datum mittig, darunter 1. und 2. Vorstand unterschreiben
+            base = 40 * mm         # leaves room for the watermark in the frame corner
             c.setFillColor(colors.black)
             c.setFont(font, 10)
-            c.drawCentredString(55.5 * mm, base - 5 * mm, place_date)
-            c.drawCentredString(PAGE_W - 55.5 * mm, base - 5 * mm,
-                                board or "Unterschrift")
-            if board:
-                c.setFont(font, 8)
-                c.drawCentredString(PAGE_W - 55.5 * mm, base - 9.5 * mm, "Vorstand")
+            c.drawCentredString(PAGE_W / 2, base + 14 * mm, place_date)
+            _signature(c, 55.5 * mm, base, boards[0], "1. Vorsitzende/r", font)
+            _signature(c, PAGE_W - 55.5 * mm, base, boards[1], "2. Vorsitzende/r", font)
             c.showPage()
     if not count:
         c.setFont(font, 12)

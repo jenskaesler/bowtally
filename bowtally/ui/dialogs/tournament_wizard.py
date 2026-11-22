@@ -171,8 +171,11 @@ def _lbl(text: str) -> QLabel:
 
 
 class TournamentWizard(QWizard):
-    def __init__(self, tournament=None, start_page: int = 0, clone: bool = False, parent=None):
+    def __init__(self, tournament=None, start_page: int = 0, clone: bool = False, parent=None,
+                 day=None):
+        """day: preset date for a new tournament (e.g. picked in the calendar)."""
         super().__init__(parent)
+        self._day = day
         self._template = tournament if clone else None
         self.tournament = None if clone else tournament
         self.created_id: int | None = None
@@ -241,7 +244,8 @@ class TournamentWizard(QWizard):
         self.name = QLineEdit(self._t("name", ""))
         self.name.setPlaceholderText("z. B. 3D-Waldturnier 2027")
         self.date = DateField(allow_empty=False)
-        self.date.setDate(QDate(t.date) if t else QDate.currentDate().addDays(60))
+        self.date.setDate(QDate(t.date) if t else QDate(self._day) if self._day
+                          else QDate.currentDate().addDays(60))
         self.date.setFixedWidth(WIZARD_COMBO_W)
         self.location = QLineEdit(self._t("location", ""))
         self.organizer = QLineEdit(self._t("organizer", ""))

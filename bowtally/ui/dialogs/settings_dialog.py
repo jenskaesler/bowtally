@@ -472,8 +472,8 @@ class SettingsDialog(QDialog):
             f.edit.textChanged.connect(self._update_save_btn)
         if hasattr(self, '_backup_on_close'):
             self._backup_on_close.toggled.connect(self._update_save_btn)
-        if hasattr(self, '_backup_retention_days'):
-            self._backup_retention_days.valueChanged.connect(self._update_save_btn)
+        if hasattr(self, '_backup_keep_count'):
+            self._backup_keep_count.valueChanged.connect(self._update_save_btn)
         if hasattr(self, '_backup_target_combo'):
             self._backup_target_combo.currentIndexChanged.connect(self._update_save_btn)
         if hasattr(self, '_backup_zip_password'):
@@ -638,7 +638,8 @@ class SettingsDialog(QDialog):
         lay.addWidget(mode_box)
 
         self.color_fields: dict[str, ColorField] = {}
-        boxes = {"brand": self._form(), "light": self._form(), "dark": self._form()}
+        boxes = {"brand": self._form(), "light": self._form(), "dark": self._form(),
+                 "print": self._form()}
         colors = sorted((st for st in self.settings if st.value_type == "color"),
                         key=lambda st: next((i for i, suffix in enumerate(COLOR_ORDER)
                                              if st.key.endswith(suffix)), len(COLOR_ORDER)))
@@ -646,6 +647,7 @@ class SettingsDialog(QDialog):
             field = ColorField(st.value or ss.DEFAULTS.get(st.key, "#000000"))
             self.color_fields[st.key] = field
             group = ("brand" if st.key in BRAND_COLORS else
+                     "print" if st.key.startswith("print_") else
                      "dark" if st.key.startswith("color_dark_") else "light")
             boxes[group].addRow((st.description or st.key).replace(" (Dunkel)", ""), field)
         cols = QHBoxLayout()
@@ -657,6 +659,9 @@ class SettingsDialog(QDialog):
             box.setLayout(boxes[group])
             cols.addWidget(box)
         lay.addLayout(cols)
+        print_box = QGroupBox("Druckfarben (PDF-Ausdrucke)")
+        print_box.setLayout(boxes["print"])
+        lay.addWidget(print_box)
         btns = QHBoxLayout()
         btns.addWidget(button("Vorschau anwenden", self._preview, "primary"))
         btns.addWidget(button("Zurücksetzen auf Standard", self._reset_colors))
@@ -680,7 +685,7 @@ class SettingsDialog(QDialog):
             show_error(self, exc)
 
     def _reset_colors(self):
-        defaults = ss.color_defaults()
+        defaults = ss.DEFAULTS
         for key, field in self.color_fields.items():
             if key in defaults:
                 field.set_value(defaults[key])
@@ -772,11 +777,13 @@ class SettingsDialog(QDialog):
         settings_form = self._form(settings_box)
         self._backup_on_close = QCheckBox("Automatisches Backup beim Beenden der App")
         self._backup_on_close.setChecked(ss.get_bool("backup_on_close"))
-        self._backup_retention_days = QSpinBox()
-        self._backup_retention_days.setRange(1, 365)
-        self._backup_retention_days.setValue(int(ss.get("backup_retention_days", "30") or 30))
-        self._backup_retention_days.setSuffix(" Tage")
-        self._backup_retention_days.setFixedWidth(SETTINGS_COMBO_W)
+        self._backup_keep_count = QSpinBox()
+        self._backup_keep_count.setRange(1, 999)
+        self._backup_keep_count.setValue(int(ss.get("backup_keep_count", "30") or 30))
+        self._backup_keep_count.setSuffix(" Backups")
+        self._backup_keep_count.setToolTip("So viele Backups bleiben je Ordner erhalten; "
+                                           "ältere werden beim nächsten Backup gelöscht")
+        self._backup_keep_count.setFixedWidth(SETTINGS_COMBO_W)
         self._backup_zip_password = QLineEdit(bs._get_password("backup_zip_password"))
         self._backup_zip_password.setEchoMode(QLineEdit.EchoMode.Password)
         self._backup_zip_password.setPlaceholderText("Pflichtfeld")
@@ -793,7 +800,7 @@ class SettingsDialog(QDialog):
         password_widget = QWidget()
         password_widget.setLayout(password_row)
         settings_form.addRow("", self._backup_on_close)
-        settings_form.addRow(self._flbl("Aufbewahrungsdauer"), self._backup_retention_days)
+        settings_form.addRow(self._flbl("Anzahl aufbewahren"), self._backup_keep_count)
         settings_form.addRow(self._flbl("Backup-Passwort *"), password_widget)
         settings_form.addRow("", help_link("Backup & Updates", "backup-passwort",
                                            "Mehr dazu in der Hilfe: Backup-Passwort"))
@@ -953,7 +960,7 @@ class SettingsDialog(QDialog):
     def _backup_values(self) -> dict:
         return {
             "backup_on_close": "true" if self._backup_on_close.isChecked() else "false",
-            "backup_retention_days": str(self._backup_retention_days.value()),
+            "backup_keep_count": str(self._backup_keep_count.value()),
             "backup_target": self._backup_target_combo.currentData(),
             "backup_local_path": self._backup_path_edit.text().strip(),
             "backup_network_path": self._net_path_edit.text().strip(),

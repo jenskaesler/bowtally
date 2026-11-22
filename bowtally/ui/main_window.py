@@ -353,6 +353,7 @@ class MainWindow(QMainWindow):
         self.dashboard.navigate.connect(self._navigate_to)
         self.guide.action.connect(self.run_action)
         self.calendar.openTournament.connect(self.open_tournament)
+        self.calendar.newTournament.connect(self.new_tournament)
         self.tournaments.openRequested.connect(lambda tid: self.open_tournament(tid))
         self.tournaments.changed.connect(self._data_changed)
         context.changed.connect(self._context_changed)
@@ -476,10 +477,10 @@ class MainWindow(QMainWindow):
         if picker.exec() and picker.chosen is not None:
             self.open_tournament(picker.chosen)
 
-    def new_tournament(self):
+    def new_tournament(self, day=None):
         self.select_page(self.tournaments)
         self.tournaments.show_list()
-        self.tournaments.list.new_item()
+        self.tournaments.list.new_item(day)
 
     def prev_phase(self):
         t = context.tournament()
