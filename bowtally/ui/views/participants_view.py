@@ -17,7 +17,9 @@ from bowtally.ui.utils.whatsapp import normalize_phone, send_whatsapp
 from bowtally.ui.components.action_bar import Action, ActionBar
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
-from bowtally.ui.components.data_table import Cell, ComboDelegate, DataTable, ID_ROLE, TimeDelegate
+from bowtally.ui.components.data_table import (Cell, ComboDelegate, DataTable, ID_ROLE,
+                                               TimeDelegate, optional, optional_columns,
+                                               optional_values)
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import CurrencyField, DateField
 from bowtally.ui.components.search_bar import SearchBar
@@ -32,6 +34,30 @@ HEADERS = ["St.-Nr.", "Name", "Verein", "Bogenklasse", "Startgruppe", "Gebühr",
            "Zahlung", "Startzeit"]
 COL_NO, COL_CLASS, COL_GROUP, COL_FEE, COL_TIME = 0, 3, 4, 5, 8
 ALL_GROUPS = "__all__"
+
+
+def _date_time(value) -> str:
+    return f"{value:%d.%m.%Y %H:%M}" if value else ""
+
+
+# existing data fields that can be shown on demand (header right-click); also used by check-in
+PARTICIPANT_OPTIONAL = [
+    (optional("birth_date", "Geburtsdatum"), lambda p: p.archer.birth_date),
+    (optional("pass_number", "Passnummer"), lambda p: p.archer.pass_number),
+    (optional("email", "E-Mail"), lambda p: p.archer.email),
+    (optional("phone", "Telefon"), lambda p: p.archer.phone),
+    (optional("registration_date", "Angemeldet am"), lambda p: p.registration_date),
+    (optional("confirmation_date", "Bestätigt am"), lambda p: p.confirmation_date),
+    (optional("payment_date", "Bezahlt am"), lambda p: p.payment_date),
+    (optional("fee_amount_paid", "Gezahlt"),
+     lambda p: Cell(p.fee_amount_paid, text=money(p.fee_amount_paid)
+                    if p.fee_amount_paid is not None else "")),
+    (optional("payment_notes", "Zahlungsnotiz"), lambda p: p.payment_notes),
+    (optional("checkin_time", "Eingecheckt um"),
+     lambda p: Cell(p.checkin_time, text=_date_time(p.checkin_time))),
+    (optional("notes", "Notizen"), lambda p: p.notes),
+    (optional("shoot_off_points", "Stechen"), lambda p: p.shoot_off_points),
+]
 CLOSED_HINT = "Das Turnier ist abgeschlossen, Änderungen sind gesperrt."
 
 
@@ -380,7 +406,8 @@ class ParticipantsView(QWidget):
                            "Weise Schützen aus den Stammdaten zu oder importiere eine "
                            "Teilnehmerliste.", "Schütze zuweisen")
         empty.actionTriggered.connect(self.pick_archers)
-        self.table = DataTable(HEADERS, empty, multi_select=True)
+        self.table = DataTable(HEADERS + optional_columns(PARTICIPANT_OPTIONAL), empty,
+                               multi_select=True, table_key="teilnehmer")
         self.table.set_delegate(COL_CLASS, ComboDelegate(self._class_options, parent=self))
         self.table.set_delegate(COL_GROUP, ComboDelegate(self._group_options, editable=True,
                                                          parent=self))
@@ -453,7 +480,8 @@ class ParticipantsView(QWidget):
             Cell(p.payment_status, chip=payment_chip(p.payment_status),
                  tooltip=f"{money(p.fee_amount_paid)} am {p.payment_date:%d.%m.%Y}"
                  if p.payment_date else ""),
-            Cell(p.start_time, editable=editable)] for p in parts], [p.id for p in parts])
+            Cell(p.start_time, editable=editable)] + optional_values(PARTICIPANT_OPTIONAL, p)
+            for p in parts], [p.id for p in parts])
         current = self.group_filter.currentData()
         self.group_filter.blockSignals(True)
         self.group_filter.clear()

@@ -84,7 +84,7 @@ def test_sidebar_members_stay_global_with_open_tournament(make_tournament):
     try:
         sidebar = MembersView()
         sidebar.refresh()
-        assert sidebar.table.headers == HEADERS
+        assert sidebar.table.headers[:len(HEADERS)] == HEADERS   # + optional columns
     finally:
         context.set(None)
 

@@ -13,7 +13,8 @@ from bowtally.services import inventory_service as inv
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
-from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
+from bowtally.ui.components.data_table import (Cell, ROW_HEIGHT, optional, optional_columns,
+                                               optional_values)
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.files_panel import FilesPanel
 from bowtally.ui.components.form_field import DateField, Form
@@ -27,6 +28,11 @@ from bowtally.ui.views.participants_view import money
 
 HEADERS = ["Bezeichnung", "Kategorie", "Größe", "Einzelpreis", "Anzahl", "Gesamtpreis", "Parcours",
            "Status"]
+# existing data fields that can be shown on demand (header right-click)
+INVENTORY_OPTIONAL = [
+    (optional("shop_url", "Shop-Link"), lambda i: i.shop_url),
+    (optional("notes", "Notizen"), lambda i: i.notes),
+]
 _HEADER_ALIGN = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
 
@@ -289,7 +295,7 @@ class InventoryView(ListView):
     def __init__(self, parent=None):
         empty = EmptyState("inbox", "Kein Inventar vorhanden",
                            "Lege Artikel an oder importiere eine Liste.", "Neuer Artikel")
-        super().__init__("Inventar", HEADERS, empty,
+        super().__init__("Inventar", HEADERS + optional_columns(INVENTORY_OPTIONAL), empty,
                          search_placeholder="Bezeichnung, Kategorie oder Größe …", parent=parent)
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neuer Artikel", self.new_item, "primary"))
@@ -345,7 +351,7 @@ class InventoryView(ListView):
             _money_cell(i.unit_price), i.quantity, _money_cell(inv.item_total(i)),
             "Ja" if i.use_in_course else "–",
             Cell(i.active, chip=("Aktiv", "success") if i.active else ("Inaktiv", "danger")),
-        ] for i in items], [i.id for i in items])
+        ] + optional_values(INVENTORY_OPTIONAL, i) for i in items], [i.id for i in items])
         self.header.set_subtitle(f"{len(items)} Artikel")
         self.on_selection(self.table.selected_ids())
 

@@ -9,7 +9,7 @@ from bowtally.services import tournament_service as ts
 from bowtally.ui import button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
-from bowtally.ui.components.data_table import Cell
+from bowtally.ui.components.data_table import Cell, optional, optional_columns, optional_values
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.status_chip import StatusChip, tournament_chip
@@ -30,6 +30,22 @@ from bowtally.ui.views.schedule_view import ScheduleView
 from bowtally.ui.views.scoring_view import ScoringView
 
 HEADERS = ["Datum", "Name", "Ort", "Phase", "Teilnehmer", "Regelwerk"]
+# existing data fields that can be shown on demand (header right-click)
+TOURNAMENT_OPTIONAL = [
+    (optional("organizer", "Veranstalter"), lambda t: t.organizer),
+    (optional("registration_deadline", "Anmeldefrist"), lambda t: t.registration_deadline),
+    (optional("max_participants", "Max. Teilnehmer"), lambda t: t.max_participants),
+    (optional("num_targets", "Scheiben"), lambda t: t.num_targets),
+    (optional("num_rounds", "Runden"), lambda t: t.num_rounds),
+    (optional("checkin_start_time", "Einschreibung ab"), lambda t: t.checkin_start_time),
+    (optional("shooting_start_time", "Schießbeginn"), lambda t: t.shooting_start_time),
+    (optional("use_draw", "Auslosung"), lambda t: t.use_draw),
+    (optional("practice_location", "Einschießplatz"), lambda t: t.practice_location),
+    (optional("contact_name", "Kontakt"), lambda t: t.contact_name),
+    (optional("contact_email", "Kontakt-E-Mail"), lambda t: t.contact_email),
+    (optional("contact_phone", "Kontakt-Telefon"), lambda t: t.contact_phone),
+    (optional("created_at", "Angelegt am"), lambda t: t.created_at),
+]
 TABS = ["participants", "prizes", "helpers", "course", "schedule", "checkin", "scoring", "results", "fees", "notes"]
 TAB_LABELS = ["Teilnehmer", "Preise", "Helfer", "Parcours", "Zeitplan", "Einschreibung",
               "Ergebniseingabe", "Auswertung", "Startgebühren", "Notizen"]
@@ -44,7 +60,8 @@ class TournamentList(ListView):
         empty = EmptyState("target", "Noch keine Turniere",
                            "Der Assistent führt Schritt für Schritt durch die Anlage.",
                            "Neues Turnier")
-        super().__init__("Turniere", HEADERS, empty, None, "Name, Ort oder Phase …")
+        super().__init__("Turniere", HEADERS + optional_columns(TOURNAMENT_OPTIONAL), empty,
+                         None, "Name, Ort oder Phase …")
         empty.actionTriggered.connect(self.new_item)
         self._show_closed = QCheckBox("Abgeschlossene Turniere anzeigen")
         _s = QSettings("BowTally", "BowTally")
@@ -71,7 +88,8 @@ class TournamentList(ListView):
         self.table.set_rows([[t.date, Cell(t.name, bold=t.id == context.tournament_id),
                               t.location, Cell(t.phase, chip=tournament_chip(t.phase)),
                               len(t.participants),
-                              t.scoring_rule.name if t.scoring_rule else None] for t in items],
+                              t.scoring_rule.name if t.scoring_rule else None]
+                             + optional_values(TOURNAMENT_OPTIONAL, t) for t in items],
                             [t.id for t in items])
         running = sum(t.phase != "closed" for t in all_items)
         self.header.set_subtitle(f"{len(all_items)} Turniere | {running} laufend"

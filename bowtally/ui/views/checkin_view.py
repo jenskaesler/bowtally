@@ -8,7 +8,8 @@ from bowtally.services import participant_service as ps
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, show_error
 from bowtally.ui.components.capacity_bar import CapacityBar
-from bowtally.ui.components.data_table import Cell, DataTable
+from bowtally.ui.components.data_table import (Cell, DataTable, optional, optional_columns,
+                                               optional_values)
 from bowtally.ui.components.drawer import SideDrawer
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import Form
@@ -20,6 +21,21 @@ from bowtally.ui.views import BAR_BOTTOM_MARGIN
 from bowtally.ui.views.participants_view import money
 
 HEADERS = ["Nr.", "Name", "Verein", "Klasse", "Anmeldung", "Zahlung"]
+
+
+def _checkin_optional():
+    # import here: participants_view imports a lot of UI; only its field list is needed
+    from bowtally.ui.views.participants_view import PARTICIPANT_OPTIONAL, money
+    return [
+        (optional("start_group", "Startgruppe"), lambda p: p.start_group),
+        (optional("start_time", "Startzeit"), lambda p: p.start_time),
+        (optional("fee", "Gebühr"),
+         lambda p: Cell(p.entry_fee.amount, text=money(p.entry_fee.amount))
+         if p.entry_fee else "–"),
+    ] + PARTICIPANT_OPTIONAL
+
+
+CHECKIN_OPTIONAL = _checkin_optional()
 CHECKIN_PHASES = ("checkin", "shooting")
 PAYMENT_WARNING = "Achtung: Startgebühr nicht als eingegangen markiert"
 
@@ -50,7 +66,8 @@ class CheckinView(QWidget):
                            "Walk-in erfassen.", "Als Walk-in erfassen")
         empty.actionTriggered.connect(self.open_walk_in)
         self.empty = empty
-        self.table = DataTable(HEADERS, empty)
+        self.table = DataTable(HEADERS + optional_columns(CHECKIN_OPTIONAL), empty,
+                               table_key="einschreibung")
         self.table.selectionChanged.connect(self._on_selection)
         self.table.activated.connect(lambda _id: self.checkin_selected())
 
@@ -142,6 +159,7 @@ class CheckinView(QWidget):
                               Cell(p.registration_status,
                                    chip=registration_chip(p.registration_status)),
                               Cell(p.payment_status, chip=payment_chip(p.payment_status))]
+                             + optional_values(CHECKIN_OPTIONAL, p)
                              for p in results], [p.id for p in results])
         if len(results) == 1 or (results and term):
             self.table.select_ids([results[0].id])

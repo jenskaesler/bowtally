@@ -16,7 +16,8 @@ from bowtally.services import ValidationError
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
-from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
+from bowtally.ui.components.data_table import (Cell, ROW_HEIGHT, optional, optional_columns,
+                                               optional_values)
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.form_field import DateField, Form, email_validator
 from bowtally.ui.components.toast import Toast
@@ -31,6 +32,28 @@ from bowtally.ui.utils.whatsapp import normalize_phone, open_whatsapp
 from bowtally.ui.views import ListView
 
 HEADERS = ["Mitgliedsnummer", "Name", "Ort", "E-Mail", "Status", "Turnierhelfer"]
+# existing data fields that can be shown on demand (header right-click)
+MEMBER_OPTIONAL = [
+    (optional("first_name", "Vorname"), lambda m: m.first_name),
+    (optional("last_name", "Nachname"), lambda m: m.last_name),
+    (optional("street", "Straße"), lambda m: m.street),
+    (optional("postal_code", "PLZ"), lambda m: m.postal_code),
+    (optional("phone", "Telefon"), lambda m: m.phone),
+    (optional("birthday", "Geburtstag"), lambda m: m.birthday),
+    (optional("member_since", "Mitglied seit"), lambda m: m.member_since),
+    (optional("cancelled_on", "Gekündigt zum"), lambda m: m.cancelled_on),
+    (optional("info_by_mail", "Info per E-Mail"), lambda m: m.info_by_mail),
+    (optional("consent_given", "Einwilligung"), lambda m: m.consent_given),
+    (optional("consent_date", "Einwilligung am"), lambda m: m.consent_date),
+    (optional("account_holder", "Kontoinhaber"), lambda m: m.account_holder),
+    (optional("iban", "IBAN"), lambda m: m.iban),
+    (optional("bic", "BIC"), lambda m: m.bic),
+    (optional("bank_name", "Bank"), lambda m: m.bank_name),
+    (optional("sepa_direct_debit", "SEPA-Lastschrift"), lambda m: m.sepa_direct_debit),
+    (optional("sepa_mandate_ref", "Mandatsreferenz"), lambda m: m.sepa_mandate_ref),
+    (optional("sepa_mandate_date", "Mandat vom"), lambda m: m.sepa_mandate_date),
+    (optional("notes", "Notizen"), lambda m: m.notes),
+]
 # Base data only: bank data and birthday never leave the app through exports
 EXPORT_HEADERS = ["Mitgliedsnummer", "Nachname", "Vorname", "Straße", "PLZ", "Ort", "Telefon",
                   "E-Mail", "Mitglied seit", "Gekündigt am", "Status", "Turnierhelfer"]
@@ -316,7 +339,7 @@ class MembersView(ListView):
         empty = EmptyState("users", "Keine Mitglieder",
                            "Lege neue Mitglieder an oder importiere eine Mitgliederliste.",
                            "Neues Mitglied")
-        super().__init__("Mitglieder", HEADERS, empty,
+        super().__init__("Mitglieder", HEADERS + optional_columns(MEMBER_OPTIONAL), empty,
                          search_placeholder="Name oder Mitgliedsnummer …")
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neues Mitglied", self.new_item, "primary",
@@ -355,7 +378,7 @@ class MembersView(ListView):
             Cell(ms.member_status(m), chip=("Aktiv", "success") if ms.member_status(m) == "Aktiv"
                  else ("Gekündigt", "muted")),
             "Ja" if m.is_tournament_helper else "-",
-        ] for m in members], [m.id for m in members])
+        ] + optional_values(MEMBER_OPTIONAL, m) for m in members], [m.id for m in members])
         self.header.set_subtitle(f"{len(members)} Mitglieder")
         self.on_selection(self.table.selected_ids())
 

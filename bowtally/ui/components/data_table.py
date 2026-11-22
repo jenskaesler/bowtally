@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """QTableWidget wrapper: sorting, text filter, empty state, selection callbacks,
-optional inline editing and drag-and-drop row ordering."""
+optional inline editing, drag-and-drop row ordering and configurable columns."""
+import json
 from dataclasses import dataclass
 from datetime import date
 from typing import Callable
 
-from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QIcon
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHeaderView, QStackedLayout,
-                               QStyledItemDelegate, QTableWidget, QTableWidgetItem,
-                               QWidget)
+from PySide6.QtCore import QPoint, QSettings, Qt, Signal
+from PySide6.QtGui import QAction, QBrush, QColor, QIcon
+from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QHeaderView, QMenu,
+                               QStackedLayout, QStyledItemDelegate, QTableWidget,
+                               QTableWidgetItem, QWidget)
 
 from bowtally.ui import theme as _theme
 
@@ -20,6 +21,35 @@ ID_ROLE = Qt.ItemDataRole.UserRole + 1
 SORT_ROLE = Qt.ItemDataRole.UserRole + 2
 VALUE_ROLE = Qt.ItemDataRole.UserRole + 3     # raw value behind a combo cell (e.g. an id)
 ROW_HEIGHT = 34
+COLUMNS_GROUP = "TableColumns"     # QSettings group: one key per table, a pure UI setting
+
+
+@dataclass(frozen=True)
+class Column:
+    """Column of a configurable table. Default columns (hideable=False) are always shown;
+    optional ones are hidden until the user switches them on in the header menu."""
+    key: str
+    label: str
+    hideable: bool = False
+    default_visible: bool = True
+
+
+def optional(key: str, label: str) -> Column:
+    """An existing data field that is not shown by default."""
+    return Column(key, label, hideable=True, default_visible=False)
+
+
+def optional_columns(spec) -> list[Column]:
+    """spec: [(Column, getter)] of a view's optional fields."""
+    return [col for col, _get in spec]
+
+
+def optional_values(spec, obj) -> list:
+    return [get(obj) for _col, get in spec]
+
+
+def _as_columns(headers) -> list[Column]:
+    return [h if isinstance(h, Column) else Column(h, h) for h in headers]
 
 
 def display(value) -> str:
@@ -133,11 +163,15 @@ class DataTable(QWidget):
     cellEdited = Signal(object, int, object)     # id, column, value (VALUE_ROLE or text)
     reordered = Signal(list)                     # all ids in new order
 
-    def __init__(self, headers: list[str], empty: EmptyState | None = None,
+    def __init__(self, headers: list, empty: EmptyState | None = None,
                  multi_select: bool = False, sortable: bool = True, reorderable: bool = False,
-                 parent=None):
+                 parent=None, table_key: str | None = None):
+        """headers: labels or Column objects. With `table_key` the user can show optional
+        columns (header right-click) and move columns; both are kept in QSettings."""
         super().__init__(parent)
-        self.headers = headers
+        self.columns = _as_columns(headers)
+        headers = self.headers = [c.label for c in self.columns]
+        self.table_key = table_key
         self.empty = empty
         self._loading = False
         self._last_edit = None
@@ -185,12 +219,106 @@ class DataTable(QWidget):
         self._stack.addWidget(t)
         if empty is not None:
             self._stack.addWidget(empty)
+        if table_key:
+            header.setSectionsMovable(True)
+            header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            header.customContextMenuRequested.connect(self._header_menu)
+            header.sectionMoved.connect(self._on_section_moved)
+            self._apply_column_state()
 
     # ------------------------------------------------------------ content
-    def set_headers(self, headers: list[str]) -> None:
-        self.headers = headers
+    def set_headers(self, headers: list) -> None:
+        """New column set (e.g. per scoring rule); the saved column state is applied again."""
+        if self.table_key:
+            self._reset_column_order()
+        self.columns = _as_columns(headers)
+        headers = self.headers = [c.label for c in self.columns]
         self.table.setColumnCount(len(headers) + self._col0)
         self.table.setHorizontalHeaderLabels(([""] if self._col0 else []) + list(headers))
+        if self.table_key:
+            self._apply_column_state()
+
+    # ------------------------------------------------------------ configurable columns
+    def _settings_key(self) -> str:
+        return f"{COLUMNS_GROUP}/{self.table_key}"
+
+    def _load_state(self) -> tuple[set[str], list[str]]:
+        s = QSettings("BowTally", "BowTally")
+        key = self._settings_key()
+        try:
+            visible = json.loads(s.value(f"{key}/visible_optional", "null"))
+            order = json.loads(s.value(f"{key}/order", "[]"))
+        except (TypeError, ValueError):       # damaged entry: back to the defaults
+            visible, order = None, []
+        if not isinstance(visible, list):
+            visible = [c.key for c in self.columns if c.hideable and c.default_visible]
+        if not isinstance(order, list):
+            order = []
+        return set(visible), [k for k in order if isinstance(k, str)]
+
+    def _save_state(self) -> None:
+        h = self.table.horizontalHeader()
+        logical = sorted(range(self._col0, self.table.columnCount()), key=h.visualIndex)
+        s = QSettings("BowTally", "BowTally")
+        key = self._settings_key()
+        s.setValue(f"{key}/visible_optional", json.dumps(
+            [c.key for i, c in enumerate(self.columns)
+             if c.hideable and not self.table.isColumnHidden(i + self._col0)]))
+        s.setValue(f"{key}/order", json.dumps([self.columns[i - self._col0].key for i in logical]))
+
+    def _reset_column_order(self) -> None:
+        h = self.table.horizontalHeader()
+        h.blockSignals(True)
+        for logical in range(self.table.columnCount()):
+            h.moveSection(h.visualIndex(logical), logical)
+        h.blockSignals(False)
+
+    def _apply_column_state(self) -> None:
+        visible, order = self._load_state()
+        keys = [c.key for c in self.columns]
+        for i, c in enumerate(self.columns):
+            self.table.setColumnHidden(i + self._col0, c.hideable and c.key not in visible)
+        # saved order first; columns unknown to it (new ones) follow in schema order
+        wanted = [k for k in order if k in keys] + [k for k in keys if k not in order]
+        h = self.table.horizontalHeader()
+        h.blockSignals(True)
+        for pos, k in enumerate(wanted):
+            h.moveSection(h.visualIndex(keys.index(k) + self._col0), pos + self._col0)
+        h.blockSignals(False)
+
+    def _on_section_moved(self, _logical: int, _old: int, _new: int) -> None:
+        h = self.table.horizontalHeader()
+        if self._col0 and h.visualIndex(0) != 0:      # the drag grip stays the first column
+            h.blockSignals(True)
+            h.moveSection(h.visualIndex(0), 0)
+            h.blockSignals(False)
+        self._save_state()
+
+    def column_menu(self) -> QMenu:
+        """Checkbox list of all columns; default columns are checked and locked."""
+        m = QMenu(self)
+        m.setToolTipsVisible(True)
+        h = self.table.horizontalHeader()
+        for i in sorted(range(len(self.columns)), key=lambda i: h.visualIndex(i + self._col0)):
+            c = self.columns[i]
+            act = QAction(c.label, m)
+            act.setCheckable(True)
+            act.setChecked(not self.table.isColumnHidden(i + self._col0))
+            act.setEnabled(c.hideable)
+            if not c.hideable:
+                act.setToolTip("Standardspalte, immer sichtbar")
+            act.toggled.connect(lambda on, col=i + self._col0: self._set_column_visible(col, on))
+            m.addAction(act)
+        return m
+
+    def _header_menu(self, pos: QPoint) -> None:
+        self.column_menu().exec(self.table.horizontalHeader().mapToGlobal(pos))
+
+    def _set_column_visible(self, column: int, visible: bool) -> None:
+        self.table.setColumnHidden(column, not visible)
+        if visible:
+            self.table.resizeColumnToContents(column)
+        self._save_state()
 
     def set_rows(self, rows: list[list], ids: list) -> None:
         t = self.table
@@ -285,7 +413,7 @@ class DataTable(QWidget):
         visible = 0
         for r in range(t.rowCount()):
             hay = " ".join((t.item(r, c).text() if t.item(r, c) else "")
-                           for c in range(t.columnCount())).lower()
+                           for c in range(t.columnCount()) if not t.isColumnHidden(c)).lower()
             hidden = bool(needle) and needle not in hay
             t.setRowHidden(r, hidden)
             visible += not hidden

@@ -35,6 +35,15 @@ maximale Teilnehmerzahl erreicht ist oder dass ein Turnier in der Phase „Schie
 <h3>Dialoge</h3>
 <p>In Bearbeiten-Dialogen ist <b>Speichern</b> blau und wird rot, sobald du etwas geändert hast;
 <b>Abbrechen</b> ist schwarz.</p>
+<a name="spalten"></a><h3>Tabellenspalten</h3>
+<p>In den Tabellen (u. a. Teilnehmer, Einschreibung, Ergebnisse, Schützen, Mitglieder, Inventar,
+Turniere, Regelwerke, Bogenklassen) öffnet ein <b>Rechtsklick auf die Kopfzeile</b> eine Liste
+aller Spalten. Die Standardspalten sind immer angehakt und lassen sich nicht ausblenden; weitere
+vorhandene Felder (z. B. E-Mail, Telefon oder Geburtsdatum bei den Schützen) blendest du dort
+ein und aus. Die Reihenfolge änderst du, indem du eine Spaltenüberschrift an eine andere Stelle
+ziehst – das geht auch mit den Standardspalten. Die Suche durchsucht nur die sichtbaren Spalten.
+Die Einstellung gilt je Tabelle, bleibt auf diesem Rechner gespeichert und ist nicht Teil des
+Backups.</p>
 <p>Hinweise und Bestätigungen (z. B. „Gespeichert“) erscheinen als kleine <b>Infofenster
 oben rechts</b> im jeweiligen Fenster und verschwinden nach einigen Sekunden von selbst; ein
 Klick schließt sie sofort. Neue Meldungen stehen oben, ältere rücken nach unten.</p>

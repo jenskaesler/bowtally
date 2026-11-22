@@ -94,17 +94,28 @@ BAR_BOTTOM_MARGIN = 16      # control bar -> list: with layout spacing 10 the 26
 TABS_BAR_MARGIN = 6         # control bar -> filter tabs: a tab brings about 10 px of its own padding
 
 
+def table_key(title: str) -> str:
+    """QSettings key of a table's column setup, e.g. "Wertungszettel-Vorlagen" ->
+    "wertungszettel_vorlagen"."""
+    for a, b in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        title = title.lower().replace(a, b)
+    return "".join(ch if ch.isalnum() else "_" for ch in title).strip("_")
+
+
 class ListView(QWidget):
-    def __init__(self, title: str, headers: list[str], empty: EmptyState,
+    def __init__(self, title: str, headers: list, empty: EmptyState,
                  form: Form | None = None, search_placeholder: str = "",
                  multi_select: bool = False, sortable: bool = True, reorderable: bool = False,
-                 parent=None):
+                 parent=None, table_key_: str | None = None):
+        """headers: labels or Column objects (see DataTable); every list view gets
+        configurable columns, stored under `table_key_` (default: derived from the title)."""
         super().__init__(parent)
         self.header = PageHeader(title)
         self.search = SearchBar(search_placeholder)
         self.search.searchChanged.connect(lambda term: self.table.apply_filter(term))
         self.header.add(self.search)
-        self.table = DataTable(headers, empty, multi_select, sortable, reorderable)
+        self.table = DataTable(headers, empty, multi_select, sortable, reorderable,
+                               table_key=table_key_ or table_key(title))
         self.table.selectionChanged.connect(self.on_selection)
         self.table.contextMenuRequested.connect(self._context_menu)
         self.action_bar = ActionBar()

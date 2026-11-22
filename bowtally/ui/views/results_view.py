@@ -303,7 +303,7 @@ class ResultsView(QWidget):
                                    + ([r.shoot_off_entered] if show_shoot_off else []) + [r.total])
             empty = EmptyState("target", "Noch keine Teilnehmer",
                                "Sobald Teilnehmer zugewiesen sind, erscheint hier die Rangliste.")
-            table = DataTable(hdrs, empty)
+            table = DataTable(hdrs, empty, table_key="ergebnisse")
             table.set_rows(table_rows, [r.participant_id for r in rows])
             self.tabs.addTab(table, f"{title} ({len(rows)})")
             self.sheets.append((title, hdrs, export_rows))

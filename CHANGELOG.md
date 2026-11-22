@@ -10,6 +10,14 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Hinzugefügt
 
+- **🧱 Konfigurierbare Tabellenspalten** — In allen Listen (Teilnehmer, Einschreibung,
+  Ergebnisse, Schützen, Mitglieder, Inventar, Turniere, Regelwerke, Bogenklassen, Preise,
+  Startgebühren, Helfer, Zeitplan, Parcours, Material, Wertungszettel-Vorlagen) öffnet ein
+  Rechtsklick auf die Kopfzeile die Spaltenauswahl: Standardspalten bleiben immer sichtbar,
+  weitere vorhandene Felder (z. B. E-Mail, Telefon, Geburtsdatum, Zahlungsdatum, Anschrift und
+  Bankdaten der Mitglieder) lassen sich einblenden. Alle Spalten lassen sich per Drag & Drop
+  umsortieren. Die Einstellung wird je Tabelle auf dem Rechner gespeichert (nicht im Backup);
+  die Suche berücksichtigt nur sichtbare Spalten.
 - **🔗 Ausschreibungslinks mit QR-Code** — Auf dem Turnier-Dashboard lassen sich in jeder Phase
   Links zur bereits veröffentlichten Ausschreibung hinterlegen (Website, Facebook, Instagram,
   Mein Bogenturnier oder frei benannt), auch mehrere je Plattform. Jeder Link bekommt einen

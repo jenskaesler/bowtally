@@ -51,7 +51,8 @@ flowchart LR
 - 📋 **Turnier kopieren** – bestehendes Turnier als Vorlage nutzen; Parcours-Ziele und Preise werden übernommen, Teilnehmer und Ergebnisse nicht.
 - 🔗 **Ausschreibungslinks** – Links zur bereits veröffentlichten Ausschreibung (Website, Facebook, Instagram, Mein Bogenturnier oder frei) auf dem Turnier-Dashboard, in jeder Phase, je mit QR-Code (offline erzeugt) zum Vergrößern für Flyer und Posts.
 - 📝 **Notizen** – freies Textfeld je Turnier (interne Notizen aus dem Assistenten landen hier); erscheint nie in der Ausschreibung, wird auf dem Dashboard und im abgeschlossenen Leitfaden angezeigt und im Turnier-Export mitgeliefert.
-- 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export; Doppelklick auf einen Tag legt dort ein neues Turnier an.
+- 📅 **Jahreskalender** – Monatsraster mit allen Turnieren als farbige Badges nach Phase, ICS-Export; Rechtsklick auf einen Tag (Jahr, Monat, Woche), Doppelklick (Monat, Woche) oder „Neues Turnier“ in der Tagesansicht legt dort ein neues Turnier an.
+- 📊 **Dashboards** – Übersicht mit farbigen, verschiebbaren Kacheln (aktive Turniere mit Gesamtzahl und Entwürfen, nächstes Turnier, Archiv, Schützen, Regelwerke und Bogenklassen je Standard/eigene, Mitglieder mit Helfern und Inaktiven, Inventar, Kalender); Turnier-Dashboard mit Phase, Zeitplan und Ausschreibungslinks oben, Teilnehmer und Klassen in der Mitte, Einnahmen und Material unten.
 
 ### Ausschreibung und Anmeldung
 
@@ -76,7 +77,8 @@ flowchart LR
 - 🏆 **Ranglisten** – je Bogenklasse und gesamt, Podium hervorgehoben, „ex aequo" bei Gleichstand; Gleichstandsregeln je Regelwerk (Kills, X-Treffer, Treffer in der höchsten Wertung), Hinweis und Ergebniseingabe für ein nötiges Stechen (Spalte „Stechen“ in Liste, Export und PDF).
 - 📄 **Ergebnisliste** – druckfertiges PDF mit Deckblatt und Vereinslogo, eine Seite je Klasse; mit dem Erstellen werden Ergebniseingabe und Helfer gesperrt. Versand per E-Mail mit PDF im Anhang an die vorgemerkten Schützen.
 - 🥇 **Preis- und Siegerliste** – Rangliste mit zugewiesenen Preisen je Klasse als PDF.
-- 🏷️ **Watermark** – jeder PDF-Ausdruck trägt unten rechts das BowTally-Logo, „sponsored by BowTally“ und einen kleinen QR-Code zum Repository.
+- 🏷️ **Fußzeile und Watermark** – jeder PDF-Ausdruck hat dieselbe Fußzeile: links „Erstellt am:“ mit Zeitstempel, mittig die Seitenzahl, rechts BowTally-Logo, „sponsored by BowTally“ und ein kleiner QR-Code zum Repository; Urkunden tragen nur das Sponsoring.
+- 🖨️ **Druckfarben** – eigene Farben für alle PDF-Ausdrucke (Hauptfarbe, Sekundärfarbe, sekundärer Text, Rahmenlinien) unter Einstellungen → Turnierverwaltung → Allgemein, unabhängig vom App-Theme.
 - 📜 **Urkunden** – genau eine A4-Seite je Podiumsplatz und Klasse mit Rahmen, Vereinslogo, Siegel in Gold/Silber/Bronze, Name, Klasse, Punkten, Turniername sowie Unterschriftszeilen für 1. und 2. Vorsitzende/n (Ort/Datum darüber) als PDF; Podiumsplätze bekommen ihre Urkunde auf Wunsch mit der Ergebnis-Mail.
 - 📤 **Export** – CSV, Excel oder OpenDocument, auch alle Turnierdaten auf einmal.
 - 🔁 **Multi-Runden-Turniere** – beliebig viele Runden, jede mit eigenem Regelwerk; Wertung „Zielwertung“, „Rundenwertung“ oder „Gesamtwertung“ (bei den beiden letzten mit Spalte für Kills/X neben den Punkten).
@@ -89,17 +91,18 @@ flowchart LR
 - 🙋 **Turnier-Helfer** – je Turnier manuell oder „Aus Mitgliederkartei“ (nur Mitglieder mit Kennzeichen Turnierhelfer); Aufgabe, Zeiten und Bestätigung, Helferliste als PDF, E-Mail-Bestätigung; gesperrt, sobald die Ergebnisliste erstellt ist; beim Abschluss des Turniers entsteht ein Eintrag in der Helferhistorie.
 - 📦 **Inventar und Logbuch** – Ausrüstung (Ziele, Tische, Pavillons …) mit Kategorien, Preisen, Dokumenten und Reparaturkosten (mit verlinkter Rechnung) verwalten, Artikel aktiv/inaktiv, Parcoursplan mit Bestandsprüfung; Logbuch als Tabelle aller Aktivitäten, eine Zeile je Eintrag (filterbar).
 - 🎯 **Bogenklassen** – zehn Standardklassen, eigene Klassen, Reihenfolge per Drag-and-Drop.
+- 🧱 **Konfigurierbare Tabellenspalten** – Rechtsklick auf die Kopfzeile blendet weitere vorhandene Datenfelder ein und aus (Standardspalten bleiben fest), Spalten lassen sich per Drag & Drop umsortieren; gespeichert je Tabelle auf dem Rechner.
 - ⌨️ **Vorformatierte Eingabefelder** – Datum `__.__.____` (mit Kalender), Uhrzeit `__:__` und Beträge `__,__ €` (wächst bei größeren Beträgen bis `____,__ €`) werden direkt im Feld getippt.
 
 ### Einstellungen
 
 - 🏢 **Vereinsprofil** – Name, Adresse, Logo, Bankdaten (IBAN, BIC, Verwendungszweck-Vorlage mit Platzhaltern).
 - 👥 **Vereinsvorstand** – Vorname, Nachname, Telefon und E-Mail je Vorstandsrolle; im Turnier-Assistenten per Klick als Turnierkontakt übernehmen.
-- 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, eigene Druckfarben für alle PDF-Ausdrucke, Schriftart wählbar (Open Sans, Inter und Source Sans 3 werden mitgeliefert, dazu Segoe UI; gilt auch für PDFs). Lizenzen der Schriften: `docs/THIRD-PARTY-NOTICES.md`.
+- 🎨 **Design** – Hell/Dunkel/System-Theme, Primärfarbe und alle App-Farben individuell anpassbar, Schriftart wählbar (Open Sans, Inter und Source Sans 3 werden mitgeliefert, dazu Segoe UI; gilt auch für PDFs). Lizenzen der Schriften: `docs/THIRD-PARTY-NOTICES.md`.
 - 💾 **Backup** – passwortgeschütztes ZIP-Backup (AES-256, Pflicht-Passwort) mit allen Daten (JSON, inklusive Einstellungen mit Logging-Modus, E-Mail- und WhatsApp-Vorlagen, Logbuch, Mitglieder-Bankdaten, Inventar und der Dokumente von Mitgliedern, Schützen und Inventar), Vereinslogo und Prüfdatei `bowtally.info`, Nextcloud-Upload (WebDAV), automatisches Backup beim Beenden, Aufbewahrung der letzten N Backups (Anzahl einstellbar, lokal, Netzwerk und Nextcloud), Wiederherstellung inklusive Umstellung alter Backups; vor Datenbank-Migrationen entsteht automatisch eine Kopie der Datenbank.
 - 🔄 **Updates** – optionale Prüfung auf neue Versionen über GitHub-Releases (abschaltbar), Download mit Prüfsumme und stiller Installation; Netzwerkfehler werden angezeigt.
 - 🪵 **Erweitert** – Logging-Modus der Logdatei `app.log` (Info, Warnung, Debug; Standard Info, Debug nur nach Warnhinweis), Button „Logfile öffnen“.
-- ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm.
+- ❓ **Hilfe und Über BowTally** – ausführliche App-Hilfe mit Suche (F1), Lizenztext und Changelog im Programm; Programmversion und Datenbankschema stehen in „Über BowTally“, auf dem Startbildschirm und in der Statusleiste.
 
 ---
 

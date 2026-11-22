@@ -8,7 +8,7 @@ from bowtally.services import master_data_service as md
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
-from bowtally.ui.components.data_table import Cell
+from bowtally.ui.components.data_table import Cell, optional, optional_columns, optional_values
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.constants import SETTINGS_COMBO_W
@@ -18,6 +18,7 @@ from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
 HEADERS = ["Bezeichnung", "Kürzel", "Altersgruppe", "Typ"]
+BOW_CLASS_OPTIONAL = [(optional("description", "Beschreibung"), lambda bc: bc.description)]
 AGE_GROUPS = ["Jugend", "Erwachsene", "Senioren", "Offen"]
 READ_ONLY_HINT = "Schreibgeschützt. Kopieren für anpassbare Kopie."
 
@@ -73,7 +74,7 @@ class BowClassesView(ListView):
         empty = EmptyState("layers", "Keine Bogenklassen",
                            "Lege eine Bogenklasse an, um Teilnehmer zuordnen zu können.",
                            "Neue Bogenklasse")
-        super().__init__("Bogenklassen", HEADERS, empty,
+        super().__init__("Bogenklassen", HEADERS + optional_columns(BOW_CLASS_OPTIONAL), empty,
                          search_placeholder="Bezeichnung oder Kürzel …")
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neue Bogenklasse", self.new_item, "primary",
@@ -103,6 +104,7 @@ class BowClassesView(ListView):
                    if self._show_mine.isChecked() else classes)
         self.table.set_rows([[Cell(bc.name, tooltip=READ_ONLY_HINT if bc.is_builtin else ""),
                               bc.abbreviation, bc.age_group, builtin_chip(bc.is_builtin)]
+                             + optional_values(BOW_CLASS_OPTIONAL, bc)
                              for bc in visible], [bc.id for bc in visible])
         custom = sum(not bc.is_builtin for bc in classes)
         self.header.set_subtitle(f"{len(classes)} Klassen | {custom} benutzerdefiniert")

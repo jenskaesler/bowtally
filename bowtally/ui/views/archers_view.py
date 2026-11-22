@@ -11,7 +11,8 @@ from bowtally.services import master_data_service as md
 from bowtally.ui import busy, button, show_error
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog, choose
-from bowtally.ui.components.data_table import Cell, ROW_HEIGHT
+from bowtally.ui.components.data_table import (Cell, ROW_HEIGHT, optional, optional_columns,
+                                               optional_values)
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.files_panel import FilesPanel
 from bowtally.ui.components.form_field import DateField, Form, email_validator
@@ -23,6 +24,17 @@ from bowtally.ui.dialogs.record_dialog import RecordDialog
 from bowtally.ui.views import ListView
 
 HEADERS = ["Vorname", "Nachname", "Verein", "Klasse", "Passnummer", "Status"]
+# existing data fields that can be shown on demand (header right-click)
+ARCHER_OPTIONAL = [
+    (optional("birth_date", "Geburtsdatum"), lambda a: a.birth_date),
+    (optional("email", "E-Mail"), lambda a: a.email),
+    (optional("phone", "Telefon"), lambda a: a.phone),
+    (optional("notes", "Notizen"), lambda a: a.notes),
+    (optional("notify_new_tournament", "Turnier-Info per E-Mail"),
+     lambda a: a.notify_new_tournament),
+    (optional("notify_results", "Ergebnisse per E-Mail"), lambda a: a.notify_results),
+    (optional("created_at", "Angelegt am"), lambda a: a.created_at),
+]
 EXPORT_HEADERS = ["Nachname", "Vorname", "Geburtsdatum", "Verein", "Passnummer",
                   "Bogenklasse", "E-Mail", "Telefon", "Aktiv"]
 
@@ -170,7 +182,7 @@ class ArchersView(ListView):
         empty = EmptyState("users", "Noch keine Schützen",
                            "Lege den ersten Schützen an oder importiere eine Mitgliederliste.",
                            "Neuer Schütze")
-        super().__init__("Schützen", HEADERS, empty,
+        super().__init__("Schützen", HEADERS + optional_columns(ARCHER_OPTIONAL), empty,
                          search_placeholder="Name, Verein oder Passnummer …",
                          multi_select=True)
         empty.actionTriggered.connect(self.new_item)
@@ -207,7 +219,8 @@ class ArchersView(ListView):
                               if a.default_bow_class else None,
                               a.pass_number,
                               Cell(a.active, chip=("Aktiv", "success") if a.active
-                                   else ("Inaktiv", "danger"))] for a in visible],
+                                   else ("Inaktiv", "danger"))]
+                             + optional_values(ARCHER_OPTIONAL, a) for a in visible],
                             [a.id for a in visible])
         clubs = {a.club.strip().lower() for a in archers if a.club}
         active = sum(a.active for a in archers)

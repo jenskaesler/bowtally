@@ -12,7 +12,8 @@ from bowtally.services import settings_service as ss
 from bowtally.ui import busy, button, show_error, theme
 from bowtally.ui.components.action_bar import Action
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
-from bowtally.ui.components.data_table import ROW_HEIGHT, Cell, ReorderTable
+from bowtally.ui.components.data_table import (ROW_HEIGHT, Cell, ReorderTable, optional,
+                                               optional_columns, optional_values)
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.help_link import help_link
 from bowtally.ui.components.page_header import PageHeader
@@ -26,6 +27,10 @@ from bowtally.ui.views import ListView
 from bowtally.ui.views.bow_classes_view import READ_ONLY_HINT, builtin_chip
 
 HEADERS = ["Bezeichnung", "Zonen", "Schüsse/Scheibe", "Nachschuss", "Typ", "Standard"]
+RULE_OPTIONAL = [
+    (optional("description", "Beschreibung"), lambda r: r.description),
+    (optional("created_at", "Angelegt am"), lambda r: r.created_at),
+]
 MAX_POINTS = 30
 MAX_SHOTS = 3
 ZONE_TYPES = sc.ZONE_TYPES
@@ -265,7 +270,7 @@ class _RulesTab(ListView):
     def __init__(self, parent=None):
         empty = EmptyState("rules", "Keine Regelwerke",
                            "Lege ein Regelwerk mit Zonen und Punktwerten an.", "Neues Regelwerk")
-        super().__init__("Regelwerke", HEADERS, empty,
+        super().__init__("Regelwerke", HEADERS + optional_columns(RULE_OPTIONAL), empty,
                          search_placeholder="Bezeichnung oder Zone …")
         empty.actionTriggered.connect(self.new_item)
         self.header.add(button("Neues Regelwerk", self.new_item, "primary",
@@ -298,7 +303,7 @@ class _RulesTab(ListView):
                               zone_summary(r), r.max_shots_per_target, r.allow_retry_shot,
                               builtin_chip(r.is_builtin),
                               Cell("★", foreground=theme.GOLD) if default_id and str(r.id) == default_id else ""]
-                             for r in visible],
+                             + optional_values(RULE_OPTIONAL, r) for r in visible],
                             [r.id for r in visible])
         custom = sum(not r.is_builtin for r in rules)
         self.header.set_subtitle(f"{len(rules)} Regelwerke | {custom} benutzerdefiniert")
