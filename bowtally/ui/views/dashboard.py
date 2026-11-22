@@ -458,67 +458,74 @@ class TournamentDashboard(QWidget):
                                  f"{t.location or 'Ort offen'} · Phase "
                                  f"{ts.PHASE_LABELS[t.phase]}")
         stats = ts.get_tournament_stats(t.id)
-        self.grid.addWidget(self._participants_card(t, stats), 0, 0)
-        self.grid.addWidget(self._revenue_card(t), 0, 1)
-        self.grid.addWidget(self._phase_card(t), 0, 2)
+        # row 1: phase, schedule, announcement links (links in every phase)
+        self.grid.addWidget(self._phase_card(t), 0, 0)
+        self.grid.addWidget(self._schedule_card(t), 0, 1)
+        self.grid.addWidget(self._links_card(t), 0, 2)
+        # row 2: participants, (result progress from the shooting phase on,) classes
+        self.grid.addWidget(self._participants_card(t, stats), 1, 0)
         show_progress = ts.phase_index(t.phase) >= ts.phase_index("shooting")
         if show_progress:
-            self.grid.addWidget(self._progress_card(t), 1, 0)
-        self.grid.addWidget(self._classes_card(t), 1, 1 if show_progress else 0,
+            self.grid.addWidget(self._progress_card(t), 1, 1)
+        self.grid.addWidget(self._classes_card(t), 1, 2 if show_progress else 1,
                             1, 1 if show_progress else 2)
-        self.grid.addWidget(self._schedule_card(t), 1, 2)
-        self.grid.addWidget(self._costs_card(t), 2, 0, 1, 3)
+        # row 3: revenue, material over two columns
+        self.grid.addWidget(self._revenue_card(t), 2, 0)
+        self.grid.addWidget(self._costs_card(t), 2, 1, 1, 2)
         if t.internal_notes:
             self.grid.addWidget(self._notes_card(t), 3, 0, 1, 3)
-        # in every phase: links to the announcement already published elsewhere
-        self.grid.addWidget(self._links_card(t), 4, 0, 1, 3)
 
     def _links_card(self, t):
         from PySide6.QtGui import QFontMetrics
         from bowtally.services import announcement_link_service as als
         from bowtally.ui.dialogs.announcement_link_dialog import platform_pixmap, qr_pixmap
         card, c = _card("Ausschreibungslinks")
-        head = QHBoxLayout()
-        head.addWidget(QLabel("Links zur bereits veröffentlichten Ausschreibung, je mit QR-Code "
-                              "für Flyer, Infostand oder weitere Posts.",
-                              objectName="pageSubtitle", wordWrap=True), 1)
-        head.addWidget(button("Link hinzufügen", lambda: self._edit_link(t.id), "primary",
-                              "Link zu einer veröffentlichten Ausschreibung hinterlegen"))
-        c.addLayout(head)
         links = als.list_links(t.id)
         if not links:
-            c.addWidget(QLabel("Noch keine Links hinterlegt.", objectName="pageSubtitle"))
+            c.addWidget(QLabel("Links zur bereits veröffentlichten Ausschreibung, je mit QR-Code "
+                               "für Flyer, Infostand oder weitere Posts.",
+                               objectName="pageSubtitle", wordWrap=True))
         for link in links:
             row_w = QFrame()
             row_w.setToolTip("Rechtsklick: Bearbeiten oder Löschen")
             row_w.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             row_w.customContextMenuRequested.connect(
                 lambda _pos, lk=link, w=row_w: self._link_menu(w, t.id, lk))
-            row = QHBoxLayout(row_w)
-            row.setContentsMargins(0, 4, 0, 4)
+            row = QHBoxLayout(row_w)        # one column wide: name above the URL, QR right
+            row.setContentsMargins(0, 2, 0, 2)
+            text = QVBoxLayout()
+            text.setSpacing(0)
+            name_row = QHBoxLayout()
             icon = QLabel()
-            icon.setPixmap(platform_pixmap(link.platform, 20))
-            row.addWidget(icon)
+            icon.setPixmap(platform_pixmap(link.platform, 18))
+            name_row.addWidget(icon)
             name = QLabel(als.platform_name(link))
             f = name.font()
             f.setBold(True)
             name.setFont(f)
-            name.setMinimumWidth(140)
-            row.addWidget(name)
+            name_row.addWidget(name, 1)
+            text.addLayout(name_row)
             shown = QFontMetrics(self.font()).elidedText(link.url, Qt.TextElideMode.ElideMiddle,
-                                                          460)
+                                                          220)
             url = QLabel(f'<a href="{html.escape(link.url, quote=True)}">{html.escape(shown)}</a>')
             url.setOpenExternalLinks(True)
             url.setToolTip(link.url)
-            row.addWidget(url, 1)
+            text.addWidget(url)
+            row.addLayout(text, 1)
             qr = QPushButton(flat=True)
-            qr.setIcon(QIcon(qr_pixmap(link.url, 56)))
-            qr.setIconSize(QSize(56, 56))
+            qr.setIcon(QIcon(qr_pixmap(link.url, 48)))
+            qr.setIconSize(QSize(48, 48))
             qr.setCursor(Qt.CursorShape.PointingHandCursor)
             qr.setToolTip("QR-Code vergrößern")
             qr.clicked.connect(lambda _=False, lk=link: self._zoom_qr(lk))
             row.addWidget(qr)
             c.addWidget(row_w)
+        c.addStretch()
+        add = QHBoxLayout()
+        add.addStretch()
+        add.addWidget(button("Link hinzufügen", lambda: self._edit_link(t.id), "primary",
+                             "Link zu einer veröffentlichten Ausschreibung hinterlegen"))
+        c.addLayout(add)
         return card
 
     def _edit_link(self, tournament_id: int, link=None):
@@ -561,8 +568,10 @@ class TournamentDashboard(QWidget):
             hint_label = QLabel(hint, objectName="pageSubtitle")
             hint_label.setWordWrap(True)
             col.addWidget(hint_label)
+            col.addStretch()
             row.addLayout(col, 1)
         c.addLayout(row)
+        c.addStretch()          # stays on top when the row is as tall as the revenue card
         return card
 
     def _notes_card(self, t):

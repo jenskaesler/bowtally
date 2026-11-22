@@ -636,6 +636,10 @@ Turnierdatum, Einschreibung ab, Schießbeginn mit Countdown). Die Karte
 <b>Material</b> zeigt getrennt die <b>Kosten Einmalartikel</b> (echte Zusatzkosten dieses
 Turniers) und den <b>Warenwert Bestandsinventar</b> (angeforderte Menge × Einzelpreis der
 verwendeten Inventarartikel). Ein Klick auf eine Karte öffnet die passende Ansicht.</p>
+<p>Anordnung: oben <b>Aktuelle Phase</b>, <b>Zeitplan</b> und <b>Ausschreibungslinks</b>,
+darunter <b>Teilnehmer</b> und <b>Klassen</b> (ab der Phase Schießen mit dem
+<b>Ergebnisfortschritt</b> dazwischen), unten <b>Einnahmen</b> und <b>Material</b>; die
+<b>Notizen</b> stehen ganz unten.</p>
 <a name="ausschreibungslinks"></a><h3>Ausschreibungslinks</h3>
 <p>Ist die Ausschreibung bereits veröffentlicht (Vereinswebsite, Facebook, Instagram,
 Mein Bogenturnier o. ä.), hinterlegst du in der Karte <b>Ausschreibungslinks</b> den Link dazu –

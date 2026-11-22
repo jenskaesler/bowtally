@@ -6,6 +6,8 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+## [2026.11.7] – 2026-11-22
+
 ### Hinzugefügt
 
 - **🔗 Ausschreibungslinks mit QR-Code** — Auf dem Turnier-Dashboard lassen sich in jeder Phase
@@ -15,44 +17,27 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   zeigt beim Tippen eine QR-Vorschau. Bearbeiten und Löschen per Rechtsklick. Die Links sind
   unabhängig vom Ausschreibungs-PDF und den Phasen, werden nicht geprüft und sind im Backup
   enthalten. Neues Datenbankschema 0043.
-- **📅 Kalender: Rechtsklick „Neues Turnier am …“** — in Jahres-, Monats- und Wochenansicht. In
-  der Tagesansicht steht der Button jetzt oben rechts und heißt „Neues Turnier“.
-
-### Geändert
-
-- **🧾 Gleiche Fußzeile auf allen Ausdrucken** — links „Erstellt am:“ mit Zeitstempel (bisher
-  „Erstellt mit BowTally“ und nur auf Ergebnisliste und Regel-PDF), mittig die Seitenzahl, rechts
-  das Sponsoring. Die Urkunde trägt nur das Sponsoring.
-- **🖨️ Druckfarben verschoben** — von Einstellungen → Design nach Turnierverwaltung → Allgemein,
-  neben die Inventarkategorien, mit eigenem „Zurücksetzen auf Standard“.
-- **📊 Dashboard-Zählungen** — Aktive Turniere zeigen die Gesamtzahl und die Entwürfe; Mitglieder
-  zählt alle aktiven Mitglieder (bisher nur Helfer) mit Turnierhelfern und inaktiven. Ohne Schützen
-  steht auf der Schützen-Kachel „noch keine Schützen“ statt „noch keine Vereine“.
-
-### Behoben
-
-- **🖼️ Logo allein speicherbar** — Wurde in den Einstellungen nur das Vereinslogo gewählt oder
-  entfernt, blieb „Speichern“ inaktiv. Die Logo-Änderung zählt jetzt als ungespeicherte Änderung.
-
-## [2026.11.7] – 2026-11-22
-
-### Hinzugefügt
-
-- **📅 Turnier direkt im Kalender anlegen** — Doppelklick auf einen Tag (Monats- und
-  Wochenansicht) oder „Neues Turnier an diesem Tag“ in der Tagesansicht öffnet den
-  Turnier-Assistenten mit diesem Datum.
+- **📅 Turnier direkt im Kalender anlegen** — Rechtsklick auf einen Tag (Jahres-, Monats- und
+  Wochenansicht, „Neues Turnier am …“), Doppelklick auf einen Tag (Monats- und Wochenansicht)
+  oder „Neues Turnier“ oben rechts in der Tagesansicht öffnet den Turnier-Assistenten mit diesem
+  Datum.
 - **🏷️ Watermark auf allen Ausdrucken** — Jedes PDF trägt unten rechts das BowTally-Logo, den
   Schriftzug „sponsored by BowTally“ und einen kleinen QR-Code zum Repository (auch anklickbar).
-  Die Seitenzahl von Ergebnisliste und Regel-PDF steht dafür jetzt unten mittig; auf der Urkunde
-  sitzen Unterschriften und Ort/Datum etwas höher.
+  Alle Ausdrucke haben jetzt dieselbe Fußzeile: links „Erstellt am:“ mit Zeitstempel (bisher
+  „Erstellt mit BowTally“ und nur auf Ergebnisliste und Regel-PDF), mittig die Seitenzahl, rechts
+  das Sponsoring. Die Urkunde trägt nur das Sponsoring; Unterschriften und Ort/Datum sitzen dort
+  etwas höher.
 - **📜 Urkunde per E-Mail** — Beim Ergebnisversand bekommen Podiumsplätze zusätzlich ihre eigene
   Urkunde als PDF angehängt (Option im Versanddialog, standardmäßig an).
-- **🖨️ Druckfarben einstellbar** — Unter Einstellungen → Design legen eigene Druckfarben
+- **🖨️ Druckfarben einstellbar** — Unter Einstellungen → Turnierverwaltung → Allgemein (neben den
+  Inventarkategorien) legen eigene Druckfarben
   (Hauptfarbe, Sekundärfarbe, sekundärer Text, Rahmenlinien) die Farben aller PDF-Ausdrucke fest,
   unabhängig vom App-Theme. Beim Update werden die bisherigen Oberflächenfarben übernommen.
 
 ### Behoben
 
+- **🖼️ Logo allein speicherbar** — Wurde in den Einstellungen nur das Vereinslogo gewählt oder
+  entfernt, blieb „Speichern“ inaktiv. Die Logo-Änderung zählt jetzt als ungespeicherte Änderung.
 - **💬 WhatsApp-Zuordnung richtig erkannt** — Die Einstellungen zeigten „Nicht zugeordnet“, obwohl
   WhatsApp Desktop dem Linktyp `whatsapp` zugeordnet war: Windows 11 speichert die Wahl nicht mehr
   im klassischen Registry-Schlüssel. BowTally fragt jetzt Windows direkt, welche App den Link
@@ -60,6 +45,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ### Geändert
 
+- **🧭 Turnier-Dashboard neu angeordnet** — oben Aktuelle Phase, Zeitplan und
+  Ausschreibungslinks; darunter Teilnehmer und Klassen (ab der Phase Schießen mit dem
+  Ergebnisfortschritt dazwischen); unten Einnahmen und Material über zwei Spalten.
 - **🗄️ Datenbankschema sichtbar** — Die Schemaversion der Datenbank (Alembic-Revision, unabhängig
   von der App-Version) steht in der Statusleiste neben dem Datenbankpfad, im Dialog „Über BowTally“
   und auf dem Startbildschirm unter der Versionsnummer.
@@ -75,7 +63,9 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
   sofern im Vereinsprofil hinterlegt.
 - **📊 Dashboard-Kacheln** — Alle Kacheln zeigen ein farbiges Symbol. Regelwerke und Bogenklassen
   zeigen die Anzahl Standard und eigene, das Turnierarchiv die Zahl der abgeschlossenen von allen
-  Turnieren.
+  Turnieren. Aktive Turniere zeigen die Gesamtzahl und die Entwürfe; Mitglieder zählt alle aktiven
+  Mitglieder (bisher nur Helfer) mit Turnierhelfern und inaktiven. Ohne Schützen steht auf der
+  Schützen-Kachel jetzt „noch keine Schützen“ statt „noch keine Vereine“.
 - **⚙️ WhatsApp-Einstellungen aufgeräumt** — Der Button heißt kurz „App zuordnen …“ und ist so breit
   wie die Auswahl darüber; statt des Hinweistexts führt ein Link in die Hilfe.
 
