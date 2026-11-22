@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![Language](https://img.shields.io/badge/Language-Python%203.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-NC--Distribution%20Copyleft%202.0-orange)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2026.11.6-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-2026.11.7-blue)](CHANGELOG.md)
 
 ---
 
@@ -253,7 +253,7 @@ Danach baut das Skript mit PyInstaller und anschließend den Installer mit NSIS 
 Nur den Installer neu bauen:
 
 ```bat
-makensis /DVERSION=2026.11.6 build\setup.nsi
+makensis /DVERSION=2026.11.7 build\setup.nsi
 ```
 
 ### Release
