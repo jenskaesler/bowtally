@@ -95,10 +95,30 @@ def register_fonts(families: list[str]) -> tuple[str, str]:
             try:
                 pdfmetrics.registerFont(TTFont(name, str(reg)))
                 pdfmetrics.registerFont(TTFont(name + "-Bold", str(bold or reg)))
+                # <i> in paragraphs needs the italic faces; without files they stay upright
+                italic, bold_italic = _italic_files(reg, bold or reg)
+                pdfmetrics.registerFont(TTFont(name + "-Italic", str(italic)))
+                pdfmetrics.registerFont(TTFont(name + "-BoldItalic", str(bold_italic)))
+                pdfmetrics.registerFontFamily(name, normal=name, bold=name + "-Bold",
+                                              italic=name + "-Italic",
+                                              boldItalic=name + "-BoldItalic")
                 return name, name + "-Bold"
             except Exception:   # broken / unsupported font file -> try next
                 continue
     return FALLBACK_FONT, FALLBACK_FONT_BOLD
+
+
+_ITALIC = {"segoeui.ttf": ("segoeuii.ttf", "segoeuiz.ttf"), "arial.ttf": ("ariali.ttf", "arialbi.ttf"),
+           "calibri.ttf": ("calibrii.ttf", "calibriz.ttf"), "verdana.ttf": ("verdanai.ttf", "verdanaz.ttf")}
+
+
+def _italic_files(reg: Path, bold: Path) -> tuple[Path, Path]:
+    """Italic and bold-italic file next to the regular one, else the upright faces."""
+    names = _ITALIC.get(reg.name.lower()) or (
+        reg.name.replace("-Regular", "").replace(".ttf", "-Italic.ttf"),
+        bold.name.replace("-Bold", "").replace(".ttf", "-BoldItalic.ttf"))
+    italic, bold_italic = reg.with_name(names[0]), bold.with_name(names[1])
+    return (italic if italic.is_file() else reg), (bold_italic if bold_italic.is_file() else bold)
 
 
 # ------------------------------------------------------------------ watermark

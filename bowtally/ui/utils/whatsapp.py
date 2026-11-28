@@ -12,6 +12,7 @@ from urllib.parse import quote
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 
+from bowtally.services import markup
 from bowtally.services import settings_service as ss
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.utils.mailto import template_context, tournament_ctx
@@ -78,7 +79,7 @@ def render_template(template_key: str, context: dict) -> tuple[str, list[str]]:
         raise ValueError("empty")
     ctx = template_context(context, with_logo=False)
     try:
-        text = body_raw.format_map(ctx)
+        text = markup.to_whatsapp(body_raw).format_map(ctx)   # markup applies to the template only
     except (ValueError, AttributeError, IndexError, TypeError, KeyError) as exc:
         raise ValueError(f"malformed: {exc}") from exc
     unresolved = sorted(f for f in template_fields(body_raw) if f not in ctx)

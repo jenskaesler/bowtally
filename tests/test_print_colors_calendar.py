@@ -120,3 +120,28 @@ def test_calendar_right_click_offers_new_tournament(db, monkeypatch, year_view):
         cell.newRequested.connect(got.append)
         cell.contextMenuEvent(None)
     assert got == [date(2027, 5, 8)]
+
+
+def test_year_view_double_click_creates_a_tournament_and_cancels_the_day_click(db):
+    import types
+    from PySide6.QtWidgets import QLabel
+    from bowtally.ui.views import calendar_view as cv
+    d = date(2027, 5, 8)
+    view = cv._MiniMonth(2027, 5, {d: [types.SimpleNamespace(phase="draft")]})
+    new, clicked = [], []
+    view.newRequested.connect(new.append)
+    view.dayClicked.connect(clicked.append)
+    day = next(w for w in view.findChildren(QLabel) if w.text() == "8")
+    day.mousePressEvent(None)
+    day.mouseDoubleClickEvent(None)
+    assert new == [d] and not view._click.isActive() and not clicked
+
+
+def test_tables_align_only_currency_right(db):
+    from PySide6.QtCore import Qt
+    from bowtally.ui.components.data_table import Cell, DataTable
+    table = DataTable(["Name", "Anzahl", "Preis"])
+    table.set_rows([["Scheibe", 3, Cell(12.5, text="12,50 €")]], [1])
+    right = [bool(table.table.item(0, c).textAlignment() & Qt.AlignmentFlag.AlignRight)
+             for c in range(3)]
+    assert right == [False, False, True]

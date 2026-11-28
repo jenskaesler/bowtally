@@ -16,6 +16,7 @@ from bowtally.ui.components.data_table import (ROW_HEIGHT, Cell, ReorderTable, o
                                                optional_columns, optional_values)
 from bowtally.ui.components.empty_state import EmptyState
 from bowtally.ui.components.help_link import help_link
+from bowtally.ui.components.markdown_edit import MarkdownEdit
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
@@ -417,8 +418,8 @@ class _TournamentRulesTab(QWidget):
         self._save_btn = button("Speichern", self._save, "primary", "Turnierregeln speichern")
         self.header.add(button("Turnierregeln exportieren", self._export_pdf,
                                tooltip="Druckbare PDF der Turnierregeln erstellen"), self._save_btn)
-        self._rules = QPlainTextEdit()
-        self._terms = QPlainTextEdit()
+        self._rules = MarkdownEdit()
+        self._terms = MarkdownEdit()
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(self.header)

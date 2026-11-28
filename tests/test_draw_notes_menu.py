@@ -140,7 +140,8 @@ def test_internal_notes_shown_in_guide_when_closed_and_on_dashboard(make_tournam
     try:
         guide = GuideView()
         guide.refresh()
-        notes = [e for e in guide.findChildren(QPlainTextEdit) if e.isReadOnly()]
+        from bowtally.ui.components.markdown_edit import MarkdownEdit
+        notes = [e for e in guide.findChildren(MarkdownEdit) if e.isReadOnly()]
         assert [e.toPlainText() for e in notes] == ["Intern: Schlüssel beim Platzwart"]
     finally:
         context.set(None)
@@ -155,5 +156,8 @@ def test_burger_button_with_menu_has_no_qt_menu_indicator(app):
 
 def test_mail_html_body_is_always_10pt():
     from bowtally.ui.utils.mailto import _html_body
-    assert "font-size:10pt" in _html_body("a\nb", "") and "font-family" not in _html_body("a", "")
-    assert "font-family:'Inter','Segoe UI',Arial,sans-serif;font-size:10pt" in _html_body("a", "Inter")
+    assert "font-size:10pt" in _html_body("a\nb", {}, "") and "font-family" not in _html_body("a", {}, "")
+    assert "font-family:'Inter','Segoe UI',Arial,sans-serif;font-size:10pt" in _html_body("a", {}, "Inter")
+    # markup formats the template; placeholder values stay text (a masked IBAN has stars)
+    body = _html_body("Hallo **{name}**\n{daten}", {"name": "A <b>", "daten": "** **** 3000\nx"}, "")
+    assert "Hallo <b>A &lt;b&gt;</b><br>** **** 3000<br>x" in body

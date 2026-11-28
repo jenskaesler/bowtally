@@ -36,7 +36,7 @@ def test_tabs_and_total_is_calculated_live_and_read_only(app):
     dialog = _dialog()
     tabs = dialog.findChild(QTabWidget)
     assert [tabs.tabText(i) for i in range(tabs.count())] == \
-        ["Stammdaten", "Notizen", "Dokumente", "Reparaturkosten"]
+        ["Stammdaten", "Notizen", "Dokumente", "Instandhaltungskosten"]
     total = dialog.form.fields["total"]
     assert total.widget.isReadOnly() and total.value() == "0,00 €"
     dialog.form.fields["unit_price"].set_value(12.5)
@@ -180,7 +180,7 @@ def test_repair_dialog_links_an_existing_document_as_invoice(app, tmp_path):
     dialog._repairs.selectRow(0)
     assert dialog._btn_invoice.isEnabled()
     dialog._files_panel.reload()
-    assert "Rechnung zur Reparatur vom 01.11.2026" in dialog._files_panel.table.item(0, 0).toolTip()
+    assert "Rechnung zur Instandhaltung vom 01.11.2026" in dialog._files_panel.table.item(0, 0).toolTip()
 
 
 def test_notes_field_takes_half_of_the_tab_height(app):

@@ -46,7 +46,7 @@ class _RepairDialog(RecordDialog):
 
     def __init__(self, item_id: int, repair=None, parent=None):
         self._item_id, self._repair = item_id, repair
-        super().__init__("Reparatur bearbeiten" if repair else "Reparatur hinzufügen", parent=parent)
+        super().__init__("Instandhaltung bearbeiten" if repair else "Instandhaltung hinzufügen", parent=parent)
         self.form.set_values(
             {"date": repair.date, "description": repair.description, "cost": repair.cost,
              "performed_by": repair.performed_by, "invoice_file_id": repair.invoice_file_id}
@@ -60,8 +60,8 @@ class _RepairDialog(RecordDialog):
             self._invoice.addItem(stored.filename, stored.id)
         self.form.add("date", "Datum", DateField(), required=True)
         self.form.add("description", "Beschreibung", QLineEdit())
-        self.form.add("cost", "Kosten", AmountField(), required=True,
-                      validator=lambda v: None if v and v > 0 else "Kosten müssen größer als 0 sein")
+        self.form.add("cost", "Instandhaltungskosten", AmountField(), required=True,
+                      validator=lambda v: None if v and v > 0 else "Instandhaltungskosten müssen größer als 0 sein")
         self.form.add("performed_by", "Durchgeführt von", QLineEdit())
         self.form.add("invoice_file_id", "Rechnung", self._invoice, trailing=button(
             "Datei hinzufügen …", self._add_invoice,
@@ -85,7 +85,7 @@ class _RepairDialog(RecordDialog):
         try:
             inv.save_repair(values, self._repair.id if self._repair else None, self._item_id)
         except Exception as exc:
-            show_error(self, exc, "Reparatur konnte nicht gespeichert werden")
+            show_error(self, exc, "Instandhaltung konnte nicht gespeichert werden")
             return False
         return True
 
@@ -139,7 +139,7 @@ class InventoryItemDialog(RecordDialog):
             inv.list_inventory_files, inv.add_inventory_file, inv.remove_inventory_file,
             inv.inventory_file_path, inv.invoice_hints)
         self._tabs.addTab(self._files_panel, "Dokumente")
-        self._tabs.addTab(self._build_repairs(), "Reparaturkosten")
+        self._tabs.addTab(self._build_repairs(), "Instandhaltungskosten")
         self._body_layout.addWidget(self._tabs)
         self._tabs.currentChanged.connect(self._sync_files_and_repairs)
 
@@ -187,12 +187,12 @@ class InventoryItemDialog(RecordDialog):
         lay = QVBoxLayout(page)
         lay.setContentsMargins(0, 0, 0, 0)
         if self._record is None:
-            lay.addWidget(QLabel("Reparaturen können nach dem ersten Speichern erfasst werden.",
+            lay.addWidget(QLabel("Instandhaltungen können nach dem ersten Speichern erfasst werden.",
                                  objectName="pageSubtitle"))
             lay.addStretch()
             return page
         self._repairs = t = QTableWidget(0, 5)
-        t.setHorizontalHeaderLabels(["Datum", "Beschreibung", "Kosten", "Durchgeführt von",
+        t.setHorizontalHeaderLabels(["Datum", "Beschreibung", "Instandhaltungskosten", "Durchgeführt von",
                                      "Rechnung"])
         t.verticalHeader().hide()
         t.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
@@ -210,7 +210,7 @@ class InventoryItemDialog(RecordDialog):
         self._btn_invoice = button("Rechnung öffnen", self._open_invoice)
         self._btn_delete = button("Löschen", self._delete_repair)
         buttons = QHBoxLayout()
-        buttons.addWidget(button("Reparatur hinzufügen", self._add_repair))
+        buttons.addWidget(button("Instandhaltung hinzufügen", self._add_repair))
         buttons.addWidget(self._btn_edit)
         buttons.addWidget(self._btn_invoice)
         buttons.addWidget(self._btn_delete)
@@ -230,6 +230,9 @@ class InventoryItemDialog(RecordDialog):
             for col, text in enumerate(texts):
                 item = QTableWidgetItem(text)
                 item.setData(Qt.ItemDataRole.UserRole, r.id)
+                if col == 2:        # currency is right aligned, as in all tables
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight
+                                          | Qt.AlignmentFlag.AlignVCenter)
                 t.setItem(row, col, item)
         self._update_repair_buttons()
 
@@ -257,13 +260,13 @@ class InventoryItemDialog(RecordDialog):
             self._reload_repairs()
 
     def _delete_repair(self):
-        if not ConfirmDialog.ask(self, "Reparatur löschen?",
+        if not ConfirmDialog.ask(self, "Instandhaltung löschen?",
                                  "Der Eintrag wird endgültig gelöscht."):
             return
         try:
             inv.delete_repair(self._selected_repair().id)
         except Exception as exc:
-            show_error(self, exc, "Reparatur konnte nicht gelöscht werden")
+            show_error(self, exc, "Instandhaltung konnte nicht gelöscht werden")
             return
         self._reload_repairs()
 
@@ -401,7 +404,7 @@ class InventoryView(ListView):
         item = self._items.get(self.table.selected_id())
         if item is None or not ConfirmDialog.ask(
                 self, "Artikel löschen?", f"„{item.name}“ wird mit allen Dokumenten und "
-                "Reparaturen endgültig gelöscht.", "Löschen", destructive=True):
+                "Instandhaltungen endgültig gelöscht.", "Löschen", destructive=True):
             return
         try:
             inv.delete_item(item.id)

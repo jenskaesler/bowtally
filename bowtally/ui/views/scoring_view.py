@@ -56,7 +56,6 @@ class ScoreDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         editor = QLineEdit(parent)
-        editor.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         completer = QCompleter(QStringListModel(self.labels, editor), editor)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -146,7 +145,6 @@ class _NumberDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         editor = _DigitEdit(parent)
         editor.setValidator(QRegularExpressionValidator(QRegularExpression(r"[0-9]{0,6}"), editor))
-        editor.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         return editor
 
     def setModelData(self, editor, model, index):
@@ -361,7 +359,6 @@ class ScoringView(QWidget):
         parts = sorted(t.participants, key=lambda p: (p.start_number or 10**9,
                                                       p.archer.last_name))
         locked = ts.scoring_locked(t)
-        right_align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         self._loading = True
         self.model.clear()
         self.model.setHorizontalHeaderLabels(headers)
@@ -374,11 +371,9 @@ class ScoringView(QWidget):
                 it.setData(p.bow_class_id, CLASS_ROLE)
                 it.setData(p.start_group or "", GROUP_ROLE)
                 row.append(it)
-            row[0].setTextAlignment(right_align)
             for tg, s in self.cols:
                 score = scores.get((p.id, tg, s))
                 it = QStandardItem("" if score is None else str(score.points))
-                it.setTextAlignment(right_align)
                 it.setData((p.id, tg, s), CELL_ROLE)
                 it.setEditable(not locked)
                 zone_hit = score.zone_hit if score else None
@@ -389,11 +384,9 @@ class ScoringView(QWidget):
             for _ in self._tracked_keys:
                 spec_it = QStandardItem()
                 spec_it.setEditable(False)
-                spec_it.setTextAlignment(right_align)
                 row.append(spec_it)
             total = QStandardItem()
             total.setEditable(False)
-            total.setTextAlignment(right_align)
             f = total.font()
             f.setBold(True)
             total.setFont(f)
@@ -539,7 +532,6 @@ class ScoringView(QWidget):
 
     def _simple_item(self, text="", data=None, editable=False, bold=False) -> QTableWidgetItem:
         it = QTableWidgetItem(text)
-        it.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         if data is not None:
             it.setData(Qt.ItemDataRole.UserRole, data)
         if not editable:
@@ -574,9 +566,6 @@ class ScoringView(QWidget):
         table.blockSignals(True)
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
-        for col in range(4, len(headers)):          # number columns: header above the right-aligned values
-            table.horizontalHeaderItem(col).setTextAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         table.setRowCount(len(parts))
         for row, p in enumerate(parts):
             for col, txt in enumerate([str(p.start_number or ""),
@@ -587,8 +576,6 @@ class ScoringView(QWidget):
                 if col == 0:
                     item.setData(CLASS_ROLE, p.bow_class_id)
                     item.setData(GROUP_ROLE, p.start_group or "")
-                else:       # text left, numbers right (like the results table)
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
                 table.setItem(row, col, item)
             for rn, col in zip(rounds, self._simple_points_cols):
                 entry = all_sc.get((p.id, rn, 0, 1))

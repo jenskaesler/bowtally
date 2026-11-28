@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QColorDialog, QComboBox,
 from bowtally import config
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.help_link import help_link
+from bowtally.ui.components.markdown_edit import MarkdownEdit
 from bowtally.ui.components.search_bar import PLACEHOLDER as SEARCH_PLACEHOLDER
 from bowtally.ui.dialogs.export_helper import open_path
 from bowtally.ui.utils import whatsapp_windows as wa_win
@@ -387,7 +388,7 @@ class SettingsDialog(QDialog):
         except ValidationError:
             values = {}
         values.update({k: self._value_of(w) for k, w in self.value_widgets.items()})
-        club = {k: (e.toPlainText() if isinstance(e, QPlainTextEdit) else e.text()).strip()
+        club = {k: (e.toPlainText() if isinstance(e, (QPlainTextEdit, MarkdownEdit)) else e.text()).strip()
                 for k, e in self.club_edits.items()}
         club["logo_path"] = self._logo_path
         return {"values": values, "club": club, "nav": self._nav_order_json(),
@@ -460,7 +461,7 @@ class SettingsDialog(QDialog):
                 w.valueChanged.connect(self._update_save_btn)
             elif isinstance(w, QLineEdit):
                 w.textChanged.connect(self._update_save_btn)
-            elif isinstance(w, QPlainTextEdit):
+            elif isinstance(w, (QPlainTextEdit, MarkdownEdit)):
                 w.textChanged.connect(self._update_save_btn)
             elif hasattr(w, 'edit') and isinstance(w.edit, QLineEdit):
                 w.edit.textChanged.connect(self._update_save_btn)
@@ -1087,8 +1088,8 @@ class SettingsDialog(QDialog):
 
     def _print_tab(self) -> QWidget:
         club = ss.get_club_profile()
-        edit_course = QPlainTextEdit(club.get("course_description") or "")
-        edit_course.setMinimumHeight(90)
+        edit_course = MarkdownEdit(club.get("course_description") or "")
+        edit_course.setMinimumHeight(120)
         edit_course.setPlaceholderText(
             "z. B. Waldparcours ca. 4 km, festes Schuhwerk erforderlich")
         self.club_edits["course_description"] = edit_course
@@ -1112,7 +1113,7 @@ class SettingsDialog(QDialog):
                 groups["templates"].addRow(lbl, _with_grip(edit_course))
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
-            display = _with_grip(widget) if isinstance(widget, QPlainTextEdit) else widget
+            display = _with_grip(widget) if isinstance(widget, (QPlainTextEdit, MarkdownEdit)) else widget
             label = self._flbl(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
@@ -1130,8 +1131,13 @@ class SettingsDialog(QDialog):
         w = QWidget()
         row = QHBoxLayout(w)
         row.setContentsMargins(0, 0, 0, 0)
-        row.addWidget(self._inventory_categories_box(), 1)
-        row.addWidget(self._print_colors_box(), 1, Qt.AlignmentFlag.AlignTop)
+        categories, colors = self._inventory_categories_box(), self._print_colors_box()
+        # same size as the print colors: no height of its own (the row is as high as the
+        # colors, both fill it) and at least their width
+        categories.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Ignored)
+        categories.setMinimumWidth(colors.minimumSizeHint().width())
+        row.addWidget(categories, 1)
+        row.addWidget(colors, 1)
         return w
 
     def _inventory_categories_box(self) -> QGroupBox:
@@ -1140,7 +1146,6 @@ class SettingsDialog(QDialog):
         box_lay = QVBoxLayout(box)
         box_lay.addWidget(help_link("Inventar & Kalender", "inventarkategorien"))
         self._category_list = QListWidget()
-        self._category_list.setMinimumHeight(220)
         box_lay.addWidget(self._category_list, 1)
         buttons = QHBoxLayout()
         buttons.addWidget(button("Neu", self._add_category, "primary"))
@@ -1241,8 +1246,8 @@ class SettingsDialog(QDialog):
             box = QGroupBox(title)
             form = self._form(box)
             subj = QLineEdit(values.get(subj_key, ""))
-            body = QPlainTextEdit(values.get(body_key, ""))
-            body.setMinimumHeight(90)
+            body = MarkdownEdit(values.get(body_key, ""))
+            body.setMinimumHeight(120)
             self.value_widgets[subj_key] = subj
             self.value_widgets[body_key] = body
             form.addRow(self._flbl("Betreff"), subj)
@@ -1308,8 +1313,8 @@ class SettingsDialog(QDialog):
         ):
             box = QGroupBox(title)
             form = self._form(box)
-            body = QPlainTextEdit(values.get(key, ""))
-            body.setMinimumHeight(90)
+            body = MarkdownEdit(values.get(key, ""))
+            body.setMinimumHeight(120)
             self.value_widgets[key] = body
             form.addRow(self._flbl("Text"), _with_grip(body))
             lay.addWidget(box)
@@ -1354,7 +1359,7 @@ class SettingsDialog(QDialog):
                 lay.addWidget(box)
             widget = self._widget_for(st)
             self.value_widgets[st.key] = widget
-            display = _with_grip(widget) if isinstance(widget, QPlainTextEdit) else widget
+            display = _with_grip(widget) if isinstance(widget, (QPlainTextEdit, MarkdownEdit)) else widget
             label = self._flbl(LABEL_OVERRIDES.get(st.key) or st.description or st.key)
             label.setWordWrap(True)
             label.setToolTip(st.key)
@@ -1407,8 +1412,8 @@ class SettingsDialog(QDialog):
             w.setValue(int(value or 0))
             w.setFixedWidth(SETTINGS_COMBO_W)
         elif st.category in MULTILINE_CATEGORIES:
-            w = QPlainTextEdit(value)
-            w.setMinimumHeight(90)
+            w = MarkdownEdit(value)
+            w.setMinimumHeight(120)
         elif st.key in ss.OPTIONS:
             w = QComboBox()
             display = COMBO_LABELS.get(st.key, {})
@@ -1536,7 +1541,7 @@ class SettingsDialog(QDialog):
             return data if data is not None else w.currentText()
         if isinstance(w, QLineEdit):
             return w.text().strip()
-        if isinstance(w, QPlainTextEdit):
+        if isinstance(w, (QPlainTextEdit, MarkdownEdit)):
             return w.toPlainText().strip()
         return w.edit.text().strip()
 

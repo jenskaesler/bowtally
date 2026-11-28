@@ -67,6 +67,19 @@ wieder geöffnet.</p>
 <i>Schema 0042</i>, die volle Bezeichnung im Tooltip) und die Programmversion. Das Schema hat eine
 eigene Nummer, weil nicht jede neue Programmversion die Datenbank ändert. Das Fragezeichen öffnet
 diese Hilfe (<code>F1</code>).</p>
+<a name="formatierung"></a><h3>Formatierte Texte</h3>
+<p>Mehrzeilige Texte, die ausgegeben werden – die Ausschreibungstexte des Turnier-Assistenten
+(Einleitung, Hinweise zum Parcours, wichtige Hinweise, Abschlusstext), die Textvorlagen,
+Turnierregeln und Teilnahmebedingungen, die E-Mail- und WhatsApp-Vorlagen sowie die
+Turnier-Notizen – haben oberhalb des Feldes eine Leiste mit <b>F</b> (fett, Strg+B),
+<i>K</i> (kursiv, Strg+I), <s>S</s> (durchgestrichen), <b>•</b> (Aufzählung) und <b>1.</b>
+(Nummerierung). Die Formatierung erscheint im PDF, in der HTML-E-Mail, in WhatsApp (dort mit
+WhatsApps eigenen Zeichen) und auf dem Dashboard. Gespeichert wird sie als einfache
+Markdown-Auszeichnung (<code>**fett**</code>, <code>*kursiv*</code>, <code>~~durchgestrichen~~</code>,
+<code>- </code> bzw. <code>1. </code> am Zeilenanfang), vorhandene Texte bleiben dadurch unverändert
+lesbar; wo nur reiner Text möglich ist (mailto-Link, Export), fallen die Zeichen weg. Platzhalter
+wie <code>{name}</code> werden immer als Text eingesetzt. Interne Beschreibungen (Bogenklassen,
+Gebühren, Preise, Inventar, Mitglieder, Schützen) bleiben reiner Text.</p>
 """),
     ("Turniere", """
 <h2>Turniere</h2>
@@ -226,7 +239,8 @@ Vereinsprofil, Vorstand und Bankdaten.</p>
 <h3>7 Hinweise und Texte</h3>
 <p>Einleitungstext, Hinweise zum Parcours, wichtige Hinweise (eine Zeile je
 Hinweis; vorbelegt aus Einstellungen → Turnierverwaltung → Textvorlagen) und Abschlusstext.
-Sie erscheinen in der Ausschreibung.</p>
+Sie erscheinen in der Ausschreibung und lassen sich formatieren (Leiste über dem Feld, siehe
+„Übersicht → Formatierte Texte“).</p>
 <h3>8 Zusammenfassung</h3>
 <p>Prüfe die Angaben und speichere mit <b>Turnier erstellen</b> bzw.
 <b>Speichern</b>. Die Checkbox <b>Ausschreibung jetzt generieren</b> in der
@@ -455,7 +469,7 @@ Ergebnisliste beliebig oft neu erstellen.</p>
 <ul>
   <li><b>Urkunden drucken</b> – Urkunden für die Podiumsplätze als PDF, mit Vereinslogo (falls
       im Vereinsprofil hinterlegt) und Unterschriftszeilen für den 1. und 2. Vorsitzenden aus
-      dem Vereinsvorstand</li>
+      dem Vereinsvorstand; darüber stehen Ort (des Turniers, sonst des Vereins) und Datum</li>
   <li><b>Preis- und Siegerliste</b> – Rangliste je Bogenklasse mit den
       zugewiesenen Preisen als PDF</li>
   <li><b>Exportieren</b> – Excel, OpenDocument, CSV oder <b>PDF (.pdf)</b>
@@ -477,7 +491,7 @@ nicht erstellt wurde oder Zahlungen offen sind.</p>
 <h2>Notizen &amp; Nachbesprechung</h2>
 <h3>Notizen-Tab</h3>
 <p>Der Tab <b>Notizen</b> im Turnier ist in jeder Phase sichtbar und enthält ein
-freies Textfeld für interne Notizen zum Turnier. Mit <b>Notizen speichern</b>
+freies Textfeld für interne Notizen zum Turnier (mit Formatierungsleiste). Mit <b>Notizen speichern</b>
 sicherst du den Text. Die Notizen erscheinen <b>nicht</b> in der Ausschreibung.
 In der Phase <i>Abgeschlossen</i> sind sie schreibgeschützt.</p>
 <p>Die Notizen sind außerdem sichtbar:</p>
@@ -500,10 +514,10 @@ Zusammenfassung mit Datum, Teilnehmerzahl und Einnahmen.</p>
 für Turniere. Die Liste lässt sich oben links nach <b>Kategorie</b> filtern. Jeder Artikel hat
 einen Dialog mit den Tabs <b>Stammdaten</b> (Bezeichnung, Kategorie, Größe, Shop-Link,
 Einzelpreis, Anzahl, Gesamtpreis = Einzelpreis × Anzahl, <i>Für Parcoursplanung verwenden</i>),
-<b>Notizen</b>, <b>Dokumente</b> (z. B. Rechnung oder Foto) und <b>Reparaturkosten</b>
-(Datum, Beschreibung, Kosten, durchgeführt von, optional <b>Rechnung</b>). Die Rechnung liegt in
-den Dokumenten des Artikels und ist in der Reparatur verlinkt (Spalte <i>Rechnung</i>, Doppelklick
-oder <b>Rechnung öffnen</b>); löschst du das Dokument, wird der Link leer. Reparaturkosten zählen
+<b>Notizen</b>, <b>Dokumente</b> (z. B. Rechnung oder Foto) und <b>Instandhaltungskosten</b>
+(Datum, Beschreibung, Instandhaltungskosten, durchgeführt von, optional <b>Rechnung</b>). Die Rechnung liegt in
+den Dokumenten des Artikels und ist in der Instandhaltung verlinkt (Spalte <i>Rechnung</i>, Doppelklick
+oder <b>Rechnung öffnen</b>); löschst du das Dokument, wird der Link leer. Instandhaltungskosten zählen
 nicht zum Inventarwert. Import und Export sind möglich.</p>
 <p>Ein Artikel kann <b>aktiv</b> oder <b>inaktiv</b> sein. Die Checkbox
 <i>Aktives Inventar anzeigen</i> unten links ist standardmäßig angehakt und zeigt dann nur
@@ -525,8 +539,9 @@ Fährst du mit der Maus über ein Turnier, erscheint eine Vorschau mit
 <b>Turnier öffnen →</b>; ein Klick auf das Badge öffnet das Turnier direkt.</p>
 <p><b>Turnier aus dem Kalender anlegen:</b> Rechtsklick auf einen Tag in der Jahres-, Monats-
 oder Wochenansicht und <b>Neues Turnier am …</b> wählen, ein Doppelklick auf einen Tag in der
-Monats- oder Wochenansicht oder <b>Neues Turnier</b> oben rechts in der Tagesansicht öffnet den
-Turnier-Assistenten; das Datum ist bereits auf diesen Tag gesetzt.</p>
+Jahres-, Monats- oder Wochenansicht oder <b>Neues Turnier</b> oben rechts in der Tagesansicht
+öffnet den Turnier-Assistenten; das Datum ist bereits auf diesen Tag gesetzt. Ein einfacher Klick
+auf einen Turniertag der Jahresansicht wechselt in die Tagesansicht.</p>
 <p><b>ICS exportieren</b> schreibt alle Turniere in eine Kalenderdatei
 (<code>.ics</code>) im Exportordner, die du in andere Kalender-Apps importieren
 kannst.</p>
@@ -942,7 +957,7 @@ Downloads-Ordner).</p>
 jeder Wiederherstellung benötigt und lässt sich nicht wiederherstellen – bewahre es sicher auf.
 Im Backup sind alle Daten enthalten, auch alle Einstellungen (inklusive Logging-Modus,
 E-Mail- und WhatsApp-Vorlagen sowie <i>Teilnehmer pro Gruppe</i>), das
-Logbuch, Inventar (Kategorien, Artikel, Reparaturen,
+Logbuch, Inventar (Kategorien, Artikel, Instandhaltungen,
 Parcours-Material), die Bankdaten sowie die Dokumente von Mitgliedern, Schützen und Inventar
 (Ordner <code>member_files</code>, <code>archer_files</code>, <code>inventory_files</code>); sie werden bei
 der Wiederherstellung zurückgespielt. Fehlen in einem älteren Backup neuere

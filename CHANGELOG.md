@@ -6,6 +6,41 @@ dem Schema `yyyy.MM.patch` (Jahr.Monat.Patch).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **✍️ Formatierte Texte** — Mehrzeilige Felder, die ausgegeben werden, haben jetzt eine
+  Formatierungsleiste über dem Feld: fett (Strg+B), kursiv (Strg+I), durchgestrichen,
+  Aufzählung und Nummerierung. Betroffen sind die Ausschreibungstexte im Turnier-Assistenten
+  (Einleitung, Hinweise zum Parcours, wichtige Hinweise, Abschlusstext), die Textvorlagen und die
+  Parcours-Beschreibung in den Einstellungen, Turnierregeln und Teilnahmebedingungen, die
+  E-Mail- und WhatsApp-Vorlagen sowie die Turnier-Notizen. Die Formatierung erscheint in
+  Ausschreibungs- und Regel-PDF (dafür liegen jetzt auch die kursiven Schnitte von Open Sans
+  bei), in der HTML-E-Mail, in WhatsApp (mit dessen eigenen Zeichen) und in der Notizen-Kachel
+  des Dashboards. Gespeichert wird einfaches Markdown (`**fett**`, `*kursiv*`,
+  `~~durchgestrichen~~`, `- `/`1. ` am Zeilenanfang); bestehende Texte bleiben unverändert.
+  Platzhalter wie `{name}` werden stets als Text eingesetzt.
+
+### Geändert
+
+- **📐 Tabellen einheitlich ausgerichtet** — In allen Tabellen stehen Text, Zahlen und
+  Spaltenüberschriften linksbündig; nur Währungsbeträge sind rechtsbündig. Gilt auch für die
+  Wertungseingabe.
+- **📜 Urkunde** — Die Platzzahl ist größer und sitzt genau mittig im Siegel; das Siegel steht
+  näher am Namen. Vor dem Datum steht der Veranstaltungsort des Turniers, ohne Ort der Ort des
+  Vereins.
+- **📅 Kalender** — Auch in der Jahresansicht öffnet ein Doppelklick auf einen Tag den
+  Turnier-Assistenten mit diesem Datum.
+- **📦 Inventar** — „Reparaturkosten“ heißen jetzt „Instandhaltungskosten“.
+- **⚙️ Einstellungen** — Unter Turnierverwaltung → Allgemein ist der Kasten „Inventarkategorien“
+  so groß wie „Druckfarben“.
+
+### Behoben
+
+- **✉️ E-Mail-Entwürfe in Outlook** — Umlaute werden richtig dargestellt, im Text stehen keine
+  „=“ mehr anstelle von Buchstaben oder Punkten.
+- **👥 Teilnehmer** — In der Phase Anmeldung sind E-Mail und WhatsApp im Kontextmenü wieder
+  verfügbar.
+
 ## [2026.11.7] – 2026-11-22
 
 ### Hinzugefügt

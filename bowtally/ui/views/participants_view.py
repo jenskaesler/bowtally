@@ -625,7 +625,8 @@ class ParticipantsView(QWidget):
             ("Entfernen", self.remove_selected, not alocked),
         ]
         has_email = any(p.archer.email for p in sel)
-        email_ok = has_email and not locked
+        in_registration = self.tournament is not None and self.tournament.phase == "registration"
+        email_ok = has_email and (not locked or in_registration)
         entries += [
             None,
             ("Anmeldebestätigung per E-Mail senden",
@@ -635,7 +636,7 @@ class ParticipantsView(QWidget):
             ("Startunterlagen per E-Mail senden",
              lambda: self._send_email(ss.KEY_EMAIL_TPL_DOCS), email_ok),
         ]
-        wa_ok = not locked and any(normalize_phone(p.archer.phone) for p in sel)
+        wa_ok = (not locked or in_registration) and any(normalize_phone(p.archer.phone) for p in sel)
         entries += [
             None,
             ("Anmeldebestätigung per WhatsApp senden",

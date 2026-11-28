@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QButtonGroup, QFrame, QGraphicsDropShadowEffect, QGridLayout, QHBoxLayout,
+    QApplication, QButtonGroup, QFrame, QGraphicsDropShadowEffect, QGridLayout, QHBoxLayout,
     QLabel, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
 )
 
@@ -242,6 +242,9 @@ class _MiniMonth(QFrame):
 
     def __init__(self, year: int, month: int, by_date: dict, parent=None):
         super().__init__(parent, objectName="miniMonth")
+        # a click on a tournament day waits for a possible double click (new tournament)
+        self._click = QTimer(self, singleShot=True, interval=QApplication.doubleClickInterval())
+        self._click.timeout.connect(lambda: self.dayClicked.emit(self._clicked))
         lay = QVBoxLayout(self)
         lay.setContentsMargins(4, 4, 4, 4)
         lay.setSpacing(2)
@@ -276,6 +279,7 @@ class _MiniMonth(QFrame):
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.contextMenuEvent = lambda _e, d2=d, w=lbl: _new_tournament_menu(
                 w, d2, self.newRequested.emit)
+            lbl.mouseDoubleClickEvent = lambda _e, d2=d: self._new_on(d2)
             tournaments = by_date.get(d, [])
             if tournaments:
                 tok = _phase_color(tournaments[0].phase)
@@ -283,7 +287,7 @@ class _MiniMonth(QFrame):
                 lbl.setStyleSheet(
                     f"background:{color};color:{t_col['bg']};border-radius:4px;")
                 lbl.setCursor(Qt.CursorShape.PointingHandCursor)
-                lbl.mousePressEvent = lambda _e, d2=d: self.dayClicked.emit(d2)
+                lbl.mousePressEvent = lambda _e, d2=d: self._day_pressed(d2)
                 t0 = tournaments[0]
                 lbl.enterEvent = lambda _e, t=t0, w=lbl: self.badgeHovered.emit(
                     t, w.mapToGlobal(w.rect().center()))
@@ -299,6 +303,15 @@ class _MiniMonth(QFrame):
         for r in range(1, num_rows + 1):
             grid.setRowStretch(r, 1)
         lay.addWidget(grid_w, 1)
+
+    def _day_pressed(self, d: date):
+        if not self._click.isActive():      # the second press of a double click changes nothing
+            self._clicked = d
+            self._click.start()
+
+    def _new_on(self, d: date):
+        self._click.stop()
+        self.newRequested.emit(d)
 
 
 class _YearView(QWidget):

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Notizen: freies Textfeld pro Turnier (nach Abschluss nur lesbar)."""
-from PySide6.QtWidgets import QPlainTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button
+from bowtally.ui.components.markdown_edit import MarkdownEdit
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.toast import Toast
 from bowtally.ui.context import context
@@ -16,7 +17,7 @@ class NotesView(QWidget):
         self.header = PageHeader("Notizen")
         self.btn_save = button("Notizen speichern", self.save, "primary", "Notizen speichern")
         self.header.add(self.btn_save)
-        self.edit = QPlainTextEdit()
+        self.edit = MarkdownEdit()
         self.edit.setPlaceholderText("Freie Notizen zum Turnier …")
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)

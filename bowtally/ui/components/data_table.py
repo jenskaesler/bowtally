@@ -344,14 +344,6 @@ class DataTable(QWidget):
         for c in range(len(self.headers)):
             if any(isinstance(row[c], Cell) and row[c].chip for row in rows):
                 t.setItemDelegateForColumn(c + self._col0, self._chips)
-        if rows:   # numeric columns: right aligned header like the values
-            for c, value in enumerate(rows[0]):
-                raw = value.value if isinstance(value, Cell) else value
-                align = Qt.AlignmentFlag.AlignRight if _is_number(raw) \
-                    else Qt.AlignmentFlag.AlignLeft
-                item = t.horizontalHeaderItem(c + self._col0)
-                if item is not None:
-                    item.setTextAlignment(align | Qt.AlignmentFlag.AlignVCenter)
         t.setSortingEnabled(self._sortable)
         self._loading = False
         t.resizeColumnsToContents()
@@ -380,7 +372,7 @@ class DataTable(QWidget):
             item.setData(CHIP_ROLE, cell.chip)
         if cell.data is not None:
             item.setData(VALUE_ROLE, cell.data)
-        if _is_number(raw):
+        if item.text().endswith("€"):      # only currency is right aligned; headers stay left
             item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         if cell.bold:
             f = item.font()

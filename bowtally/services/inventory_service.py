@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Vereinsinventar: Kategorien, Artikel, Dateien und Reparaturen."""
+"""Vereinsinventar: Kategorien, Artikel, Dateien und Instandhaltungen."""
 import re
 import shutil
 import uuid
@@ -243,8 +243,8 @@ def list_repairs(item_id: int) -> list[InventoryRepair]:
 
 
 def invoice_hints(item_id: int) -> dict[int, str]:
-    """File id -> tooltip text for documents that are the invoice of a repair."""
-    return {r.invoice_file_id: f"Rechnung zur Reparatur vom {r.date:%d.%m.%Y}"
+    """File id -> tooltip text for documents that are the invoice of a maintenance entry."""
+    return {r.invoice_file_id: f"Rechnung zur Instandhaltung vom {r.date:%d.%m.%Y}"
             for r in list_repairs(item_id) if r.invoice_file_id}
 
 
@@ -252,13 +252,13 @@ def save_repair(data: dict, repair_id: int | None = None,
                 item_id: int | None = None) -> InventoryRepair:
     """`item_id` is required for new repairs."""
     if not isinstance(data.get("date"), date):
-        raise ValidationError("Das Datum der Reparatur ist Pflicht.")
-    if _number(data.get("cost"), "Kosten") <= 0:
-        raise ValidationError("Kosten müssen größer als 0 sein.")
+        raise ValidationError("Das Datum der Instandhaltung ist Pflicht.")
+    if _number(data.get("cost"), "Instandhaltungskosten") <= 0:
+        raise ValidationError("Instandhaltungskosten müssen größer als 0 sein.")
     values = {
         "date": data["date"],
         "description": (data.get("description") or "").strip() or None,
-        "cost": _number(data.get("cost"), "Kosten"),
+        "cost": _number(data.get("cost"), "Instandhaltungskosten"),
         "performed_by": (data.get("performed_by") or "").strip() or None,
         "invoice_file_id": data.get("invoice_file_id") or None,
     }
@@ -266,7 +266,7 @@ def save_repair(data: dict, repair_id: int | None = None,
         if repair_id:
             repair = s.get(InventoryRepair, repair_id)
             if repair is None:
-                raise ValidationError("Reparatur nicht gefunden.")
+                raise ValidationError("Instandhaltung nicht gefunden.")
         else:
             repair = InventoryRepair(item_id=item_id)
         if values["invoice_file_id"]:

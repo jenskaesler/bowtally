@@ -138,4 +138,7 @@ def test_data_request_mail_is_an_eml_draft_with_the_masked_data(tmp_path, monkey
         msg = email.message_from_binary_file(f, policy=email.policy.default)
     body = msg.get_body().get_content()
     assert msg["To"] == "anna@example.org" and msg["X-Unsent"] == "1"
+    raw = open(opened[0], "rb").read()      # Outlook: no quoted-printable, CRLF, ASCII-only body
+    assert b"quoted-printable" not in raw and b"base64" in raw
+    assert b"\n" not in raw.replace(b"\r\n", b"") and body.isascii()
     assert "** **** **** **** **** 3000" in body and "DE89" not in body

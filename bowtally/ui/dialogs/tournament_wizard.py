@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox,
                                QTableWidgetItem, QToolButton, QVBoxLayout, QWidget,
                                QWizard, QWizardPage)
 
+from bowtally.services import markup
 from bowtally.services import master_data_service as md
 from bowtally.services import scoring_service as sc
 from bowtally.services import settings_service as ss
@@ -21,6 +22,7 @@ from bowtally.ui import button, repolish, restore_geom, save_geom, show_error, t
 from bowtally.ui.components.capacity_bar import CapacityBar
 from bowtally.ui.components.confirm_dialog import ConfirmDialog
 from bowtally.ui.components.help_link import help_link
+from bowtally.ui.components.markdown_edit import MarkdownEdit
 from bowtally.ui.components.form_field import CurrencyField, DateField, TimeField
 from bowtally.ui.components.toast import Toast
 
@@ -249,8 +251,8 @@ class TournamentWizard(QWizard):
         self.date.setFixedWidth(WIZARD_COMBO_W)
         self.location = QLineEdit(self._t("location", ""))
         self.organizer = QLineEdit(self._t("organizer", ""))
-        self.description = QPlainTextEdit(self._t("internal_notes", ""))
-        self.description.setFixedHeight(90)
+        self.description = MarkdownEdit(self._t("internal_notes", ""))
+        self.description.setFixedHeight(116)
         page = _Page(0, "Grunddaten", "Wie heißt das Turnier, wann und wo findet es statt? "
                      "Pflicht ist nur der Name.", lambda: bool(self.name.text().strip()))
         self.name.textChanged.connect(page.completeChanged)
@@ -772,20 +774,20 @@ class TournamentWizard(QWizard):
     def _page_texts(self) -> QWizardPage:
         from bowtally.reports.announcement import split_info
         intro, closing = split_info(self._t("additional_info", ""))
-        self.intro = QPlainTextEdit(intro)
+        self.intro = MarkdownEdit(intro)
         self.intro.setPlaceholderText(INTRO_PLACEHOLDER)
-        self.legal = QPlainTextEdit(self._t("legal_notes", ss.get("default_legal_notes", "")))
-        self.closing = QPlainTextEdit(closing)
+        self.legal = MarkdownEdit(self._t("legal_notes", ss.get("default_legal_notes", "")))
+        self.closing = MarkdownEdit(closing)
         self.closing.setPlaceholderText(CLOSING_PLACEHOLDER)
         for w in (self.intro, self.legal, self.closing):
-            w.setFixedHeight(130)
+            w.setFixedHeight(150)
         # Parcours-Hinweise: aus den Einstellungen vorbelegen, solange das Turnier keine eigenen hat
         club = ss.get_club_profile()
         course_desc = (club.get("course_description")
                        or ss.get("default_parcours_description", "") or "")
-        self.course_notes = QPlainTextEdit(self._t("notes", "") or course_desc)
+        self.course_notes = MarkdownEdit(self._t("notes", "") or course_desc)
         self.course_notes.setPlaceholderText("z. B. Festes Schuhwerk empfohlen, Parcours ca. 4 km")
-        self.course_notes.setFixedHeight(70)
+        self.course_notes.setFixedHeight(96)
         page = _Page(6, "Hinweise und Texte", "Texte für die Ausschreibung. Wichtige Hinweise: "
                      "eine Zeile je Hinweis.")
         form = _form()
@@ -872,7 +874,7 @@ class TournamentWizard(QWizard):
                 self.contact_name.text(), self.contact_phone.text(),
                 self.contact_email.text()))) or "–"),
                 ("IBAN", self.bank_iban.text() or "–")]),
-            (6, "Hinweise und Texte", [("Einleitung", short(self.intro.toPlainText()) or "–"),
+            (6, "Hinweise und Texte", [("Einleitung", short(markup.to_plain(self.intro.toPlainText())) or "–"),
                                        ("Hinweise", f"{legal_count} Einträge")]),
         ]
         LABEL_W = 160

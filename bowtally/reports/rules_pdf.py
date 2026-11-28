@@ -11,6 +11,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from bowtally import config
 from bowtally.reports import templates as tpl
 from bowtally.reports.announcement import LOGO_HEADER, _esc, _logo, german_date
+from bowtally.services import markup
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 
@@ -45,7 +46,7 @@ def build_rules_pdf(tournament_id: int | None = None, path: str | Path | None = 
         story += [Paragraph(_esc(" · ".join(i for i in info if i)), sub_s)]
     story.append(Spacer(1, 6 * mm))
     for para in [p for p in (settings.get(ss.KEY_TOURNAMENT_RULES_TEXT) or "").split("\n\n") if p.strip()]:
-        story += [Paragraph(_esc(para.strip()), body), Spacer(1, 2 * mm)]
+        story += [Paragraph(markup.to_reportlab(para.strip()), body), Spacer(1, 2 * mm)]
 
     doc = SimpleDocTemplate(str(path), pagesize=pagesize,
                             leftMargin=tpl.MARGIN_LEFT, rightMargin=tpl.MARGIN_RIGHT,

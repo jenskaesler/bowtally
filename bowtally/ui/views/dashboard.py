@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushBu
                                QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
 
 from bowtally.services import course_service as cs
+from bowtally.services import markup
 from bowtally.services import member_service as ms
 from bowtally.services import inventory_service as inv_svc
 from bowtally.services import master_data_service as md
@@ -576,7 +577,8 @@ class TournamentDashboard(QWidget):
 
     def _notes_card(self, t):
         card, c = _card("Notizen")
-        text = QLabel(t.internal_notes)
+        text = QLabel(markup.to_html(t.internal_notes))
+        text.setTextFormat(Qt.TextFormat.RichText)
         text.setWordWrap(True)
         text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         c.addWidget(text)

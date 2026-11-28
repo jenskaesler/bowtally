@@ -17,6 +17,7 @@ from reportlab.platypus import (Image, KeepTogether, ListFlowable, ListItem, Pag
 
 from bowtally import config
 from bowtally.reports import templates as tpl
+from bowtally.services import markup
 from bowtally.services import settings_service as ss
 from bowtally.services import tournament_service as ts
 
@@ -112,7 +113,7 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
         return [KeepTogether([Paragraph(HEADINGS[key], st["h"]), *flowables])]
 
     def lines(*items):
-        return [Paragraph(_esc(i), st["p"]) for i in items if i]
+        return [Paragraph(markup.to_reportlab(i), st["p"]) for i in items if i]
 
     story = []
     # header: club name left, logo right, rule
@@ -131,7 +132,7 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
     story.append(Paragraph(_esc(class_names), st["subtitle"]))
     intro, closing = split_info(t.additional_info)
     if intro:
-        story += [Spacer(1, 3 * mm), Paragraph(_esc(intro), st["p"])]
+        story += [Spacer(1, 3 * mm), Paragraph(markup.to_reportlab(intro), st["p"])]
 
     schedule = [german_date(t.date)]
     if t.checkin_start_time:
@@ -205,11 +206,12 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
     notes = [n.strip() for n in (t.legal_notes or "").splitlines() if n.strip()]
     if notes:
         story += section("notes", ListFlowable(
-            [ListItem(Paragraph(_esc(n), st["p"]), leftIndent=12) for n in notes],
+            [ListItem(Paragraph(markup.to_reportlab(markup.unlist(n)), st["p"]), leftIndent=12)
+             for n in notes],
             bulletType="bullet", start="•", leftIndent=12))
 
     if closing:
-        story += [Spacer(1, 6 * mm), Paragraph(_esc(closing), st["p"])]
+        story += [Spacer(1, 6 * mm), Paragraph(markup.to_reportlab(closing), st["p"])]
     if club.get("club_name"):
         story.append(Paragraph(_esc(club["club_name"]), st["sign"]))
     if ss.get_bool("print_show_logo"):
@@ -222,7 +224,8 @@ def generate_announcement_pdf(tournament_id: int, path: str | Path | None = None
                   .replace("\r\n", "\n").split("\n\n") if p.strip()]
     if conditions:
         story += [PageBreak()] + section("conditions",
-                                         ListFlowable([ListItem(Paragraph(_esc(c), st["p"]),
+                                         ListFlowable([ListItem(Paragraph(markup.to_reportlab(
+                                             markup.unlist(c)), st["p"]),
                                                                 leftIndent=12)
                                                        for c in conditions],
                                                       bulletType="bullet", start="•", leftIndent=12))

@@ -207,7 +207,7 @@ def test_repair_invoice_is_one_of_the_item_documents_and_goes_away_with_it(tmp_p
     repair = inv.save_repair({"date": date(2026, 3, 4), "cost": 9, "invoice_file_id": invoice.id},
                              item_id=item.id)
     assert inv.list_repairs(item.id)[0].invoice_file.filename == "rechnung.pdf"
-    assert inv.invoice_hints(item.id) == {invoice.id: "Rechnung zur Reparatur vom 04.03.2026"}
+    assert inv.invoice_hints(item.id) == {invoice.id: "Rechnung zur Instandhaltung vom 04.03.2026"}
     with pytest.raises(ValidationError):                     # file of another item
         inv.save_repair({"date": date(2026, 3, 4), "cost": 9, "invoice_file_id": invoice.id},
                         item_id=other.id)

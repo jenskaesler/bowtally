@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Central mailto helper: build and open mailto URLs from app_settings templates."""
 import base64
+import email.policy
 import mimetypes
 import tempfile
 import html
@@ -13,6 +14,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 
 from bowtally.io import exporter
+from bowtally.services import markup
 from bowtally.services import settings_service as ss
 from bowtally.ui.components.toast import Toast
 
@@ -74,9 +76,13 @@ def _font_family() -> str:
 MAIL_FONT_SIZE_PT = 10
 
 
-def _html_body(body: str, font: str) -> str:
-    """HTML mail body: font size always 10 pt; the family gets fallbacks, the recipient may lack it."""
-    inner = "<br>".join(html.escape(line) for line in body.split("\n"))
+def _html_body(template: str, ctx: dict, font: str) -> str:
+    """HTML mail body: font size always 10 pt; the family gets fallbacks, the recipient may lack it.
+    The markup applies to the template only; placeholder values are inserted as text."""
+    values = _SafeDict({k: html.escape(str(v)).replace("\n", "<br>") for k, v in ctx.items()})
+    # non-ASCII as &#…; entities: Outlook shows umlauts right whatever charset it assumes
+    inner = markup.to_html(template).format_map(values).encode(
+        "ascii", "xmlcharrefreplace").decode("ascii")
     family = f"font-family:'{font}','Segoe UI',Arial,sans-serif;" if font else ""
     return f'<div style="{family}font-size:{MAIL_FONT_SIZE_PT}pt">{inner}</div>'
 
@@ -129,16 +135,17 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
         return
     ctx = template_context(context)
     subj = (subj_raw or "").format_map(ctx)
-    body = (body_raw or "").format_map(ctx)
     if attachment or as_draft:
-        msg = EmailMessage()
+        msg = EmailMessage(policy=email.policy.SMTP)   # CRLF line ends, Outlook needs them
         msg["X-Unsent"] = "1"  # mail clients open the .eml as an editable draft
         if recipient_email:
             msg["To"] = recipient_email
         if bcc:
             msg["Bcc"] = bcc
         msg["Subject"] = subj
-        msg.set_content(_html_body(body, _font_family()), subtype="html", charset="utf-8")
+        # base64: quoted-printable left stray "=" in Outlook (soft line breaks in the long HTML line)
+        msg.set_content(_html_body(body_raw or "", ctx, _font_family()), subtype="html", charset="utf-8",
+                        cte="base64")
         for att in (attachment if isinstance(attachment, list) else [attachment] if attachment
                     else []):
             msg.add_attachment(Path(att).read_bytes(), maintype="application",
@@ -152,6 +159,7 @@ def open_mailto(template_key: str, recipient_email: str | None, context: dict,
             f.write(msg.as_bytes())
         exporter.open_file(f.name)
         return
+    body = markup.to_plain(body_raw or "").format_map(ctx)     # mailto: carries plain text
     url = f"mailto:{quote(recipient_email or '')}?subject={quote(subj)}&body={quote(body)}"
     if bcc:
         url += f"&bcc={quote(bcc)}"

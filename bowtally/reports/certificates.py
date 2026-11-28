@@ -7,7 +7,7 @@ from pathlib import Path
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader, simpleSplit
-from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfbase.pdfmetrics import getFont, stringWidth
 
 from bowtally import config
 from bowtally.reports import templates as tpl
@@ -79,8 +79,11 @@ def _seal(c, cx, cy, rank, bold_font, fallback):
     c.setLineWidth(1.2)
     c.circle(cx, cy, 16 * mm, fill=0, stroke=1)
     c.setFillColor(colors.white)
-    c.setFont(bold_font, 44)
-    c.drawCentredString(cx, cy - 7 * mm, str(rank))
+    size = 60
+    c.setFont(bold_font, size)
+    # digits are as tall as capitals: half the cap height below the centre is the baseline
+    cap = getattr(getFont(bold_font).face, "capHeight", 0) or 714
+    c.drawCentredString(cx, cy - size * cap / 2000, str(rank))
 
 
 def _logo(c, path, y_top):
@@ -131,7 +134,9 @@ def build_certificates(tournament_id: int, path: str | Path | None = None,
     boards = [" ".join(filter(None, [profile.get(f"{n}_board_fname"),
                                      profile.get(f"{n}_board_lname")]))
               for n in ("first", "second")]
-    place_date = ", ".join(filter(None, [t.location, f"{t.date:%d.%m.%Y}"]))
+    # venue of the tournament, else the club's town
+    place_date = ", ".join(filter(None, [t.location or profile.get("city"),
+                                         f"{t.date:%d.%m.%Y}"]))
 
     c = tpl.WatermarkCanvas(str(path), pagesize=(PAGE_W, PAGE_H))
     c.watermark_inset = (16 * mm, 16 * mm)     # inside the certificate frame
@@ -159,7 +164,7 @@ def build_certificates(tournament_id: int, path: str | Path | None = None,
             _text(c, "für hervorragende Leistungen verliehen an", y - 46 * mm, font, 13,
                   colors.black)
             _text(c, entry.name, y - 62 * mm, bold, 32, primary)
-            _seal(c, PAGE_W / 2, y - 98 * mm, entry.rank, bold, settings.get(
+            _seal(c, PAGE_W / 2, y - 92 * mm, entry.rank, bold, settings.get(
                 ss.KEY_PRINT_COLOR_PRIMARY) or "#00357D")
             _text(c, f"{entry.rank}. Platz", y - 127 * mm, bold, 24, colors.black)
             if bc:

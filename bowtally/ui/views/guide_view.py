@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (QCheckBox, QFrame, QGridLayout, QHBoxLayout, QLab
 from bowtally.services import tournament_service as ts
 from bowtally.ui import button, repolish
 from bowtally.ui.components.capacity_bar import CapacityBar, ProgressBar
+from bowtally.ui.components.markdown_edit import MarkdownEdit
 from bowtally.ui.components.page_header import PageHeader
 from bowtally.ui.components.status_chip import StatusChip
 from bowtally.ui.components.toast import Toast
@@ -217,7 +218,7 @@ class GuideView(QWidget):
             self.body_lay.addWidget(extra, int(t.phase == "closed"))  # Nachbesprechung füllt den Platz
         if t.phase == "closed" and t.internal_notes:
             card, lay = _card("Notizen")
-            nb = QPlainTextEdit(t.internal_notes)
+            nb = MarkdownEdit(t.internal_notes)
             nb.setReadOnly(True)
             nb.setMinimumHeight(80)
             nb.setMaximumHeight(140)
